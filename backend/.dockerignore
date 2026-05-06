@@ -1,0 +1,42 @@
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+.env
+.env.*
+!.env.example
+
+.git
+.gitignore
+
+# Logs
+logs
+*.log
+
+# Testing
+coverage
+.nyc_output
+jest.config.*
+
+# Herramientas de desarrollo
+.eslintrc*
+.prettierrc*
+.editorconfig
+nodemon.json
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+README.md
+readme.md
+
+Dockerfile*
+docker-compose*

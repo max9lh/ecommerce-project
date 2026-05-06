@@ -1,0 +1,36 @@
+# ============================================================
+# .dockerignore - Frontend
+# Excluir archivos innecesarios del contexto de build de Docker
+# ============================================================
+
+# Dependencias (se instalan dentro del contenedor)
+node_modules
+npm-debug.log*
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# Build output (se genera dentro del contenedor)
+dist
+build
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage
+
+# Docker
+Dockerfile*

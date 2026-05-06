@@ -1,0 +1,47 @@
+# ============================================================
+# Gestor Financiero - Docker Compose para DESARROLLO
+# Hot-reload habilitado, puertos expuestos, logs en consola
+# ============================================================
+# Uso: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# ============================================================
+
+services:
+
+  db_service:
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: dev_password_local
+
+  api_service:
+    build:
+      target: builder
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://gestor_user:dev_password_local@db_service:5432/gestor_financiero?schema=public
+      JWT_SECRET: dev_jwt_secret_no_usar_en_produccion
+      BCRYPT_ROUNDS: 10
+      CORS_ORIGIN: http://localhost:5173
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+    command: sh -c "npx prisma migrate deploy && npx nodemon src/server.js"
+    ports:
+      - "3000:3000"
+
+  frontend_service:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+      target: dev
+    environment:
+      VITE_API_URL: http://localhost:3000/api
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    ports:
+      - "5173:5173"
+
+  proxy_service:
+    ports:
+      - "8080:80"

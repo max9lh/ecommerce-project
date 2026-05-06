@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 Int                @id @default(autoincrement())
+  username           String             @unique
+  password_hash      String
+  pct_merchandise    Decimal            @default(0.60) @db.Decimal(3, 2)
+  pct_fixed_expenses Decimal            @default(0.30) @db.Decimal(3, 2)
+  pct_savings         Decimal            @default(0.10) @db.Decimal(3, 2)
+  accounts           Account[]
+  budget_balances    BudgetBalance[]
+  providers          Provider[]
+  daily_closures     DailyClosure[]
+  expenses           Expense[]
+  created_at         DateTime           @default(now())
+}
+
+model Account {
+  id                    Int                   @id @default(autoincrement())
+  user_id               Int
+  user                  User                  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                  String                @db.VarChar(20)
+  balance               Decimal               @default(0.00) @db.Decimal(15, 2)
+  daily_closure_details DailyClosureDetail[]
+  expenses              Expense[]
+}
+
+model BudgetBalance {
+  id       Int     @id @default(autoincrement())
+  user_id  Int
+  user     User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  category String  @db.VarChar(50)
+  balance  Decimal @default(0.00) @db.Decimal(15, 2)
+
+  @@unique([user_id, category])
+}
+
+model DailyClosure {
+  id                Int                  @id @default(autoincrement())
+  user_id           Int
+  user              User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  total_amount      Decimal              @db.Decimal(15, 2)
+  date              DateTime             @default(now())
+  details           DailyClosureDetail[]
+  budget_allocations BudgetAllocation[]
+}
+
+model DailyClosureDetail {
+  id         Int          @id @default(autoincrement())
+  closure_id Int
+  closure    DailyClosure @relation(fields: [closure_id], references: [id], onDelete: Cascade)
+  account_id Int
+  account    Account      @relation(fields: [account_id], references: [id])
+  amount     Decimal      @db.Decimal(15, 2)
+}
+
+model BudgetAllocation {
+  id               Int          @id @default(autoincrement())
+  closure_id       Int
+  closure          DailyClosure @relation(fields: [closure_id], references: [id], onDelete: Cascade)
+  category         String       @db.VarChar(50)
+  amount_allocated Decimal      @db.Decimal(15, 2)
+}
+
+model Provider {
+  id                Int       @id @default(autoincrement())
+  user_id           Int
+  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name              String    @db.VarChar(100)
+  payment_condition String    @db.VarChar(20)
+  credit_days       Int       @default(0)
+  expenses          Expense[]
+}
+
+model Expense {
+  id              Int       @id @default(autoincrement())
+  user_id         Int
+  user            User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  provider_id     Int
+  provider        Provider  @relation(fields: [provider_id], references: [id])
+  account_id      Int
+  account         Account   @relation(fields: [account_id], references: [id])
+  budget_category String    @db.VarChar(50)
+  amount          Decimal   @db.Decimal(15, 2)
+  status          String    @default("Pagado")
+  due_date        DateTime?
+  created_at      DateTime  @default(now())
+}
