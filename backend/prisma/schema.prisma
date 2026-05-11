@@ -16,6 +16,7 @@ model User {
   pct_savings         Decimal            @default(0.10) @db.Decimal(3, 2)
   accounts           Account[]
   budget_balances    BudgetBalance[]
+  budget_allocations BudgetAllocation[]
   providers          Provider[]
   daily_closures     DailyClosure[]
   expenses           Expense[]
@@ -65,6 +66,8 @@ model BudgetAllocation {
   id               Int          @id @default(autoincrement())
   closure_id       Int
   closure          DailyClosure @relation(fields: [closure_id], references: [id], onDelete: Cascade)
+  user_id          Int
+  user             User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
   category         String       @db.VarChar(50)
   amount_allocated Decimal      @db.Decimal(15, 2)
 }
