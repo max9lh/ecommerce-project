@@ -1,3 +1,4 @@
+
 const authService = require('../services/auth.services');
 
 const register = async (req, res, next) => {
@@ -26,4 +27,17 @@ const login = async (req, res, next) => {
     }
 };
 
-module.exports = { register, login };
+const updatePercentages = async (req, res, next) => {
+    try {
+        const user = await authService.updatePercentages({ userId: req.user.id, ...req.body });
+        res.status(200).json({
+            status: 'success',
+            message: 'Porcentajes actualizados',
+            data: user,
+        })
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { register, login, updatePercentages };

@@ -83,6 +83,18 @@ const expensesSchema = z.object({
     path: ['due_date'],
 });
 
+const updatePercentagesSchema = z.object({
+    pct_merchandise: pctField('mercadería'),
+    pct_fixed_expenses: pctField('gastos fijos'),
+    pct_savings: pctField('ahorros'),
+}).refine(
+    (data) => Math.abs(data.pct_merchandise + data.pct_fixed_expenses + data.pct_savings - 1) < 0.001,
+    {
+        message: 'Los porcentajes deben sumar exactamente 100%',
+        path: ['pct_merchandise'],
+    }
+);
+
 const validate = (schema) => (req, res, next) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
@@ -98,5 +110,6 @@ module.exports = {
     dailyClosureSchema,
     providerSchema,
     expensesSchema,
+    updatePercentagesSchema,
     validate,
 };

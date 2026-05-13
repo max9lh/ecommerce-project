@@ -66,4 +66,19 @@ const login = async ({ username, password }) => {
     };
 }
 
-module.exports = { register, login };
+const updatePercentages = async ({ userId, pct_merchandise, pct_fixed_expenses, pct_savings }) => {
+    const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { pct_merchandise, pct_fixed_expenses, pct_savings },
+        select: {
+            id: true,
+            pct_merchandise: true,
+            pct_fixed_expenses: true,
+            pct_savings: true,
+        },
+    });
+
+    return updatedUser;
+}
+
+module.exports = { register, login, updatePercentages };
