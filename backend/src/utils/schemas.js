@@ -6,10 +6,12 @@ const budgetCategory = ['Mercaderia', 'Ahorro', 'Gastos fijos'];
 
 // Los porcentajes se almacenan como decimales en la DB (Decimal(3,2))
 // Enviar 0.60 para representar 60%, no 60.
-const pctField = (fieldName) =>
-    z.number()
+const pctField = (fieldName) => {
+    return z.number()
         .min(0, `El porcentaje de ${fieldName} debe ser mayor o igual a 0`)
         .max(1, `El porcentaje de ${fieldName} debe ser menor o igual a 1`);
+}
+
 
 const registerSchema = z.object({
     username: z.string()
@@ -98,7 +100,7 @@ const updatePercentagesSchema = z.object({
 const validate = (schema) => (req, res, next) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
-        return res.status(400).json({ errors: result.error.errors });
+        return res.status(400).json({ errors: result.error.issues });
     }
     req.body = result.data;
     next();
