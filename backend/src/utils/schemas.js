@@ -93,6 +93,7 @@ const expensesSchema = z.object({
     path: ['due_date'],
 });
 
+
 const updatePercentagesSchema = z.object({
     pct_merchandise: pctField('mercadería'),
     pct_fixed_expenses: pctField('gastos fijos'),

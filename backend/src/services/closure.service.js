@@ -26,6 +26,13 @@ const createClosure = async ({ total_amount, details, user_id }) => {
             })),
         });
 
+        for (const detail of details) {
+            await tx.account.update({
+                where: { id: detail.account_id },
+                data: { balance: { increment: detail.amount } }
+            });
+        }
+
         await tx.budgetAllocation.createMany({
             data: [
                 { closure_id: closure.id, user_id: user_id, amount_allocated: marchandise_amount, category: 'Mercaderia' },
