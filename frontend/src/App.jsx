@@ -4,6 +4,7 @@ import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
+import Singup from './pages/Singup';
 import { ThemeProvider } from './components/theme-provider';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './components/protected-route';
@@ -16,7 +17,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
-          
+          <Route path='/singup' element={<Singup />}/>   
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <DashboardLayout>
@@ -27,7 +28,7 @@ function App() {
               </DashboardLayout>
             </ProtectedRoute>
           } />
-          
+
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import api from "@/api/api"
 import { cn } from "@/lib/utils"
+import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -27,7 +28,11 @@ export function LoginForm({
       
       navigate("/dashboard")
     } catch (err) {
-      setError(err.response?.data?.message || "Usuario o contraseña incorrectos")
+      if (err.response?.data?.errors) {
+        setError(err.response.data.errors[0].message);
+      } else {
+        setError(err.response?.data?.message || "Usuario o contraseña incorrectos");
+      }
     }
   }
   return (
@@ -72,9 +77,9 @@ export function LoginForm({
       </div>
       <div className="text-center text-sm">
         ¿No tenés una cuenta?{" "}
-        <a href="#" className="underline underline-offset-4">
-          Contactá al administrador
-        </a>
+        <Link to="/singup" className="underline underline-offset-4">
+          Crear cuenta nueva
+        </Link>
       </div>
     </form>
   );
