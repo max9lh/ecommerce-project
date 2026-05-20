@@ -66,6 +66,14 @@ const providerSchema = z.object({
 }, {
     message: 'Los proveedores a crédito deben tener una cantidad de días de crédito mayor a 0',
     path: ['credit_days'],
+}).refine((data) => {
+    if (data.payment_condition === 'Contado') {
+        return data.credit_days === 0;
+    }
+    return true;
+}, {
+    message: 'Los proveedores con pago al contado deben tener 0 días de crédito',
+    path: ['credit_days'],
 });
 
 const expensesSchema = z.object({
