@@ -5,8 +5,9 @@ import heroImg from './assets/hero.png'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import { ThemeProvider } from './components/theme-provider';
-import { ModeToggle } from './components/mode-toggle';
-import './App.css'
+import { DashboardLayout } from './layouts/DashboardLayout';
+import { ProtectedRoute } from './components/protected-route';
+import './App.css';
 
 function App() {
   return (
@@ -14,22 +15,23 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/login" />} />
-          
           <Route path="/login" element={<Login />} />
           
           <Route path="/dashboard" element={
-            <div className="min-h-screen bg-background text-foreground p-8">
-              <div className="flex justify-between items-center mb-8">
-                <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-                <ModeToggle />
-              </div>
-              <p className="text-muted-foreground">El panel interactivo está en construcción. Usá el botón de arriba a la derecha para alternar entre tema oscuro y claro.</p>
-            </div>
+            <ProtectedRoute>
+              <DashboardLayout>
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight mb-4">Dashboard Principal</h1>
+                  <p className="text-muted-foreground">Bienvenido al sistema financiero. Aquí pondremos los widgets y gráficos (Tarea 4.3).</p>
+                </div>
+              </DashboardLayout>
+            </ProtectedRoute>
           } />
+          
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
   );
 }
 
-export default App
+export default App;
