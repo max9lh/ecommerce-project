@@ -10,16 +10,14 @@ services:
   db_service:
     ports:
       - "5432:5432"
-    environment:
-      POSTGRES_PASSWORD: dev_password_local
 
   api_service:
     build:
       target: builder
     environment:
       NODE_ENV: development
-      DATABASE_URL: postgresql://gestor_user:dev_password_local@db_service:5432/gestor_financiero?schema=public
-      JWT_SECRET: dev_jwt_secret_no_usar_en_produccion
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_service:5432/${POSTGRES_DB}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
       BCRYPT_ROUNDS: 10
       CORS_ORIGIN: http://localhost:5173
     volumes:
@@ -37,8 +35,8 @@ services:
     environment:
       VITE_API_URL: http://localhost:3000/api
     volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
+      - ./frontend:/app
+      - /app/node_modules
     ports:
       - "5173:5173"
 

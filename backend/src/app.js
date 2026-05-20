@@ -5,6 +5,8 @@ const cors = require('cors');
 const errorHandler = require('./middlewares/errorHandler');
 const authRouter = require('./routes/auth.routes');
 const closureRouter = require('./routes/closure.routes');
+const providerRouter = require('./routes/providers.routes');
+const accountsRouter = require('./routes/accounts.routes');
 const app = express();
 
 app.use(helmet());
@@ -19,6 +21,8 @@ app.get('/api/health', (req, res) => {
 // Rutas
 app.use('/api/auth', authRouter);
 app.use('/api/closures', closureRouter);
+app.use('/api/providers', providerRouter);
+app.use('/api/accounts', accountsRouter);
 
 // Error handler global (siempre al final)
 app.use(errorHandler);
