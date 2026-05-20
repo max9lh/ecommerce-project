@@ -34,6 +34,28 @@ const createClosure = async ({ total_amount, details, user_id }) => {
             ],
         });
 
+        const categories = [
+            { name: 'Mercaderia', amount: marchandise_amount },
+            { name: 'Gastos fijos', amount: fixed_amount },
+            { name: 'Ahorro', amount: saving_amount }
+        ];
+
+        for (const cat of categories) {
+            await tx.budgetBalance.upsert({
+                where: {
+                    user_id_category: { user_id: user_id, category: cat.name }
+                },
+                update: {
+                    balance: { increment: cat.amount }
+                },
+                create: {
+                    user_id: user_id,
+                    category: cat.name,
+                    balance: cat.amount
+                }
+            });
+        }
+
         return closure;
     });
     return result;
