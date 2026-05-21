@@ -1,13 +1,13 @@
 const prisma = require('../config/db');
 
-const createExpense = async ( userId, expenseData ) => {
+const createExpense = async (userId, expenseData) => {
     const { provider_id, account_id, budget_category, amount, status, due_date } = expenseData;
 
     return await prisma.$transaction(async (tx) => {
         const account = await tx.account.findFirst({
             where: { id: parseInt(account_id), user_id: userId }
         });
-        if(!account){
+        if (!account) {
             const error = new Error('La cuenta seleccionada no existe');
             error.statusCode = 404;
             throw error;
@@ -24,8 +24,10 @@ const createExpense = async ( userId, expenseData ) => {
             throw error;
         }
 
-        if(status === 'Pagado'){
-            if(Number(account.balance) < Number(amount)){
+        const finalStatus = status || 'Pendiente';
+
+        if (finalStatus === 'Pagado') {
+            if (Number(account.balance) < Number(amount)) {
                 const error = new Error('Saldo insuficiente en la cuenta física seleccionada');
                 error.statusCode = 400;
                 throw error;
@@ -56,26 +58,27 @@ const createExpense = async ( userId, expenseData ) => {
                 account_id: parseInt(account_id),
                 budget_category,
                 amount,
-                status: status || 'Pagado',
-                due_date: due_date ? new Date(due_date) : null
+                status: finalStatus,
+                due_date: due_date ? new Date(due_date) : null,
+                paid_at: finalStatus === 'Pagado' ? new Date() : null
             }
         });
-    return expense;
+        return expense;
     });
 };
 
-const payExpense = async (userId, expenseId ) => {
+const payExpense = async (userId, expenseId) => {
     return await prisma.$transaction(async (tx) => {
         const expense = await tx.expense.findFirst({
             where: { id: parseInt(expenseId), user_id: userId }
         });
 
-        if(!expense){
+        if (!expense) {
             const error = new Error('El gasto seleccionado no existe');
             error.statusCode = 404;
             throw error;
         }
-        
+
         if (expense.status === 'Pagado') {
             const error = new Error('Este gasto ya ha sido pagado previamente');
             error.statusCode = 400;
@@ -130,7 +133,10 @@ const payExpense = async (userId, expenseId ) => {
 
         const updatedExpense = await tx.expense.update({
             where: { id: expense.id },
-            data: { status: 'Pagado' }
+            data: {
+                status: 'Pagado',
+                paid_at: new Date()
+            }
         });
 
         return updatedExpense;
@@ -154,12 +160,12 @@ const getExpenses = async (userId, filters = {}) => {
 
     if (from_date || to_date) {
         whereConditions.created_at = {};
-        
+
         if (from_date) {
             whereConditions.created_at.gte = new Date(from_date);
         }
         if (to_date) {
-            whereConditions.created_at.lte = new Date(to_date); 
+            whereConditions.created_at.lte = new Date(to_date);
         }
     }
 
@@ -177,7 +183,8 @@ const getExpenses = async (userId, filters = {}) => {
 
 const getUpcomingExpenses = async (userId, daysWindow = 7) => {
     const today = new Date();
-    
+    today.setHours(0, 0, 0, 0);
+
     const futureLimit = new Date();
     futureLimit.setDate(today.getDate() + daysWindow);
 
