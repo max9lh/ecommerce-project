@@ -1,21 +1,15 @@
 const prisma = require('../config/db');
+const { getAdminContext } = require('../utils/adminContext');
 
 const createExpense = async (userId, expenseData) => {
     const { provider_id, account_id, budget_category, amount, status, due_date } = expenseData;
 
     return await prisma.$transaction(async (tx) => {
-        const account = await tx.account.findFirst({
-            where: { id: parseInt(account_id), user_id: userId }
-        });
-        if (!account) {
-            const error = new Error('La cuenta seleccionada no existe');
-            error.statusCode = 404;
-            throw error;
-        }
+        const adminCtx = await getAdminContext();
 
         const budget = await tx.budgetBalance.findUnique({
             where: {
-                user_id_category: { user_id: userId, category: budget_category }
+                user_id_category: { user_id: adminCtx.adminId, category: budget_category }
             }
         });
         if (!budget) {
@@ -27,6 +21,15 @@ const createExpense = async (userId, expenseData) => {
         const finalStatus = status || 'Pendiente';
 
         if (finalStatus === 'Pagado') {
+            const account = await tx.account.findUnique({
+                where: { id: parseInt(account_id) }
+            });
+
+            if(!account){
+                const error = new Error('La cuenta física seleccionada no existe');
+                error.statusCode = 404;
+                throw error;
+            }
             if (Number(account.balance) < Number(amount)) {
                 const error = new Error('Saldo insuficiente en la cuenta física seleccionada');
                 error.statusCode = 400;
@@ -45,7 +48,7 @@ const createExpense = async (userId, expenseData) => {
 
             await tx.budgetBalance.update({
                 where: {
-                    user_id_category: { user_id: userId, category: budget_category }
+                    user_id_category: { user_id: adminCtx.adminId, category: budget_category }
                 },
                 data: { balance: { decrement: amount } }
             });
@@ -69,8 +72,10 @@ const createExpense = async (userId, expenseData) => {
 
 const payExpense = async (userId, expenseId) => {
     return await prisma.$transaction(async (tx) => {
+        const adminCtx = await getAdminContext();
+
         const expense = await tx.expense.findFirst({
-            where: { id: parseInt(expenseId), user_id: userId }
+            where: { id: parseInt(expenseId) }
         });
 
         if (!expense) {
@@ -86,7 +91,7 @@ const payExpense = async (userId, expenseId) => {
         }
 
         const account = await tx.account.findFirst({
-            where: { id: expense.account_id, user_id: userId }
+            where: { id: expense.account_id }
         });
 
         if (!account) {
@@ -97,7 +102,7 @@ const payExpense = async (userId, expenseId) => {
 
         const budget = await tx.budgetBalance.findUnique({
             where: {
-                user_id_category: { user_id: userId, category: expense.budget_category }
+                user_id_category: { user_id: adminCtx.adminId, category: expense.budget_category }
             }
         });
 
@@ -126,7 +131,7 @@ const payExpense = async (userId, expenseId) => {
 
         await tx.budgetBalance.update({
             where: {
-                user_id_category: { user_id: userId, category: expense.budget_category }
+                user_id_category: { user_id: adminCtx.adminId, category: expense.budget_category }
             },
             data: { balance: { decrement: expense.amount } }
         });
@@ -134,6 +139,7 @@ const payExpense = async (userId, expenseId) => {
         const updatedExpense = await tx.expense.update({
             where: { id: expense.id },
             data: {
+                user_id: userId,
                 status: 'Pagado',
                 paid_at: new Date()
             }
@@ -146,9 +152,7 @@ const payExpense = async (userId, expenseId) => {
 const getExpenses = async (userId, filters = {}) => {
     const { status, budget_category, from_date, to_date } = filters;
 
-    const whereConditions = {
-        user_id: userId
-    };
+    const whereConditions = {};
 
     if (status) {
         whereConditions.status = status;
@@ -173,7 +177,8 @@ const getExpenses = async (userId, filters = {}) => {
         where: whereConditions,
         include: {
             provider: { select: { name: true } },
-            account: { select: { name: true } }
+            account: { select: { name: true } },
+            user: { select: { username: true } }
         },
         orderBy: {
             created_at: 'desc'
