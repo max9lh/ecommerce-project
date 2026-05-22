@@ -115,6 +115,36 @@ const validate = (schema) => (req, res, next) => {
     next();
 };
 
+const createEmployeeSchema = z.object({
+    username: z.string()
+        .min(6, 'El usuario debe tener al menos 6 caracteres')
+        .max(20, 'El usuario no puede tener más de 20 caracteres'),
+    password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+    first_name: z.string()
+        .min(2, 'El nombre debe tener al menos 2 caracteres')
+        .max(50, 'El nombre no puede tener más de 50 caracteres'),
+    last_name: z.string()
+        .min(2, 'El apellido debe tener al menos 2 caracteres')
+        .max(50, 'El apellido no puede tener más de 50 caracteres'),
+    hourly_rate: z.number().nonnegative('La tarifa por hora debe ser mayor o igual a 0'),
+    salary_type: z.enum(['hourly', 'fixed'], { errorMap: () => ({ message: 'Tipo de salario inválido' }) }),
+    monthly_salary: z.number().nonnegative('El salario mensual debe ser mayor o igual a 0').nullable().optional()
+});
+
+const updatePermissionsSchema = z.object({
+    canRegisterClosures: z.boolean(),
+    canRegisterExpenses: z.boolean(),
+    canPayExpenses: z.boolean(),
+    canManageProviders: z.boolean()
+});
+
+const updateProfileSchema = z.object({
+    hourly_rate: z.number().nonnegative('La tarifa por hora debe ser mayor o igual a 0'),
+    salary_type: z.enum(['hourly', 'fixed']),
+    monthly_salary: z.number().nonnegative('El salario mensual debe ser mayor o igual a 0').nullable().optional()
+});
+
+
 module.exports = {
     registerSchema,
     loginSchema,
@@ -123,4 +153,7 @@ module.exports = {
     expensesSchema,
     updatePercentagesSchema,
     validate,
+    createEmployeeSchema,
+    updatePermissionsSchema,
+    updateProfileSchema,
 };
