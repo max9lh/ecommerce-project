@@ -16,7 +16,7 @@ export function SignupForm({ className, ...props }) {
     pct_fixed_expenses: 30,
     pct_savings: 10,
   })
-  
+
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const navigate = useNavigate()
@@ -50,7 +50,7 @@ export function SignupForm({ className, ...props }) {
         pct_fixed_expenses: Number(formData.pct_fixed_expenses) / 100,
         pct_savings: Number(formData.pct_savings) / 100,
       })
-      
+
       setSuccess(true)
       setTimeout(() => navigate("/login"), 2000)
     } catch (err) {
@@ -69,11 +69,11 @@ export function SignupForm({ className, ...props }) {
   return (
     <form onSubmit={manejarSubmit} className={cn("flex flex-col gap-6", className)} {...props}>
       <div className="flex flex-col gap-4">
-        
+
         <div className="flex flex-col items-center gap-1 text-center mb-2">
           <h1 className="text-2xl font-bold">Crea tu Cuenta</h1>
           <p className="text-sm text-balance text-muted-foreground">
-            Registrate en Gestor Financiero y configurá tus reglas de distribución de presupuesto. 
+            Registrate en Gestor Financiero y configurá tus reglas de distribución de presupuesto.
           </p>
         </div>
 
@@ -90,12 +90,12 @@ export function SignupForm({ className, ...props }) {
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="username">Nombre de Usuario</Label>
-          <Input id="username" type="text" placeholder="Diego Armando" required minLength={6} maxLength={20} value={formData.username} onChange={handleChange}  />
+          <Input id="username" type="text" placeholder="Diego Armando" required minLength={6} maxLength={20} value={formData.username} onChange={handleChange} />
         </div>
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" required minLength={8} value={formData.password} onChange={handleChange}/>
+          <Input id="password" type="password" required minLength={8} value={formData.password} onChange={handleChange} />
           <p className="text-xs text-muted-foreground">Must be at least 8 characters long.</p>
         </div>
 
