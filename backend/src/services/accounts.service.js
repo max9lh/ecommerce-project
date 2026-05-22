@@ -13,7 +13,15 @@ const getBalances = async (user_id) => {
     })
 }
 
+const getBudgetBalances = async (user_id) => {
+    return prisma.budgetBalance.findMany({
+        where: { user_id },
+        select: { category: true, balance: true }
+    })
+}
+
 module.exports = {
-    getBalances
+    getBalances,
+    getBudgetBalances
 }
 

@@ -1,10 +1,12 @@
 const { Router } = require('express');
-const { getBalances } = require('../controllers/accounts.controller');
+const { getBalances, getBudgetBalances, createBalances } = require('../controllers/accounts.controller');
 const authGuard = require('../middlewares/authGuard');
-
+const requireAdmin = require('../middlewares/requireAdmin')
 
 const router = Router();
 
-router.get('/', authGuard, getBalances);
+router.post('/', authGuard, createBalances);
+router.get('/', authGuard, requireAdmin, getBalances);
+router.get('/budget-balances', authGuard, requireAdmin, getBudgetBalances);
 
 module.exports = router;

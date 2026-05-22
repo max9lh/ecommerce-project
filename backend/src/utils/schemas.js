@@ -2,7 +2,7 @@ const { z } = require('zod');
 
 const statusAmount = ["Pendiente", "Pagado"];
 const paymentCondition = ["Contado", "Credito"];
-const budgetCategory = ['Mercaderia', 'Ahorro', 'Gastos fijos'];
+const budgetCategory = ['Mercadería', 'Ahorro', 'Gastos Fijos'];
 
 // Los porcentajes se almacenan como decimales en la DB (Decimal(3,2))
 // Enviar 0.60 para representar 60%, no 60.
@@ -19,9 +19,9 @@ const registerSchema = z.object({
         .max(20, 'El usuario no puede tener más de 20 caracteres'),
     password: z.string()
         .min(8, 'La contraseña debe tener al menos 8 caracteres'),
-    pct_merchandise: pctField('mercadería'),
-    pct_fixed_expenses: pctField('gastos fijos'),
-    pct_savings: pctField('ahorros'),
+    pct_merchandise: pctField('Mercadería'),
+    pct_fixed_expenses: pctField('Gastos Fijos'),
+    pct_savings: pctField('Ahorros'),
 }).refine(
     (data) => Math.abs(data.pct_merchandise + data.pct_fixed_expenses + data.pct_savings - 1) < 0.001,
     {
@@ -96,8 +96,8 @@ const expensesSchema = z.object({
 
 const updatePercentagesSchema = z.object({
     pct_merchandise: pctField('mercadería'),
-    pct_fixed_expenses: pctField('gastos fijos'),
-    pct_savings: pctField('ahorros'),
+    pct_fixed_expenses: pctField('Gastos Fijos'),
+    pct_savings: pctField('Ahorros'),
 }).refine(
     (data) => Math.abs(data.pct_merchandise + data.pct_fixed_expenses + data.pct_savings - 1) < 0.001,
     {

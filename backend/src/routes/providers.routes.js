@@ -2,16 +2,16 @@ const { Router } = require('express');
 const { getAllProviders, createProvider, updateProvider, deleteProvider } = require('../controllers/providers.controller');
 const authGuard = require('../middlewares/authGuard');
 const { validate, providerSchema } = require('../utils/schemas');
-
+const requirePermission = require('../middlewares/requirePermission');
 
 const router = Router();
 
-router.get('/', authGuard, getAllProviders);
+router.get('/', authGuard, requirePermission('canManageProviders'),getAllProviders);
 
-router.post('/', authGuard, validate(providerSchema), createProvider);
+router.post('/', authGuard, requirePermission('canManageProviders'), validate(providerSchema), createProvider);
 
-router.put('/:id', authGuard, validate(providerSchema), updateProvider);
+router.put('/:id', authGuard, requirePermission('canManageProviders'), validate(providerSchema), updateProvider);
 
-router.delete('/:id', authGuard, deleteProvider);
+router.delete('/:id', authGuard, requirePermission('canManageProviders'), deleteProvider);
 
 module.exports = router;
