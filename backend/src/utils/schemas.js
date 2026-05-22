@@ -145,6 +145,8 @@ const updateProfileSchema = z.object({
 });
 
 
+
+
 module.exports = {
     registerSchema,
     loginSchema,
