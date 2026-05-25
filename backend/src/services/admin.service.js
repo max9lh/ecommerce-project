@@ -25,7 +25,7 @@ const createEmployee = async (employeeData) => {
 
         await tx.employeeProfile.create({
             data: {
-                userId: newUser.id,
+                user_id: newUser.id,
                 hourly_rate,
                 first_name,
                 last_name,
@@ -36,7 +36,7 @@ const createEmployee = async (employeeData) => {
 
         await tx.employeePermission.create({
             data: {
-                userId: newUser.id
+                user_id: newUser.id
             }
         });
 
@@ -60,7 +60,7 @@ const getEmployees = async () => {
 
 
 const updateEmployeePermissions = async (userId, permissionsData) => {
-    const permissionExists = await prisma.employeePermission.findUnique({ where: { userId } });
+    const permissionExists = await prisma.employeePermission.findUnique({ where: { user_id: userId } });
     if (!permissionExists) {
         const error = new Error('Permisos no encontrados para este usuario');
         error.statusCode = 404;
@@ -68,7 +68,7 @@ const updateEmployeePermissions = async (userId, permissionsData) => {
     }
 
     return await prisma.employeePermission.update({
-        where: { userId },
+        where: { user_id: userId },
         data: {
             canRegisterClosures: permissionsData.canRegisterClosures,
             canRegisterExpenses: permissionsData.canRegisterExpenses,
@@ -79,7 +79,7 @@ const updateEmployeePermissions = async (userId, permissionsData) => {
 };
 
 const updateEmployeeProfile = async (userId, profileData) => {
-    const profileExists = await prisma.employeeProfile.findUnique({ where: { userId } });
+    const profileExists = await prisma.employeeProfile.findUnique({ where: { user_id: userId } });
     if (!profileExists) {
         const error = new Error('Perfil de empleado no encontrado');
         error.statusCode = 404;
@@ -87,7 +87,7 @@ const updateEmployeeProfile = async (userId, profileData) => {
     }
 
     return await prisma.employeeProfile.update({
-        where: { userId },
+        where: { user_id: userId },
         data: {
             hourly_rate: profileData.hourly_rate,
             salary_type: profileData.salary_type,

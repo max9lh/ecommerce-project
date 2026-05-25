@@ -1,8 +1,7 @@
-const express = require('express');
-const router = express.Router();
-const adminController = require('../controllers/admin.controller');
-const authGuard = require('../middlewares/authGuard');
-const requireAdmin = require('../middlewares/requireAdmin');
+const { Router } = require('express');
+const { createEmployee, getEmployees, updateEmployeePermissions, updateEmployeeProfile, deleteEmployee } = require('../controllers/admin.controller.js');
+const authGuard = require('../middlewares/authGuard.js');
+const requireAdmin = require('../middlewares/requireAdmin.js');
 const {
     validate,
     createEmployeeSchema,
@@ -10,12 +9,14 @@ const {
     updateProfileSchema
 } = require('../utils/schemas');
 
+const router = Router();
+
 router.use(authGuard, requireAdmin);
 
-router.post('/employees', validate(createEmployeeSchema), adminController.createEmployee);
-router.get('/employees', adminController.getEmployees);
-router.put('/employees/:id/permissions', validate(updatePermissionsSchema), adminController.updateEmployeePermissions);
-router.put('/employees/:id/profile', validate(updateProfileSchema), adminController.updateEmployeeProfile);
-router.delete('/employees/:id', adminController.deleteEmployee);
+router.post('/employees', validate(createEmployeeSchema), createEmployee);
+router.get('/employees', getEmployees);
+router.put('/employees/:id/permissions', validate(updatePermissionsSchema), updateEmployeePermissions);
+router.put('/employees/:id/profile', validate(updateProfileSchema), updateEmployeeProfile);
+router.delete('/employees/:id', deleteEmployee);
 
 module.exports = router;

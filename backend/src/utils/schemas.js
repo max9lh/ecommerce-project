@@ -22,6 +22,12 @@ const registerSchema = z.object({
     pct_merchandise: pctField('Mercadería'),
     pct_fixed_expenses: pctField('Gastos Fijos'),
     pct_savings: pctField('Ahorros'),
+    role: z.enum(['ADMIN', 'EMPLOYEE']).optional(),
+    first_name: z.string().optional(),
+    last_name: z.string().optional(),
+    salary_type: z.enum(['hourly', 'fixed']).optional(),
+    hourly_rate: z.number().optional(),
+    monthly_salary: z.number().optional()
 }).refine(
     (data) => Math.abs(data.pct_merchandise + data.pct_fixed_expenses + data.pct_savings - 1) < 0.001,
     {
@@ -147,6 +153,28 @@ const updateProfileSchema = z.object({
 
 
 
+const createAttendanceSchema = z.object({
+    employeeId: z.number().int().positive('ID de empleado inválido'),
+    checkIn: z.coerce.date(),
+    checkOut: z.coerce.date()
+});
+
+const updateAttendanceSchema = z.object({
+    checkIn: z.coerce.date(),
+    checkOut: z.coerce.date()
+});
+
+const liquidatePayrollSchema = z.object({
+    employeeId: z.number().int().positive('ID de empleado inválido'),
+    from: z.coerce.date(),
+    to: z.coerce.date(),
+    providerId: z.number().int().positive('ID de proveedor inválido'),
+    accountId: z.number().int().positive('ID de cuenta física inválido'),
+    budgetCategory: z.enum(budgetCategory, {
+        errorMap: () => ({ message: 'Categoría de presupuesto no válida' }),
+    }).optional().default('Gastos Fijos')
+});
+
 module.exports = {
     registerSchema,
     loginSchema,
@@ -158,4 +186,7 @@ module.exports = {
     createEmployeeSchema,
     updatePermissionsSchema,
     updateProfileSchema,
+    createAttendanceSchema,
+    updateAttendanceSchema,
+    liquidatePayrollSchema,
 };
