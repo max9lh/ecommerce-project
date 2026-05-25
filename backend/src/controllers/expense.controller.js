@@ -12,8 +12,9 @@ const createExpense = async (req, res, next) => {
 const payExpense = async (req, res, next) => {
     try {
         const { id } = req.params;
+        const { account_id } = req.body;
         
-        const updatedExpense = await expenseService.payExpense(req.user.id, parseInt(id));
+        const updatedExpense = await expenseService.payExpense(req.user.id, parseInt(id), account_id);
         return res.status(200).json({
             message: 'Gasto actualizado exitosamente',
             data: updatedExpense
@@ -42,10 +43,21 @@ const getUpcomingExpenses = async (req, res, next) => {
     }
 };
 
+const deleteExpense = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        await expenseService.deleteExpense(id);
+        return res.status(200).json({ message: 'Gasto eliminado exitosamente' });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createExpense,
     payExpense,
     getExpenses,
-    getUpcomingExpenses
+    getUpcomingExpenses,
+    deleteExpense
 }
 

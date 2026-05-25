@@ -70,7 +70,7 @@ const createExpense = async (userId, expenseData) => {
     });
 };
 
-const payExpense = async (userId, expenseId) => {
+const payExpense = async (userId, expenseId, overrideAccountId = null) => {
     return await prisma.$transaction(async (tx) => {
         const adminCtx = await getAdminContext();
 
@@ -90,8 +90,9 @@ const payExpense = async (userId, expenseId) => {
             throw error;
         }
 
+        const finalAccountId = overrideAccountId ? parseInt(overrideAccountId) : expense.account_id;
         const account = await tx.account.findFirst({
-            where: { id: expense.account_id }
+            where: { id: finalAccountId }
         });
 
         if (!account) {
@@ -139,9 +140,9 @@ const payExpense = async (userId, expenseId) => {
         const updatedExpense = await tx.expense.update({
             where: { id: expense.id },
             data: {
-                user_id: userId,
                 status: 'Pagado',
-                paid_at: new Date()
+                paid_at: new Date(),
+                account_id: finalAccountId
             }
         });
 
@@ -195,7 +196,7 @@ const getUpcomingExpenses = async (userId, daysWindow = 7) => {
 
     return await prisma.expense.findMany({
         where: {
-            user_id: userId,
+            status: 'Pendiente',
             status: 'Pendiente',
             due_date: {
                 gte: today,
@@ -211,9 +212,25 @@ const getUpcomingExpenses = async (userId, daysWindow = 7) => {
     });
 };
 
+const deleteExpense = async (expenseId) => {
+    const expense = await prisma.expense.findUnique({ where: { id: parseInt(expenseId) } });
+    if (!expense) {
+        const error = new Error('Gasto no encontrado');
+        error.statusCode = 404;
+        throw error;
+    }
+    if (expense.status === 'Pagado') {
+        const error = new Error('No se puede eliminar un gasto que ya fue pagado');
+        error.statusCode = 400;
+        throw error;
+    }
+    return await prisma.expense.delete({ where: { id: parseInt(expenseId) } });
+};
+
 module.exports = {
     createExpense,
     payExpense,
     getExpenses,
-    getUpcomingExpenses
+    getUpcomingExpenses,
+    deleteExpense
 };
