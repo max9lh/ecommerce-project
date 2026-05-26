@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Singup from './pages/Singup';
 import Dashboard from './pages/Dashboard';
+import ProvidersModule from './pages/shared/ProvidersModule';
 import { ThemeProvider } from './components/theme-provider';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './components/protected-route';
@@ -23,6 +24,17 @@ function App() {
               <ProtectedRoute>
                 <DashboardLayout>
                   <Dashboard />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* 🟢 NUEVA RUTA PARA PROVEEDORES 🟢 */}
+          <Route
+            path="/proveedores"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <ProvidersModule />
                 </DashboardLayout>
               </ProtectedRoute>
             }

@@ -20,6 +20,20 @@ import {
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
+
+// Helper temporal para decodificar el token sin librerías externas
+function hasPermission(permissionName) {
+  const token = localStorage.getItem("token");
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.role === 'ADMIN') return true;
+    return payload.permissions?.[permissionName] === true;
+  } catch(e) {
+    return false;
+  }
+}
+
 import {
   Sidebar,
   SidebarContent,
@@ -49,85 +63,21 @@ const data = {
       url: "/dashboard",
       icon: LayoutDashboard,
       isActive: true,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
     },
     {
       title: "Cierres de Caja",
       url: "/cierres",
       icon: Wallet,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
     },
     {
       title: "Proveedores",
       url: "/proveedores",
       icon: Building2,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
     },
     {
       title: "Egresos",
       url: "/egresos",
       icon: ReceiptText,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
     },
     {
       title: "Reportes",
@@ -157,6 +107,15 @@ const data = {
 export function AppSidebar({
   ...props
 }) {
+  
+  // Filtramos la barra lateral según los permisos
+  const filteredNavMain = data.navMain.filter((item) => {
+    if (item.title === "Proveedores" && !hasPermission('canManageProviders')) return false;
+    // Si necesitás ocultar "Egresos", podrías agregar acá:
+    // if (item.title === "Egresos" && !hasPermission('canRegisterExpenses')) return false;
+    return true;
+  });
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -175,7 +134,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={filteredNavMain} />
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
