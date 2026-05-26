@@ -62,4 +62,26 @@ const createClosure = async ({ total_amount, details, user_id }) => {
     return result;
 };
 
-module.exports = { createClosure };
+const getClosures = async () => {
+    return prisma.dailyClosure.findMany({
+        orderBy: { date: 'desc' },
+        select: {
+            id: true,
+            total_amount: true,
+            date: true,
+            user: {
+                select: { username: true }
+            },
+            details: {
+                select: {
+                    amount: true,
+                    account: {
+                        select: { name: true }
+                    }
+                }
+            }
+        }
+    });
+};
+
+module.exports = { createClosure, getClosures };

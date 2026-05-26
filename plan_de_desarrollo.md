@@ -149,14 +149,14 @@ Este módulo permite registrar la entrada y salida de cada empleado, calcular au
 |---|-------|-----------|---------|
 | 6.1 | React Router + layout base | 🔴 Alta | ✅ Navegación, rutas protegidas, SidebarPremium. |
 | 6.2 | Pantalla de Login / Registro | 🔴 Alta | 🔄 Login completado. Registro pendiente. |
-| 6.3 | **Vistas condicionadas por Rol** | 🔴 Alta | El Dashboard completo (saldos, gráficos) solo se muestra si `user.role === 'ADMIN'`. Los empleados ven solo formularios de acción (cierres, gastos según permisos). |
+| 6.3 | **Vistas condicionadas por Rol** | 🔴 Alta | ✅ AuthContext, parseJwt, ProtectedRoute con roles/permisos, sidebar dinámico, Dashboard ADMIN/EMPLOYEE, NavUser real, logout. 48/48 tests. |
 | 6.4 | Dashboard principal (ADMIN) | 🔴 Alta | Saldos de cuentas, bolsas de presupuesto, alertas de vencimiento |
 | 6.5 | Módulo de cierre de caja | 🔴 Alta | Formulario de ingreso diario con desglose por medio de pago. Accesible según permiso. |
 | 6.6 | Módulo de proveedores | 🟡 Media | CRUD visual con modales de confirmación. Accesible según permiso. |
 | 6.7 | Módulo de egresos | 🟡 Media | Lista (solo ADMIN) + acción de "Pagar" según permiso. |
-| 6.8 | **Panel de empleados (ADMIN)** | 🔴 Alta | CRUD de empleados, toggle de permisos, visualización de tarifa. |
+| 6.8 | **Panel de empleados (ADMIN)** | 🔴 Alta | ✅ CRUD completo, modales reactivos, tipo de remuneración dinámico, toggles rápidos de permisos (switch/dialog de shadcn). |
 | 6.9 | **Módulo de Asistencia (EMPLOYEE)** | 🟡 Media | Vista de historial personal de asistencias cargadas por el admin. (No puede cargar horas). |
-| 6.10 | **Panel de Asistencia (ADMIN)** | 🔴 Alta | Formulario para cargar horas a empleados manualmente + Vista de resumen de liquidación. |
+| 6.10 | **Panel de Asistencia (ADMIN)** | 🔴 Alta | ✅ Carga manual de turnos, visualización y filtros, edición/eliminación segura, cálculo automático de liquidaciones a egresos (con selección de proveedor y cuenta). |
 | 6.11 | Reportes (semanal/mensual/anual) | 🟡 Media | Gráficos con Recharts u otra librería |
 | 6.12 | Responsive design (PC + móvil) | 🔴 Alta | El documento lo pide explícitamente |
 
