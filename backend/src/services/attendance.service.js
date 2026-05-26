@@ -70,7 +70,7 @@ const attendanceService = {
         const where = {};
 
         if (employeeId) {
-            where.employee_id = employeeId;
+            where.employee_id = parseInt(employeeId, 10);
         }
 
         if (from || to) {
@@ -79,18 +79,33 @@ const attendanceService = {
             if (to) where.check_in.lte = new Date(to);
         }
 
-        return await prisma.attendanceLog.findMany({
+        const logs = await prisma.attendanceLog.findMany({
             where,
             include: {
                 employee: {
                     select: {
                         id: true,
                         username: true,
-                        employeeProfile: true
+                        employeeProfile: {
+                            select: { first_name: true, last_name: true }
+                        }
                     }
                 }
             },
             orderBy: { check_in: 'desc' }
+        });
+
+        return logs.map(log => {
+            const profile = log.employee?.employeeProfile;
+            const fullName = profile ? `${profile.first_name} ${profile.last_name}` : `@${log.employee?.username}`;
+            return {
+                ...log,
+                employee: {
+                    id: log.employee?.id,
+                    username: log.employee?.username,
+                    name: fullName
+                }
+            };
         });
     },
 
@@ -98,7 +113,7 @@ const attendanceService = {
         const client = txClient || prisma;
         const where = {};
 
-        if (employeeId) where.employee_id = employeeId;
+        if (employeeId) where.employee_id = parseInt(employeeId, 10);
         where.notes = null; // Ignorar los registros que ya fueron liquidados
 
         if (from || to) {
@@ -127,9 +142,13 @@ const attendanceService = {
                     totalToPay = user.employeeProfile.monthly_salary ? parseFloat(user.employeeProfile.monthly_salary) : 0;
                 }
 
+                const profile = user?.employeeProfile;
+                const fullName = profile ? `${profile.first_name} ${profile.last_name}` : `@${user?.username}`;
+
                 return {
                     employeeId: agg.employee_id,
-                    name: user?.name || 'Desconocido',
+                    name: fullName,
+                    username: user?.username || 'desconocido',
                     salaryType: user?.employeeProfile?.salary_type || 'No definido',
                     totalHours,
                     calculatedAmount: totalToPay

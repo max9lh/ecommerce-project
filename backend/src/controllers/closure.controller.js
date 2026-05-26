@@ -13,4 +13,13 @@ const createClosure = async (req, res, next) => {
     }
 }
 
-module.exports = { createClosure };
+const getClosures = async (req, res, next) => {
+    try {
+        const closures = await closureService.getClosures();
+        res.status(200).json({ data: closures });
+    } catch (error) {
+        next(error);
+    }
+}
+
+module.exports = { createClosure, getClosures };
