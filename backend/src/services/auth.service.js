@@ -17,7 +17,7 @@ const register = async (userData) => {
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     return await prisma.$transaction(async (tx) => {
-        
+
         const user = await tx.user.create({
             data: {
                 username,
@@ -53,7 +53,7 @@ const register = async (userData) => {
                     { user_id: user.id, category: 'Ahorro', balance: 0.00 }
                 ]
             });
-        } 
+        }
 
         else {
             await tx.employeeProfile.create({
@@ -71,8 +71,8 @@ const register = async (userData) => {
                 data: {
                     user_id: user.id,
                     canRegisterClosures: true,
-                    canRegisterExpenses: true,  
-                    canPayExpenses: false,     
+                    canRegisterExpenses: true,
+                    canPayExpenses: false,
                     canManageProviders: false
                 }
             });
@@ -102,15 +102,20 @@ const login = async ({ username, password }) => {
         id: user.id,
         username: user.username,
         role: user.role,
-        permissions: user.employeePermission
-            ? {
-                canRegisterClosures: user.employeePermission.canRegisterClosures,
-                canRegisterExpenses: user.employeePermission.canRegisterExpenses,
-                canPayExpenses:      user.employeePermission.canPayExpenses,
-                canManageProviders:  user.employeePermission.canManageProviders,
-            }
-            : null,
     };
+
+    if (user.role === 'EMPLOYEE') {
+        const permissions = await prisma.employeePermission.findUnique({
+            where: { user_id: user.id },
+            select: {
+                canRegisterClosures: true,
+                canRegisterExpenses: true,
+                canPayExpenses: true,
+                canManageProviders: true
+            }
+        });
+        payload.permissions = permissions;
+    }
 
     const JWT_SECRET = process.env.JWT_SECRET;
     const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN;

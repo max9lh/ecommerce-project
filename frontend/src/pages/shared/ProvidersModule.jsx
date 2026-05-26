@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/api';
 
-// Importaciones de componentes nativos de shadcn/ui
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PencilIcon, ShareIcon, TrashIcon } from "lucide-react";
+import { PencilIcon, ShareIcon, TrashIcon, MoreHorizontal, Search } from "lucide-react";
 import {
     Select,
     SelectContent,
@@ -17,7 +16,6 @@ import {
     SelectValue
 } from "@/components/ui/select";
 
-// Helper para decodificar el token y ver permisos
 function hasPermission(permissionName) {
     const token = localStorage.getItem("token");
     if (!token) return false;
@@ -34,16 +32,19 @@ const DEFAULT_FORM = { id: null, name: '', payment_condition: 'Contado', credit_
 
 export default function ProvidersModule() {
 
-    // Estados para la API
     const [providers, setProviders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    // Estados para el Modal de shadcn (sirve para Crear y Editar)
+    const [searchTerm, setSearchTerm] = useState('');
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({ ...DEFAULT_FORM });
 
-    // 1. Control de Seguridad en la UI: Si no tiene permisos, bloqueamos la pantalla completa
+    const filteredProviders = providers.filter((p) =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     if (!hasPermission('canManageProviders')) {
         return (
             <Card className="max-w-md mx-auto border-red-200 bg-red-50/50 mt-10">
@@ -57,20 +58,16 @@ export default function ProvidersModule() {
         );
     }
 
-    // 2. Efecto para cargar los datos al montar la vista
     useEffect(() => {
         fetchProviders();
     }, []);
 
-    // 3. Petición GET al Backend
-    // El backend devuelve el array directo (no envuelto en { success, data })
     const fetchProviders = async () => {
         try {
             setLoading(true);
             const res = await api.get('/providers');
             const data = res.data;
 
-            // El servicio devuelve el array directo
             if (Array.isArray(data)) {
                 setProviders(data);
             } else if (data.success) {
@@ -85,7 +82,6 @@ export default function ProvidersModule() {
         }
     };
 
-    // 4. Petición POST / PUT (Guardar datos)
     const handleSubmit = async (e) => {
         e.preventDefault();
         const isEditing = !!formData.id;
@@ -105,11 +101,10 @@ export default function ProvidersModule() {
                 ? await api.put(url, payload)
                 : await api.post(url, payload);
 
-            fetchProviders(); // Recargamos la tabla de inmediato
+            fetchProviders();
             closeModal();
         } catch (err) {
             const errData = err.response?.data;
-            // Zod devuelve { errors: [...] }
             if (errData?.errors) {
                 alert(errData.errors.map(e => e.message).join('\n'));
             } else {
@@ -118,7 +113,6 @@ export default function ProvidersModule() {
         }
     };
 
-    // 5. Petición DELETE (Eliminar)
     const handleDelete = async (id) => {
         if (!window.confirm('¿Estás seguro de que querés eliminar este proveedor?')) return;
 
@@ -130,13 +124,11 @@ export default function ProvidersModule() {
         }
     };
 
-    // Helpers para abrir y cerrar el modal reseteando estados
     const openModal = (provider = null) => {
         if (provider) {
             setFormData({
                 id: provider.id,
                 name: provider.name,
-                // El operador ?? evita que strings vacíos bugeen la selección
                 payment_condition: provider.payment_condition ?? 'Contado',
                 credit_days: provider.credit_days ?? 0,
             });
@@ -153,13 +145,13 @@ export default function ProvidersModule() {
 
 
     return (
-        <Card className="max-w-5xl mx-auto shadow-sm">
+        <Card className="max-w-full shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-5">
                 <div>
-                    <CardTitle className="text-2xl font-bold tracking-tight">📦 Gestión de Proveedores</CardTitle>
+                    <CardTitle className="text-2xl font-bold tracking-tight">Gestión de Proveedores</CardTitle>
                     <CardDescription>Administrá el catálogo de proveedores vinculados a los egresos.</CardDescription>
                 </div>
-                {/* Botón para abrir el modal vacío (Creación) */}
+
                 <Button onClick={() => openModal()} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                     + Nuevo Proveedor
                 </Button>
@@ -168,34 +160,47 @@ export default function ProvidersModule() {
             <CardContent>
                 {error && <div className="p-3 mb-4 text-sm bg-orange-50 border border-orange-200 text-orange-800 rounded-lg">{error}</div>}
 
+                <div className="relative mb-4 max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Buscar proveedor por nombre..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9"
+                    />
+                </div>
+
                 {loading ? (
                     <p className="text-sm text-muted-foreground animate-pulse">Cargando proveedores...</p>
                 ) : (
-                    <div className="rounded-md border">
+                    <div className="rounded-md border w-full overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Nombre Comercial</TableHead>
-                                    <TableHead>Condición de Pago</TableHead>
-                                    <TableHead>Días de Crédito</TableHead>
-                                    <TableHead className="text-right">Acciones</TableHead>
+                                    <TableHead className="min-w-[25%]">Nombre Comercial</TableHead>
+                                    <TableHead className="min-w-[25%]">Condición de Pago</TableHead>
+                                    <TableHead className="min-w-[25%]">Días de Crédito</TableHead>
+                                    <TableHead className="text-right min-w-[10%]">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {providers.length === 0 ? (
+                                {filteredProviders.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
-                                            No hay proveedores registrados en el sistema.
+                                            {providers.length === 0
+                                                ? 'No hay proveedores registrados en el sistema.'
+                                                : `No se encontraron proveedores con "${searchTerm}".`
+                                            }
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    providers.map((p) => (
-                                        <TableRow key={p.id} className="hover:bg-slate-50/50">
-                                            <TableCell className="font-medium text-slate-900">{p.name}</TableCell>
+                                    filteredProviders.map((p) => (
+                                        <TableRow key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                            <TableCell className="font-medium text-foreground">{p.name}</TableCell>
                                             <TableCell>
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${p.payment_condition === 'Credito'
-                                                    ? 'bg-amber-100 text-amber-800'
-                                                    : 'bg-green-100 text-green-800'
+                                                    ? 'bg-violet-100 text-violet-800 border border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800' // Estilo para CRÉDITO (Ej: Violeta)
+                                                    : 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' // Estilo para CONTADO (Ej: Esmeralda)
                                                     }`}>
                                                     {p.payment_condition}
                                                 </span>
@@ -209,24 +214,23 @@ export default function ProvidersModule() {
                                             <TableCell className="text-right space-x-2">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <Button variant="outline">Actions</Button>
+                                                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
+                                                            <span className="sr-only">Abrir menú</span>
+                                                            <MoreHorizontal className="h-4 w-4 text-slate-500" />
+                                                        </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
                                                         <DropdownMenuGroup>
                                                             <DropdownMenuItem onClick={() => openModal(p)}>
                                                                 <PencilIcon variant="link" />
-                                                                Edit
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem>
-                                                                <ShareIcon />
-                                                                Share
+                                                                Editar
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuGroup>
                                                             <DropdownMenuItem variant="destructive" onClick={() => handleDelete(p.id)}>
                                                                 <TrashIcon />
-                                                                Delete
+                                                                Eliminar
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                     </DropdownMenuContent>
@@ -241,7 +245,6 @@ export default function ProvidersModule() {
                 )}
             </CardContent>
 
-            {/* MODAL CON UN SOLO FORMULARIO DIALOG DE SHADCN */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
@@ -249,7 +252,6 @@ export default function ProvidersModule() {
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4 pt-2">
 
-                        {/* 1. CAMPO: NOMBRE COMERCIAL */}
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-muted-foreground">Nombre Comercial *</label>
                             <Input
@@ -260,7 +262,6 @@ export default function ProvidersModule() {
                             />
                         </div>
 
-                        {/* 2. CAMPO: CONDICIÓN DE PAGO (Migrado completamente a shadcn/ui) */}
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-muted-foreground">Condición de Pago *</label>
                             <Select
@@ -268,7 +269,6 @@ export default function ProvidersModule() {
                                 onValueChange={(value) => setFormData({
                                     ...formData,
                                     payment_condition: value,
-                                    // Si cambia a 'Contado', forzamos los días de crédito a 0 automáticamente
                                     credit_days: value === 'Contado' ? 0 : formData.credit_days
                                 })}
                             >
@@ -282,7 +282,6 @@ export default function ProvidersModule() {
                             </Select>
                         </div>
 
-                        {/* 3. CAMPO CONDICIONAL: DÍAS DE CRÉDITO */}
                         {formData.payment_condition === 'Credito' && (
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-muted-foreground">Días de Crédito *</label>
@@ -291,14 +290,12 @@ export default function ProvidersModule() {
                                     required
                                     min={1}
                                     placeholder="Ej: 30"
-                                    value={formData.credit_days}
-                                    // Parseamos a entero para asegurar que viajen números limpios a Prisma
+                                    value={formData.credit_days === 0 ? '' : formData.credit_days}
                                     onChange={e => setFormData({ ...formData, credit_days: parseInt(e.target.value) || 0 })}
                                 />
                             </div>
                         )}
 
-                        {/* BOTONES DE ACCIÓN */}
                         <DialogFooter className="pt-2">
                             <Button type="button" variant="outline" onClick={closeModal}>Cancelar</Button>
                             <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white">
