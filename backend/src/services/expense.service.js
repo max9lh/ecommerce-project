@@ -25,7 +25,7 @@ const createExpense = async (userId, expenseData) => {
                 where: { id: parseInt(account_id) }
             });
 
-            if(!account){
+            if (!account) {
                 const error = new Error('La cuenta física seleccionada no existe');
                 error.statusCode = 404;
                 throw error;
@@ -196,7 +196,6 @@ const getUpcomingExpenses = async (userId, daysWindow = 7) => {
 
     return await prisma.expense.findMany({
         where: {
-            status: 'Pendiente',
             status: 'Pendiente',
             due_date: {
                 gte: today,
