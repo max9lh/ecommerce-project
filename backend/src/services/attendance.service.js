@@ -83,7 +83,11 @@ const attendanceService = {
             where,
             include: {
                 employee: {
-                    select: { id: true, name: true, email: true }
+                    select: {
+                        id: true,
+                        username: true,
+                        employeeProfile: true
+                    }
                 }
             },
             orderBy: { check_in: 'desc' }

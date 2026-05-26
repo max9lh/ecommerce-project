@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import api from "@/api/api"
+import { useAuth } from "@/context/AuthContext"
 import { cn } from "@/lib/utils"
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
@@ -17,6 +18,7 @@ export function LoginForm({
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const navigate = useNavigate()
+  const { login } = useAuth()
   const manejarSubmit = async (evento) => {
     evento.preventDefault()
     setError("")
@@ -24,7 +26,7 @@ export function LoginForm({
       const respuesta = await api.post("/auth/login", { username, password })
       const token = respuesta.data.data.token
       
-      localStorage.setItem("token", token)
+      login(token)
       
       navigate("/dashboard")
     } catch (err) {
