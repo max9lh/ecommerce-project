@@ -6,6 +6,7 @@ import Closures from './pages/Closures';
 import ClosuresList from './pages/ClosuresList';
 import Employees from './pages/Employees';
 import AttendanceAdmin from './pages/AttendanceAdmin';
+import ProvidersModule from './pages/shared/ProvidersModule';
 import { ThemeProvider } from './components/theme-provider';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './components/protected-route';
@@ -71,6 +72,12 @@ function App() {
               <ProtectedRoute requiredRole="ADMIN">
                 <DashboardLayout>
                   <AttendanceAdmin />
+          <Route
+            path="/proveedores"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <ProvidersModule />
                 </DashboardLayout>
               </ProtectedRoute>
             }

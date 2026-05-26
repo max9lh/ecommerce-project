@@ -15,7 +15,9 @@ const getAllProviders = async (userId) => {
 
 const createProvider = async (userId, providerData) => {
     const { name, paymentCondition, creditDays } = providerData;
-    const existing = await prisma.provider.findFirst({ where: { user_id: userId, name } });
+    const upperName = name.trim().toUpperCase();
+
+    const existing = await prisma.provider.findFirst({ where: { user_id: userId, name: upperName } });
     if (existing) {
         const error = new Error('El proveedor ya esta en la lista');
         error.statusCode = 409;
@@ -25,7 +27,7 @@ const createProvider = async (userId, providerData) => {
     return await prisma.provider.create({
         data: {
             user_id: userId,
-            name,
+            name: upperName,
             payment_condition: paymentCondition,
             credit_days: creditDays,
         },
@@ -39,7 +41,8 @@ const createProvider = async (userId, providerData) => {
 }
 
 const updateProvider = async (userId, id, providerData) => {
-    const { name, payment_condition, credit_days } = providerData;
+    const { name, paymentCondition, creditDays } = providerData;
+    const upperName = name.trim().toUpperCase();
 
     const existing = await prisma.provider.findFirst({
         where: {
@@ -54,7 +57,7 @@ const updateProvider = async (userId, id, providerData) => {
     }
     const nameExists = await prisma.provider.findFirst({
         where: {
-            name,
+            name: upperName,
             user_id: userId,
             id: { not: parseInt(id) }
         }
@@ -70,9 +73,9 @@ const updateProvider = async (userId, id, providerData) => {
             user_id: userId
         },
         data: {
-            name,
-            payment_condition,
-            credit_days,
+            name: upperName,
+            payment_condition: paymentCondition,
+            credit_days: creditDays,
         }
     })
 
@@ -82,7 +85,7 @@ const updateProvider = async (userId, id, providerData) => {
         throw error;
     }
 
-    return { id: parseInt(id), name, payment_condition, credit_days };
+    return { id: parseInt(id), name: upperName, payment_condition: paymentCondition, credit_days: creditDays };
 }
 
 const deleteProvider = async (userId, id) => {

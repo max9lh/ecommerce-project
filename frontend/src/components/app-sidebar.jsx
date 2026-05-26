@@ -13,6 +13,7 @@ import {
 import { useAuth } from "@/context/AuthContext"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
+
 import {
   Sidebar,
   SidebarContent,
@@ -31,7 +32,6 @@ import {
 export function AppSidebar({ ...props }) {
   const { user, isAdmin, hasPermission } = useAuth()
 
-  // --- Navegación principal (filtrada por rol/permisos) ---
   const navMain = React.useMemo(() => {
     const items = []
 
