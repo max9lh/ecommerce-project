@@ -66,6 +66,15 @@ const createExpense = async (userId, expenseData) => {
                 paid_at: finalStatus === 'Pagado' ? new Date() : null
             }
         });
+
+        await tx.auditLog.create({
+            data: {
+                user_id: userId,
+                action: 'REGISTRAR_EGRESO',
+                details: `Registró un egreso de tipo "${budget_category}" por un monto de $${parseFloat(amount).toFixed(2)} (Estado: ${finalStatus})`
+            }
+        });
+
         return expense;
     });
 };
@@ -146,8 +155,16 @@ const payExpense = async (userId, expenseId, overrideAccountId = null) => {
             }
         });
 
+        await tx.auditLog.create({
+            data: {
+                user_id: userId,
+                action: 'PAGAR_EGRESO',
+                details: `Pagó el egreso ID ${expenseId} (Concepto: "${expense.budget_category}") por un monto de $${parseFloat(expense.amount).toFixed(2)}`
+            }
+        });
+
         return updatedExpense;
-    })
+    });
 }
 
 const getExpenses = async (userId, filters = {}) => {
@@ -211,19 +228,29 @@ const getUpcomingExpenses = async (userId, daysWindow = 7) => {
     });
 };
 
-const deleteExpense = async (expenseId) => {
+const deleteExpense = async (userId, expenseId) => {
     const expense = await prisma.expense.findUnique({ where: { id: parseInt(expenseId) } });
     if (!expense) {
         const error = new Error('Gasto no encontrado');
         error.statusCode = 404;
         throw error;
     }
-    if (expense.status === 'Pagado') {
-        const error = new Error('No se puede eliminar un gasto que ya fue pagado');
+    if (expense.status !== 'Pagado') {
+        const error = new Error('Solo se pueden eliminar gastos que ya han sido pagados');
         error.statusCode = 400;
         throw error;
     }
-    return await prisma.expense.delete({ where: { id: parseInt(expenseId) } });
+    return await prisma.$transaction(async (tx) => {
+        const deleted = await tx.expense.delete({ where: { id: parseInt(expenseId) } });
+        await tx.auditLog.create({
+            data: {
+                user_id: parseInt(userId),
+                action: 'ELIMINAR_EGRESO',
+                details: `Eliminó el egreso ID ${expenseId} (Concepto: "${expense.budget_category}") por un monto de $${parseFloat(expense.amount).toFixed(2)}`
+            }
+        });
+        return deleted;
+    });
 };
 
 module.exports = {

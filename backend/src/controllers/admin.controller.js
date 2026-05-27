@@ -66,6 +66,15 @@ const updateDistribution = async (req, res, next) => {
     }
 };
 
+const getAuditLogs = async (req, res, next) => {
+    try {
+        const logs = await adminService.getAuditLogs();
+        res.status(200).json({ success: true, data: logs });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createEmployee,
     getEmployees,
@@ -73,5 +82,6 @@ module.exports = {
     updateEmployeeProfile,
     deleteEmployee,
     getDistribution,
-    updateDistribution
+    updateDistribution,
+    getAuditLogs
 };

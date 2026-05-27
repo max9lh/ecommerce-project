@@ -253,56 +253,70 @@ export default function ProvidersModule() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${p.payment_condition === "Credito"
-                            ? "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800"
-                            : "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                            }`}
-                        >
-                          {p.payment_condition === "Credito" ? "Crédito" : "Contado"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {p.payment_condition === "Credito" ? (
-                          <span className="font-mono tabular-nums">{p.credit_days} días</span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="size-8 rounded-full">
-                              <span className="sr-only">Abrir menú</span>
-                              <MoreHorizontal className="size-4" />
+                  filtered.map((p) => {
+                    const isEliminated = p.name.includes('(ELIMINADO)');
+                    const displayName = p.name.replace(' (ELIMINADO)', '');
+                    return (
+                      <TableRow key={p.id} className={isEliminated ? "opacity-60 bg-muted/10" : ""}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <span className={isEliminated ? 'text-muted-foreground line-through' : ''}>
+                              {displayName}
+                            </span>
+                            {isEliminated && (
+                              <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-900/50">
+                                Eliminado
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${p.payment_condition === "Credito"
+                              ? "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800"
+                              : "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                              }`}
+                          >
+                            {p.payment_condition === "Credito" ? "Crédito" : "Contado"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {p.payment_condition === "Credito" ? (
+                            <span className="font-mono tabular-nums">{p.credit_days} días</span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              disabled={!canManage || isEliminated}
+                              onClick={() => {
+                                openModal(p)
+                              }}
+                            >
+                              <Pencil className="size-3.5" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuGroup>
-                              <DropdownMenuItem onClick={() => openModal(p)}>
-                                <Pencil className="size-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onClick={() => handleDelete(p.id)}
-                              >
-                                <Trash2 className="size-4 mr-2" />
-                                Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-destructive hover:bg-destructive/10"
+                              disabled={!isAdmin || isEliminated}
+                              onClick={() => {
+                                handleDelete(p.id)
+                              }}
+                              title={!isAdmin ? "Solo el administrador puede eliminar proveedores" : ""}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
