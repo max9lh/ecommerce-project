@@ -22,6 +22,8 @@ import {
 } from "lucide-react"
 
 export default function ClosuresList() {
+
+
   const navigate = useNavigate()
   const { isAdmin } = useAuth()
   const [closures, setClosures] = useState([])

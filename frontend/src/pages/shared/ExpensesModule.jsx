@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-import { CreditCard, FilterX, MoreVertical, Plus, Loader2, ShieldAlert, Clock, CircleDollarSign } from "lucide-react";
+import { CreditCard, FilterX, MoreVertical, Plus, Loader2, ShieldAlert, Clock, CircleDollarSign, Trash2 } from "lucide-react";
 
 function getAuthContext() {
     const token = localStorage.getItem("token");
@@ -69,14 +69,15 @@ export default function ExpensesModule() {
             ]);
 
             const provs = provRes.data.data ?? provRes.data ?? [];
+            const activeProvs = provs.filter(p => !p.name.includes('(ELIMINADO)'));
             const accs = accRes.data.data ?? accRes.data ?? [];
 
-            setProviders(provs);
+            setProviders(activeProvs);
             setAccounts(accs);
 
             setCreateFormData(prev => ({
                 ...prev,
-                provider_id: provs.length > 0 ? String(provs[0].id) : '',
+                provider_id: activeProvs.length > 0 ? String(activeProvs[0].id) : '',
                 account_id: accs.length > 0 ? String(accs[0].id) : ''
             }));
         } catch (err) {
@@ -220,6 +221,20 @@ export default function ExpensesModule() {
         }
     };
 
+    const handleDeleteExpense = async (expenseId) => {
+        if (!confirm('¿Estás seguro de que deseas eliminar este egreso? Esta acción es irreversible y no afectará el saldo de tus cuentas ni presupuestos.')) {
+            return;
+        }
+
+        try {
+            await api.delete(`/expenses/${expenseId}`);
+            fetchExpenses();
+            fetchUpcoming();
+        } catch (err) {
+            alert(err.response?.data?.message || 'Error al eliminar el egreso.');
+        }
+    };
+
     if (!auth.isAdmin) {
         return (
             <div className="space-y-6">
@@ -252,7 +267,7 @@ export default function ExpensesModule() {
                     </p>
                 </div>
                 {(auth.isAdmin || auth.permissions.canRegisterExpenses) && (
-                    <Button variant="outline" onClick={openCreateDialog} className="gap-2 w-full sm:w-auto justify-center">
+                    <Button onClick={openCreateDialog} className="gap-2 w-full sm:w-auto justify-center">
                         <Plus className="size-4" />
                         Registrar Egreso
                     </Button>
@@ -288,7 +303,7 @@ export default function ExpensesModule() {
                             </div>
                             <div className="flex flex-col sm:items-end">
                                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total a Liquidar</span>
-                                <span className="text-xl font-bold text-amber-600 dark:text-amber-500 font-mono">
+                                <span className="text-xl font-bold text-white dark:text-white font-mono">
                                     ${upcomingExpenses.reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                                 </span>
                             </div>
@@ -309,8 +324,8 @@ export default function ExpensesModule() {
                                     <div key={expense.id} className="flex items-center justify-between gap-4 px-4 py-3">
                                         <div className="flex items-center gap-3 min-w-0">
                                             <div className={`flex size-9 shrink-0 items-center justify-center rounded-full ${isUrgent
-                                                    ? 'bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400'
-                                                    : 'bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400'
+                                                ? 'bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400'
+                                                : 'bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400'
                                                 }`}>
                                                 <CircleDollarSign className="size-4" />
                                             </div>
@@ -486,7 +501,7 @@ export default function ExpensesModule() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    {expense.status === 'Pendiente' && (auth.isAdmin || auth.permissions.canPayExpenses) ? (
+                                                    {(auth.isAdmin || auth.permissions.canRegisterExpenses || auth.permissions.canPayExpenses) ? (
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
                                                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
@@ -494,13 +509,24 @@ export default function ExpensesModule() {
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem
-                                                                    onClick={() => openPayDialog(expense)}
-                                                                    className="cursor-pointer text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 font-medium"
-                                                                >
-                                                                    <CreditCard className="mr-2 h-4 w-4" />
-                                                                    Asentar Pago
-                                                                </DropdownMenuItem>
+                                                                {expense.status === 'Pendiente' && (auth.isAdmin || auth.permissions.canPayExpenses) && (
+                                                                    <DropdownMenuItem
+                                                                        onClick={() => openPayDialog(expense)}
+                                                                        className="cursor-pointer text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 font-medium"
+                                                                    >
+                                                                        <CreditCard className="mr-2 h-4 w-4" />
+                                                                        Asentar Pago
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                                {expense.status === 'Pagado' && auth.isAdmin && (
+                                                                    <DropdownMenuItem
+                                                                        onClick={() => handleDeleteExpense(expense.id)}
+                                                                        className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-950/30 font-medium"
+                                                                    >
+                                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                                        Eliminar Gasto
+                                                                    </DropdownMenuItem>
+                                                                )}
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     ) : (

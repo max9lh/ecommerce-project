@@ -11,6 +11,7 @@ import { ThemeProvider } from './components/theme-provider';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './components/protected-route';
 import DistributionSettings from './pages/admin/DistributionSettings';
+import AuditLogs from './pages/admin/AuditLogs';
 import './App.css';
 
 function App() {
@@ -36,7 +37,7 @@ function App() {
           <Route
             path="/cierres"
             element={
-              <ProtectedRoute requiredRole="ADMIN">
+              <ProtectedRoute requiredPermission="canRegisterClosures">
                 <DashboardLayout>
                   <ClosuresList />
                 </DashboardLayout>
@@ -92,6 +93,16 @@ function App() {
               <ProtectedRoute requiredRole="ADMIN">
                 <DashboardLayout>
                   <DistributionSettings />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/auditoria"
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <DashboardLayout>
+                  <AuditLogs />
                 </DashboardLayout>
               </ProtectedRoute>
             }

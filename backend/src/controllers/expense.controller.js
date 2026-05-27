@@ -47,7 +47,7 @@ const getUpcomingExpenses = async (req, res, next) => {
 const deleteExpense = async (req, res, next) => {
     try {
         const { id } = req.params;
-        await expenseService.deleteExpense(id);
+        await expenseService.deleteExpense(req.user.id, id);
         return res.status(200).json({ message: 'Gasto eliminado exitosamente' });
     } catch (error) {
         next(error);

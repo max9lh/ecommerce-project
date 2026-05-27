@@ -3,6 +3,7 @@ const { getAllProviders, createProvider, updateProvider, deleteProvider } = requ
 const authGuard = require('../middlewares/authGuard');
 const { validate, providerSchema } = require('../utils/schemas');
 const requirePermission = require('../middlewares/requirePermission');
+const requireAdmin = require('../middlewares/requireAdmin');
 
 const router = Router();
 
@@ -12,6 +13,6 @@ router.post('/', authGuard, requirePermission('canManageProviders'), validate(pr
 
 router.put('/:id', authGuard, requirePermission('canManageProviders'), validate(providerSchema), updateProvider);
 
-router.delete('/:id', authGuard, requirePermission('canManageProviders'), deleteProvider);
+router.delete('/:id', authGuard, requireAdmin, deleteProvider);
 
 module.exports = router;

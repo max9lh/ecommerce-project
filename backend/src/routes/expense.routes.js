@@ -14,6 +14,6 @@ router.route('/').get(requireAdmin, getExpenses).post(requirePermission('canRegi
 router.get('/upcoming', requireAdmin, getUpcomingExpenses);
 
 router.put('/:id/pay', requirePermission('canPayExpenses'), payExpense);
-router.delete('/:id', requirePermission('canRegisterExpenses'), deleteExpense);
+router.delete('/:id', requireAdmin, deleteExpense);
 
 module.exports = router;

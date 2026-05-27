@@ -6,7 +6,8 @@ const {
     updateEmployeeProfile,
     deleteEmployee,
     getDistribution,
-    updateDistribution
+    updateDistribution,
+    getAuditLogs
 } = require('../controllers/admin.controller.js');
 const authGuard = require('../middlewares/authGuard.js');
 const requireAdmin = require('../middlewares/requireAdmin.js');
@@ -29,5 +30,6 @@ router.delete('/employees/:id', deleteEmployee);
 
 router.get('/distribution', getDistribution);
 router.put('/distribution', updateDistribution);
+router.get('/audit-logs', getAuditLogs);
 
 module.exports = router;

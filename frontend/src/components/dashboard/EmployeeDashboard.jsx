@@ -28,7 +28,7 @@ export function EmployeeDashboard() {
       description: "Ingresá los ingresos del día desglosados por efectivo y banco.",
       icon: ClipboardList,
       permission: "canRegisterClosures",
-      route: "/cierres/nuevo",
+      route: "/cierres",
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
     },
@@ -153,11 +153,10 @@ export function EmployeeDashboard() {
             return (
               <div
                 key={perm.key}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  active
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${active
                     ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                     : "bg-muted text-muted-foreground"
-                }`}
+                  }`}
               >
                 {active ? (
                   <ShieldCheck className="size-3.5" />

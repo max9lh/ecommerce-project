@@ -157,6 +157,22 @@ const updateDistributionSettings = async (adminId, { pct_merchandise, pct_fixed_
     };
 };
 
+const getAuditLogs = async () => {
+    return await prisma.auditLog.findMany({
+        include: {
+            user: {
+                select: {
+                    username: true,
+                    role: true
+                }
+            }
+        },
+        orderBy: {
+            created_at: 'desc'
+        }
+    });
+};
+
 module.exports = {
     createEmployee,
     getEmployees,
@@ -164,5 +180,6 @@ module.exports = {
     updateEmployeeProfile,
     deleteEmployee,
     getDistributionSettings,
-    updateDistributionSettings
+    updateDistributionSettings,
+    getAuditLogs
 };

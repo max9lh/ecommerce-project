@@ -57,6 +57,14 @@ const createClosure = async ({ total_amount, details, user_id }) => {
             });
         }
 
+        await tx.auditLog.create({
+            data: {
+                user_id: user_id,
+                action: 'REGISTRAR_CIERRE',
+                details: `Registró un cierre de caja por un total de $${parseFloat(total_amount).toFixed(2)}`
+            }
+        });
+
         return closure;
     });
     return result;
