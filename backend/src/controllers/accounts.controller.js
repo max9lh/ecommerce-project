@@ -1,10 +1,10 @@
 const accountsService = require('../services/accounts.service');
 
 const createBalances = async (req, res, next) => {
-    try{
+    try {
         const newBalances = await accountsService.createAccount(req.user.id, req.body);
-        return res.status(201).json({ data: newBalances});
-    } catch(error){
+        return res.status(201).json({ data: newBalances });
+    } catch (error) {
         next(error);
     }
 }
