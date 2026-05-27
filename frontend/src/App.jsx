@@ -6,6 +6,7 @@ import ClosuresList from './pages/ClosuresList';
 import Employees from './pages/Employees';
 import AttendanceAdmin from './pages/AttendanceAdmin';
 import ProvidersModule from './pages/shared/ProvidersModule';
+import Expenses from './pages/shared/ExpensesModule';
 import { ThemeProvider } from './components/theme-provider';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './components/protected-route';
@@ -91,6 +92,16 @@ function App() {
               <ProtectedRoute requiredRole="ADMIN">
                 <DashboardLayout>
                   <DistributionSettings />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/egresos"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <Expenses />
                 </DashboardLayout>
               </ProtectedRoute>
             }

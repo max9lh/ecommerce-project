@@ -19,7 +19,6 @@ import {
 import {
   Loader2,
   PlusCircle,
-  Search,
   Store,
   MoreHorizontal,
   Pencil,
@@ -47,11 +46,7 @@ export default function ProvidersModule() {
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  useEffect(() => {
-    fetchProviders()
-  }, [])
-
-  const fetchProviders = async () => {
+  async function fetchProviders() {
     setLoading(true)
     setError(null)
     try {
@@ -70,6 +65,19 @@ export default function ProvidersModule() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    let active = true
+    const timer = setTimeout(() => {
+      if (active) {
+        fetchProviders()
+      }
+    }, 0)
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -137,7 +145,6 @@ export default function ProvidersModule() {
     setIsModalOpen(false)
   }
 
-  // ── Sin permiso ──────────────────────────────────────────────
   if (!canManage) {
     return (
       <div className="space-y-6">
@@ -160,11 +167,9 @@ export default function ProvidersModule() {
     )
   }
 
-  // ── Vista principal ──────────────────────────────────────────
   return (
     <div className="space-y-6">
 
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Proveedores</h1>
@@ -178,21 +183,18 @@ export default function ProvidersModule() {
         </Button>
       </div>
 
-      {/* Error banner */}
       {error && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
-      {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       )}
 
-      {/* Estado vacío */}
       {!loading && providers.length === 0 && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
@@ -207,7 +209,6 @@ export default function ProvidersModule() {
         </Card>
       )}
 
-      {/* Tabla */}
       {!loading && providers.length > 0 && (
         <Card>
           <CardHeader>
@@ -224,7 +225,6 @@ export default function ProvidersModule() {
                 </div>
               </div>
 
-              {/* Búsqueda */}
               <SearchBar
                 placeholder="Buscar por nombre..."
                 value={searchTerm}
@@ -258,11 +258,10 @@ export default function ProvidersModule() {
                       <TableCell className="font-medium">{p.name}</TableCell>
                       <TableCell>
                         <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${
-                            p.payment_condition === "Credito"
-                              ? "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800"
-                              : "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                          }`}
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${p.payment_condition === "Credito"
+                            ? "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800"
+                            : "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                            }`}
                         >
                           {p.payment_condition === "Credito" ? "Crédito" : "Contado"}
                         </span>
@@ -311,7 +310,6 @@ export default function ProvidersModule() {
         </Card>
       )}
 
-      {/* Modal crear / editar */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>

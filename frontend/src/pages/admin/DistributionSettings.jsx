@@ -11,7 +11,6 @@ import {
   Save,
   CheckCircle2,
   AlertTriangle,
-  Coins,
 } from "lucide-react"
 
 export default function DistributionSettings() {
@@ -44,7 +43,16 @@ export default function DistributionSettings() {
   }
 
   useEffect(() => {
-    fetchSettings()
+    let active = true
+    const timer = setTimeout(() => {
+      if (active) {
+        fetchSettings()
+      }
+    }, 0)
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
   }, [])
 
   const totalSum = Number(pctMerchandise) + Number(pctFixedExpenses) + Number(pctSavings)
