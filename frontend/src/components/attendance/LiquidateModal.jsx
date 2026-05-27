@@ -33,8 +33,13 @@ export default function LiquidateModal({ open, onOpenChange, summaryItem, from, 
             api.get("/accounts"),
           ])
           
-          const provs = provRes.data.data ?? []
-          const accs = accRes.data.data ?? []
+          const provs = Array.isArray(provRes.data)
+            ? provRes.data
+            : provRes.data?.data ?? []
+            
+          const accs = Array.isArray(accRes.data)
+            ? accRes.data
+            : accRes.data?.data ?? []
           
           setProviders(provs)
           setAccounts(accs)

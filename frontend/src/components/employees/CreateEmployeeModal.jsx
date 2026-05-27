@@ -24,13 +24,50 @@ export default function CreateEmployeeModal({ open, onOpenChange, onSuccess, onE
     monthly_salary: 0,
   })
   const [loading, setLoading] = useState(false)
+  const [localError, setLocalError] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setLocalError(null)
+
+    // Validaciones Locales de Robustez
+    const cleanUsername = form.username.trim()
+    const cleanFirstName = form.first_name.trim()
+    const cleanLastName = form.last_name.trim()
+
+    if (!cleanFirstName || !cleanLastName) {
+      setLocalError("El nombre y apellido son obligatorios y no pueden contener solo espacios.")
+      return
+    }
+
+    const usernameRegex = /^[a-zA-Z0-9_.]+$/
+    if (!usernameRegex.test(cleanUsername)) {
+      setLocalError("El nombre de usuario solo puede contener letras, números, guiones bajos (_) o puntos (.)")
+      return
+    }
+
+    if (form.password.length < 6) {
+      setLocalError("La contraseña inicial debe tener al menos 6 caracteres.")
+      return
+    }
+
+    if (form.salary_type === "hourly" && (Number(form.hourly_rate) <= 0 || isNaN(form.hourly_rate))) {
+      setLocalError("La tarifa por hora debe ser un número mayor a 0.")
+      return
+    }
+
+    if (form.salary_type === "fixed" && (Number(form.monthly_salary) <= 0 || isNaN(form.monthly_salary))) {
+      setLocalError("El sueldo mensual fijo debe ser un número mayor a 0.")
+      return
+    }
+
     setLoading(true)
     try {
       const payload = {
         ...form,
+        username: cleanUsername,
+        first_name: cleanFirstName,
+        last_name: cleanLastName,
         hourly_rate: Number(form.hourly_rate),
         monthly_salary: form.salary_type === "fixed" ? Number(form.monthly_salary) : null,
       }
@@ -47,14 +84,18 @@ export default function CreateEmployeeModal({ open, onOpenChange, onSuccess, onE
       onOpenChange(false)
       onSuccess()
     } catch (err) {
-      onError(err.response?.data?.message || err.response?.data?.errors?.[0]?.message || "Error al registrar el empleado")
+      const errMsg = err.response?.data?.message || err.response?.data?.errors?.[0]?.message || "Error al registrar el empleado"
+      setLocalError(errMsg)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(val) => {
+      if (!val) setLocalError(null)
+      onOpenChange(val)
+    }}>
       <DialogContent className="max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -65,6 +106,11 @@ export default function CreateEmployeeModal({ open, onOpenChange, onSuccess, onE
             <DialogDescription>
               Crea un nuevo usuario del tipo personal y configura su salario inicial.
             </DialogDescription>
+            {localError && (
+              <div className="mt-2 rounded bg-destructive/10 border border-destructive/20 p-2.5 text-xs text-destructive">
+                {localError}
+              </div>
+            )}
           </DialogHeader>
 
           <div className="space-y-4 py-4">

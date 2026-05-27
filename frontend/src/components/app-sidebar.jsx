@@ -8,6 +8,7 @@ import {
   ReceiptText,
   Users,
   CalendarClock,
+  Sliders,
 } from "lucide-react"
 
 import { useAuth } from "@/context/AuthContext"
@@ -88,6 +89,12 @@ export function AppSidebar({ ...props }) {
         title: "Reportes",
         url: "/reportes",
         icon: LineChart,
+      })
+
+      items.push({
+        title: "Distribución",
+        url: "/distribucion",
+        icon: Sliders,
       })
     }
 

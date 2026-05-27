@@ -107,8 +107,15 @@ export default function AttendanceAdmin() {
     try {
       const params = {}
       if (filterEmployeeId) params.employeeId = filterEmployeeId
-      if (filterFrom) params.from = new Date(filterFrom).toISOString()
-      if (filterTo) params.to = new Date(filterTo).toISOString()
+      
+      if (filterFrom) {
+        const fromMs = Date.parse(filterFrom)
+        if (!isNaN(fromMs)) params.from = new Date(fromMs).toISOString()
+      }
+      if (filterTo) {
+        const toMs = Date.parse(filterTo)
+        if (!isNaN(toMs)) params.to = new Date(toMs).toISOString()
+      }
 
       const res = await api.get("/attendance", { params })
       setAttendanceLogs(res.data.data ?? [])
@@ -126,12 +133,21 @@ export default function AttendanceAdmin() {
       setError("Por favor, selecciona un rango de fechas para liquidar.")
       return
     }
+    
+    const fromMs = Date.parse(liqFrom)
+    const toMs = Date.parse(liqTo)
+
+    if (isNaN(fromMs) || isNaN(toMs)) {
+      setError("Por favor, selecciona un rango de fechas válido para liquidar.")
+      return
+    }
+
     setLoadingSummary(true)
     setError(null)
     try {
       const params = {
-        from: new Date(liqFrom).toISOString(),
-        to: new Date(liqTo).toISOString(),
+        from: new Date(fromMs).toISOString(),
+        to: new Date(toMs).toISOString(),
       }
       if (liqEmployeeId) params.employeeId = liqEmployeeId
 
@@ -160,18 +176,33 @@ export default function AttendanceAdmin() {
   // Carga manual de turno
   const handleCreateSubmit = async (e) => {
     e.preventDefault()
+    setError(null)
+    setSuccess(null)
+
     if (!createForm.employeeId || !createForm.checkIn || !createForm.checkOut) {
       setError("Todos los campos de carga de turno son obligatorios.")
       return
     }
+
+    const checkInMs = Date.parse(createForm.checkIn)
+    const checkOutMs = Date.parse(createForm.checkOut)
+
+    if (isNaN(checkInMs) || isNaN(checkOutMs)) {
+      setError("Las fechas ingresadas para el turno no son válidas.")
+      return
+    }
+
+    if (checkOutMs <= checkInMs) {
+      setError("La fecha y hora de salida (check-out) debe ser posterior a la de entrada (check-in).")
+      return
+    }
+
     setActionLoading(true)
-    setError(null)
-    setSuccess(null)
     try {
       await api.post("/attendance", {
         employeeId: Number(createForm.employeeId),
-        checkIn: new Date(createForm.checkIn).toISOString(),
-        checkOut: new Date(createForm.checkOut).toISOString(),
+        checkIn: new Date(checkInMs).toISOString(),
+        checkOut: new Date(checkOutMs).toISOString(),
       })
       setSuccess("Turno cargado manualmente con éxito.")
       setCreateForm({
