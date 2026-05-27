@@ -1,310 +1,398 @@
-import React, { useState, useEffect } from 'react';
-import api from '../../api/api';
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PencilIcon, ShareIcon, TrashIcon, MoreHorizontal, Search } from "lucide-react";
+import { useState, useEffect } from "react"
+import api from "@/api/api"
+import { useAuth } from "@/context/AuthContext"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { SearchBar } from "@/components/ui/search-bar"
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Loader2,
+  PlusCircle,
+  Search,
+  Store,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  ShieldAlert,
+} from "lucide-react"
 
-function hasPermission(permissionName) {
-    const token = localStorage.getItem("token");
-    if (!token) return false;
-    try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.role === 'ADMIN') return true;
-        return payload.permissions?.[permissionName] === true;
-    } catch (e) {
-        return false;
-    }
-}
-
-const DEFAULT_FORM = { id: null, name: '', payment_condition: 'Contado', credit_days: 0 };
+const DEFAULT_FORM = { id: null, name: "", payment_condition: "Contado", credit_days: 0 }
 
 export default function ProvidersModule() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === "ADMIN"
+  const canManage = isAdmin || user?.permissions?.canManageProviders === true
 
-    const [providers, setProviders] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+  const [providers, setProviders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [searchTerm, setSearchTerm] = useState("")
 
-    const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [formData, setFormData] = useState({ ...DEFAULT_FORM })
+  const [saving, setSaving] = useState(false)
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formData, setFormData] = useState({ ...DEFAULT_FORM });
+  const filtered = providers.filter((p) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
-    const filteredProviders = providers.filter((p) =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  useEffect(() => {
+    fetchProviders()
+  }, [])
 
-    if (!hasPermission('canManageProviders')) {
-        return (
-            <Card className="max-w-md mx-auto border-red-200 bg-red-50/50 mt-10">
-                <CardHeader>
-                    <CardTitle className="text-red-700 text-lg">Acceso Denegado</CardTitle>
-                    <CardDescription className="text-red-600">
-                        No poseés el permiso granular `canManageProviders` para gestionar los proveedores del negocio.
-                    </CardDescription>
-                </CardHeader>
-            </Card>
-        );
+  const fetchProviders = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await api.get("/providers")
+      const data = res.data
+      if (Array.isArray(data)) {
+        setProviders(data)
+      } else if (data.success) {
+        setProviders(data.data)
+      } else {
+        setError(data.message || "Error al obtener proveedores")
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Error al cargar los proveedores")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    const isEditing = !!formData.id
+    const url = isEditing ? `/providers/${formData.id}` : "/providers"
+    const conditionClean =
+      formData.payment_condition === "Crédito" || formData.payment_condition === "Credito"
+        ? "Credito"
+        : "Contado"
+
+    const payload = {
+      name: formData.name,
+      payment_condition: conditionClean,
+      credit_days: conditionClean === "Credito" ? Number(formData.credit_days) : 0,
     }
 
-    useEffect(() => {
-        fetchProviders();
-    }, []);
+    try {
+      if (isEditing) {
+        await api.put(url, payload)
+      } else {
+        await api.post(url, payload)
+      }
+      await fetchProviders()
+      closeModal()
+    } catch (err) {
+      const errData = err.response?.data
+      if (errData?.errors) {
+        setError(errData.errors.map((e) => e.message).join(", "))
+      } else {
+        setError(errData?.message || "Error al guardar el proveedor")
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
 
-    const fetchProviders = async () => {
-        try {
-            setLoading(true);
-            const res = await api.get('/providers');
-            const data = res.data;
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Estás seguro de que querés eliminar este proveedor?")) return
+    try {
+      await api.delete(`/providers/${id}`)
+      await fetchProviders()
+    } catch (err) {
+      setError(err.response?.data?.message || "Error al eliminar el proveedor")
+    }
+  }
 
-            if (Array.isArray(data)) {
-                setProviders(data);
-            } else if (data.success) {
-                setProviders(data.data);
-            } else {
-                setError(data.message || 'Error al obtener proveedores');
-            }
-        } catch (err) {
-            setError(err.response?.data?.message || 'Error de conexión con el servidor');
-        } finally {
-            setLoading(false);
-        }
-    };
+  const openModal = (provider = null) => {
+    if (provider) {
+      setFormData({
+        id: provider.id,
+        name: provider.name,
+        payment_condition: provider.payment_condition ?? "Contado",
+        credit_days: provider.credit_days ?? 0,
+      })
+    } else {
+      setFormData({ ...DEFAULT_FORM })
+    }
+    setError(null)
+    setIsModalOpen(true)
+  }
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const isEditing = !!formData.id;
-        const url = isEditing ? `/providers/${formData.id}` : '/providers';
-        const conditionClean = (formData.payment_condition === 'Credito' || formData.payment_condition === 'Crédito')
-            ? 'Credito'
-            : 'Contado';
+  const closeModal = () => {
+    setFormData({ ...DEFAULT_FORM })
+    setIsModalOpen(false)
+  }
 
-        const payload = {
-            name: formData.name,
-            payment_condition: conditionClean,
-            credit_days: conditionClean === 'Credito' ? Number(formData.credit_days) : 0,
-        };
-
-        try {
-            const res = isEditing
-                ? await api.put(url, payload)
-                : await api.post(url, payload);
-
-            fetchProviders();
-            closeModal();
-        } catch (err) {
-            const errData = err.response?.data;
-            if (errData?.errors) {
-                alert(errData.errors.map(e => e.message).join('\n'));
-            } else {
-                alert(errData?.message || 'Error en el servidor al guardar');
-            }
-        }
-    };
-
-    const handleDelete = async (id) => {
-        if (!window.confirm('¿Estás seguro de que querés eliminar este proveedor?')) return;
-
-        try {
-            await api.delete(`/providers/${id}`);
-            fetchProviders();
-        } catch (err) {
-            alert(err.response?.data?.message || 'Error al eliminar el proveedor');
-        }
-    };
-
-    const openModal = (provider = null) => {
-        if (provider) {
-            setFormData({
-                id: provider.id,
-                name: provider.name,
-                payment_condition: provider.payment_condition ?? 'Contado',
-                credit_days: provider.credit_days ?? 0,
-            });
-        } else {
-            setFormData({ ...DEFAULT_FORM });
-        }
-        setIsModalOpen(true);
-    };
-
-    const closeModal = () => {
-        setFormData({ ...DEFAULT_FORM });
-        setIsModalOpen(false);
-    };
-
-
+  // ── Sin permiso ──────────────────────────────────────────────
+  if (!canManage) {
     return (
-        <Card className="max-w-full shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-5">
-                <div>
-                    <CardTitle className="text-2xl font-bold tracking-tight">Gestión de Proveedores</CardTitle>
-                    <CardDescription>Administrá el catálogo de proveedores vinculados a los egresos.</CardDescription>
-                </div>
-
-                <Button onClick={() => openModal()} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                    + Nuevo Proveedor
-                </Button>
-            </CardHeader>
-
-            <CardContent>
-                {error && <div className="p-3 mb-4 text-sm bg-orange-50 border border-orange-200 text-orange-800 rounded-lg">{error}</div>}
-
-                <div className="relative mb-4 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Buscar proveedor por nombre..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9"
-                    />
-                </div>
-
-                {loading ? (
-                    <p className="text-sm text-muted-foreground animate-pulse">Cargando proveedores...</p>
-                ) : (
-                    <div className="rounded-md border w-full overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="min-w-[25%]">Nombre Comercial</TableHead>
-                                    <TableHead className="min-w-[25%]">Condición de Pago</TableHead>
-                                    <TableHead className="min-w-[25%]">Días de Crédito</TableHead>
-                                    <TableHead className="text-right min-w-[10%]">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredProviders.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
-                                            {providers.length === 0
-                                                ? 'No hay proveedores registrados en el sistema.'
-                                                : `No se encontraron proveedores con "${searchTerm}".`
-                                            }
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    filteredProviders.map((p) => (
-                                        <TableRow key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                                            <TableCell className="font-medium text-foreground">{p.name}</TableCell>
-                                            <TableCell>
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${p.payment_condition === 'Credito'
-                                                    ? 'bg-violet-100 text-violet-800 border border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800' // Estilo para CRÉDITO (Ej: Violeta)
-                                                    : 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' // Estilo para CONTADO (Ej: Esmeralda)
-                                                    }`}>
-                                                    {p.payment_condition}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell>
-                                                {p.payment_condition === 'Credito'
-                                                    ? <span className="font-mono">{p.credit_days} días</span>
-                                                    : <span className="text-slate-400 font-mono">—</span>
-                                                }
-                                            </TableCell>
-                                            <TableCell className="text-right space-x-2">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
-                                                            <span className="sr-only">Abrir menú</span>
-                                                            <MoreHorizontal className="h-4 w-4 text-slate-500" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent>
-                                                        <DropdownMenuGroup>
-                                                            <DropdownMenuItem onClick={() => openModal(p)}>
-                                                                <PencilIcon variant="link" />
-                                                                Editar
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuGroup>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuGroup>
-                                                            <DropdownMenuItem variant="destructive" onClick={() => handleDelete(p.id)}>
-                                                                <TrashIcon />
-                                                                Eliminar
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuGroup>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )}
-            </CardContent>
-
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle>{formData.id ? 'Editar Proveedor' : 'Registrar Nuevo Proveedor'}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-muted-foreground">Nombre Comercial *</label>
-                            <Input
-                                required
-                                placeholder="Ej: Distribuidora Central"
-                                value={formData.name}
-                                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-muted-foreground">Condición de Pago *</label>
-                            <Select
-                                value={formData.payment_condition === 'Crédito' ? 'Credito' : formData.payment_condition}
-                                onValueChange={(value) => setFormData({
-                                    ...formData,
-                                    payment_condition: value,
-                                    credit_days: value === 'Contado' ? 0 : formData.credit_days
-                                })}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Seleccione una condición" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Contado">Contado</SelectItem>
-                                    <SelectItem value="Credito">Crédito</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {formData.payment_condition === 'Credito' && (
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-muted-foreground">Días de Crédito *</label>
-                                <Input
-                                    type="number"
-                                    required
-                                    min={1}
-                                    placeholder="Ej: 30"
-                                    value={formData.credit_days === 0 ? '' : formData.credit_days}
-                                    onChange={e => setFormData({ ...formData, credit_days: parseInt(e.target.value) || 0 })}
-                                />
-                            </div>
-                        )}
-
-                        <DialogFooter className="pt-2">
-                            <Button type="button" variant="outline" onClick={closeModal}>Cancelar</Button>
-                            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                                {formData.id ? 'Guardar Cambios' : 'Registrar'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Proveedores</h1>
+          <p className="text-sm text-muted-foreground">Catálogo de proveedores vinculados a los egresos.</p>
+        </div>
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="flex size-16 items-center justify-center rounded-full bg-muted mb-4">
+              <ShieldAlert className="size-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold">Acceso restringido</h3>
+            <p className="text-sm text-muted-foreground mt-2 max-w-sm">
+              No poseés el permiso <span className="font-mono text-xs">canManageProviders</span> para gestionar los proveedores.
+            </p>
+          </CardContent>
         </Card>
-    );
+      </div>
+    )
+  }
+
+  // ── Vista principal ──────────────────────────────────────────
+  return (
+    <div className="space-y-6">
+
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Proveedores</h1>
+          <p className="text-sm text-muted-foreground">
+            Administrá el catálogo de proveedores vinculados a los egresos.
+          </p>
+        </div>
+        <Button className="gap-2 w-full sm:w-auto justify-center" onClick={() => openModal()}>
+          <PlusCircle className="size-4" />
+          Nuevo Proveedor
+        </Button>
+      </div>
+
+      {/* Error banner */}
+      {error && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+      )}
+
+      {/* Estado vacío */}
+      {!loading && providers.length === 0 && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="flex size-16 items-center justify-center rounded-full bg-muted mb-4">
+              <Store className="size-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold">Sin proveedores registrados</h3>
+            <p className="text-sm text-muted-foreground mt-2 max-w-sm">
+              Todavía no cargaste ningún proveedor. Hacé clic en "Nuevo Proveedor" para agregar el primero.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tabla */}
+      {!loading && providers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                  <Store className="size-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">Listado de Proveedores</CardTitle>
+                  <CardDescription>
+                    {providers.length} proveedor{providers.length !== 1 ? "es" : ""} registrado{providers.length !== 1 ? "s" : ""}
+                  </CardDescription>
+                </div>
+              </div>
+
+              {/* Búsqueda */}
+              <SearchBar
+                placeholder="Buscar por nombre..."
+                value={searchTerm}
+                onChange={setSearchTerm}
+              />
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre Comercial</TableHead>
+                  <TableHead>Condición de Pago</TableHead>
+                  <TableHead>Días de Crédito</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                      {searchTerm
+                        ? `No se encontraron proveedores con "${searchTerm}".`
+                        : "No hay proveedores para mostrar."}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${
+                            p.payment_condition === "Credito"
+                              ? "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800"
+                              : "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                          }`}
+                        >
+                          {p.payment_condition === "Credito" ? "Crédito" : "Contado"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {p.payment_condition === "Credito" ? (
+                          <span className="font-mono tabular-nums">{p.credit_days} días</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8 rounded-full">
+                              <span className="sr-only">Abrir menú</span>
+                              <MoreHorizontal className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuGroup>
+                              <DropdownMenuItem onClick={() => openModal(p)}>
+                                <Pencil className="size-4 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuGroup>
+                              <DropdownMenuItem
+                                variant="destructive"
+                                onClick={() => handleDelete(p.id)}
+                              >
+                                <Trash2 className="size-4 mr-2" />
+                                Eliminar
+                              </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Modal crear / editar */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {formData.id ? "Editar Proveedor" : "Registrar Nuevo Proveedor"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="p-name">Nombre Comercial</Label>
+              <Input
+                id="p-name"
+                required
+                placeholder="Ej: Distribuidora Central"
+                value={formData.name}
+                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="p-condition">Condición de Pago</Label>
+              <select
+                id="p-condition"
+                required
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none"
+                value={formData.payment_condition === "Crédito" ? "Credito" : formData.payment_condition}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    payment_condition: e.target.value,
+                    credit_days: e.target.value === "Contado" ? 0 : prev.credit_days,
+                  }))
+                }
+              >
+                <option value="Contado">Contado</option>
+                <option value="Credito">Crédito</option>
+              </select>
+            </div>
+
+            {(formData.payment_condition === "Credito" || formData.payment_condition === "Crédito") && (
+              <div className="space-y-1.5">
+                <Label htmlFor="p-days">Días de Crédito</Label>
+                <Input
+                  id="p-days"
+                  type="number"
+                  required
+                  min={1}
+                  placeholder="Ej: 30"
+                  value={formData.credit_days === 0 ? "" : formData.credit_days}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, credit_days: parseInt(e.target.value) || 0 }))
+                  }
+                />
+              </div>
+            )}
+
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={closeModal} disabled={saving}>
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                    Guardando...
+                  </>
+                ) : formData.id ? (
+                  "Guardar Cambios"
+                ) : (
+                  "Registrar"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }

@@ -17,6 +17,7 @@ export default function EditAttendanceModal({ open, onOpenChange, log, onSuccess
   const [checkIn, setCheckIn] = useState("")
   const [checkOut, setCheckOut] = useState("")
   const [loading, setLoading] = useState(false)
+  const [localError, setLocalError] = useState(null)
 
   useEffect(() => {
     if (log) {
@@ -29,28 +30,48 @@ export default function EditAttendanceModal({ open, onOpenChange, log, onSuccess
       setCheckIn(formatToDateTimeLocal(log.check_in))
       setCheckOut(formatToDateTimeLocal(log.check_out))
     }
+    setLocalError(null)
   }, [log])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!log) return
+    setLocalError(null)
+
+    const checkInMs = Date.parse(checkIn)
+    const checkOutMs = Date.parse(checkOut)
+
+    if (isNaN(checkInMs) || isNaN(checkOutMs)) {
+      setLocalError("Las fechas ingresadas para el turno no son válidas.")
+      return
+    }
+
+    if (checkOutMs <= checkInMs) {
+      setLocalError("La fecha de salida (check-out) debe ser posterior a la de entrada (check-in).")
+      return
+    }
+
     setLoading(true)
     try {
       await api.put(`/attendance/${log.id}`, {
-        checkIn: new Date(checkIn).toISOString(),
-        checkOut: new Date(checkOut).toISOString(),
+        checkIn: new Date(checkInMs).toISOString(),
+        checkOut: new Date(checkOutMs).toISOString(),
       })
       onOpenChange(false)
       onSuccess()
     } catch (err) {
-      onError(err.response?.data?.message || err.response?.data?.errors?.[0]?.message || "Error al actualizar el turno")
+      const errMsg = err.response?.data?.message || err.response?.data?.errors?.[0]?.message || "Error al actualizar el turno"
+      setLocalError(errMsg)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(val) => {
+      if (!val) setLocalError(null)
+      onOpenChange(val)
+    }}>
       <DialogContent className="max-w-sm">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -61,6 +82,11 @@ export default function EditAttendanceModal({ open, onOpenChange, log, onSuccess
             <DialogDescription>
               Modificá las horas registradas para {log?.employee?.name || "el empleado"}.
             </DialogDescription>
+            {localError && (
+              <div className="mt-2 rounded bg-destructive/10 border border-destructive/20 p-2.5 text-xs text-destructive">
+                {localError}
+              </div>
+            )}
           </DialogHeader>
 
           <div className="space-y-4 py-4">

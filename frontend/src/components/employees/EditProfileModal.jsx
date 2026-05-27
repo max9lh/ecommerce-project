@@ -20,6 +20,7 @@ export default function EditProfileModal({ open, onOpenChange, employee, onSucce
     monthly_salary: 0,
   })
   const [loading, setLoading] = useState(false)
+  const [localError, setLocalError] = useState(null)
 
   useEffect(() => {
     if (employee && employee.employeeProfile) {
@@ -34,6 +35,19 @@ export default function EditProfileModal({ open, onOpenChange, employee, onSucce
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!employee) return
+    setLocalError(null)
+
+    // Validaciones Locales
+    if (form.salary_type === "hourly" && (Number(form.hourly_rate) <= 0 || isNaN(form.hourly_rate))) {
+      setLocalError("La tarifa por hora debe ser un número mayor a 0.")
+      return
+    }
+
+    if (form.salary_type === "fixed" && (Number(form.monthly_salary) <= 0 || isNaN(form.monthly_salary))) {
+      setLocalError("El sueldo fijo mensual debe ser un número mayor a 0.")
+      return
+    }
+
     setLoading(true)
     try {
       const payload = {
@@ -45,14 +59,18 @@ export default function EditProfileModal({ open, onOpenChange, employee, onSucce
       onOpenChange(false)
       onSuccess()
     } catch (err) {
-      onError(err.response?.data?.message || err.response?.data?.errors?.[0]?.message || "Error al actualizar perfil")
+      const errMsg = err.response?.data?.message || err.response?.data?.errors?.[0]?.message || "Error al actualizar perfil"
+      setLocalError(errMsg)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(val) => {
+      if (!val) setLocalError(null)
+      onOpenChange(val)
+    }}>
       <DialogContent className="max-w-sm">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -63,6 +81,11 @@ export default function EditProfileModal({ open, onOpenChange, employee, onSucce
             <DialogDescription>
               Modificá las condiciones contractuales de {employee?.employeeProfile?.first_name}.
             </DialogDescription>
+            {localError && (
+              <div className="mt-2 rounded bg-destructive/10 border border-destructive/20 p-2.5 text-xs text-destructive">
+                {localError}
+              </div>
+            )}
           </DialogHeader>
 
           <div className="space-y-4 py-4">

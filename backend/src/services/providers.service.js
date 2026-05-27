@@ -2,7 +2,6 @@ const prisma = require('../config/db');
 
 const getAllProviders = async (userId) => {
     const providers = await prisma.provider.findMany({
-        where: { user_id: userId },
         select: {
             id: true,
             name: true,
@@ -17,7 +16,7 @@ const createProvider = async (userId, providerData) => {
     const { name, paymentCondition, creditDays } = providerData;
     const upperName = name.trim().toUpperCase();
 
-    const existing = await prisma.provider.findFirst({ where: { user_id: userId, name: upperName } });
+    const existing = await prisma.provider.findFirst({ where: { name: upperName } });
     if (existing) {
         const error = new Error('El proveedor ya esta en la lista');
         error.statusCode = 409;
@@ -26,7 +25,7 @@ const createProvider = async (userId, providerData) => {
 
     return await prisma.provider.create({
         data: {
-            user_id: userId,
+            user_id: userId, // Guardamos quién lo creó para auditoría/trazabilidad
             name: upperName,
             payment_condition: paymentCondition,
             credit_days: creditDays,
@@ -46,8 +45,7 @@ const updateProvider = async (userId, id, providerData) => {
 
     const existing = await prisma.provider.findFirst({
         where: {
-            id: parseInt(id),
-            user_id: userId
+            id: parseInt(id)
         }
     });
     if (!existing) {
@@ -58,7 +56,6 @@ const updateProvider = async (userId, id, providerData) => {
     const nameExists = await prisma.provider.findFirst({
         where: {
             name: upperName,
-            user_id: userId,
             id: { not: parseInt(id) }
         }
     });
@@ -69,8 +66,7 @@ const updateProvider = async (userId, id, providerData) => {
     }
     const affected = await prisma.provider.updateMany({
         where: {
-            id: parseInt(id),
-            user_id: userId
+            id: parseInt(id)
         },
         data: {
             name: upperName,
@@ -91,8 +87,7 @@ const updateProvider = async (userId, id, providerData) => {
 const deleteProvider = async (userId, id) => {
     const affected = await prisma.provider.deleteMany({
         where: {
-            id: parseInt(id),
-            user_id: userId
+            id: parseInt(id)
         },
     });
 

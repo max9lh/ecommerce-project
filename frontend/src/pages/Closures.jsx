@@ -107,7 +107,6 @@ export default function Closures() {
     )
   }
 
-  // --- Formulario principal ---
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       {/* Header */}

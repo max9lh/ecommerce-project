@@ -77,12 +77,6 @@ export function LoginForm({
           Login
         </Button>
       </div>
-      <div className="text-center text-sm">
-        ¿No tenés una cuenta?{" "}
-        <Link to="/singup" className="underline underline-offset-4">
-          Crear cuenta nueva
-        </Link>
-      </div>
     </form>
   );
 }
