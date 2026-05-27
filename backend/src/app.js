@@ -6,7 +6,10 @@ const errorHandler = require('./middlewares/errorHandler');
 const authRouter = require('./routes/auth.routes');
 const closureRouter = require('./routes/closure.routes');
 const providerRouter = require('./routes/providers.routes');
+const expenseRouter = require('./routes/expense.routes');
 const accountsRouter = require('./routes/accounts.routes');
+const adminRouter = require('./routes/admin.routes');
+const attendanceRouter = require('./routes/attendance.routes');
 const app = express();
 
 app.use(helmet());
@@ -22,7 +25,10 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRouter);
 app.use('/api/closures', closureRouter);
 app.use('/api/providers', providerRouter);
+app.use('/api/expenses', expenseRouter);
 app.use('/api/accounts', accountsRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/attendance', attendanceRouter);
 
 // Error handler global (siempre al final)
 app.use(errorHandler);

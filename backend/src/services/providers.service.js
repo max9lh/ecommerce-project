@@ -2,7 +2,6 @@ const prisma = require('../config/db');
 
 const getAllProviders = async (userId) => {
     const providers = await prisma.provider.findMany({
-        where: { user_id: userId },
         select: {
             id: true,
             name: true,
@@ -15,7 +14,9 @@ const getAllProviders = async (userId) => {
 
 const createProvider = async (userId, providerData) => {
     const { name, paymentCondition, creditDays } = providerData;
-    const existing = await prisma.provider.findFirst({ where: { user_id: userId, name } });
+    const upperName = name.trim().toUpperCase();
+
+    const existing = await prisma.provider.findFirst({ where: { name: upperName } });
     if (existing) {
         const error = new Error('El proveedor ya esta en la lista');
         error.statusCode = 409;
@@ -24,8 +25,8 @@ const createProvider = async (userId, providerData) => {
 
     return await prisma.provider.create({
         data: {
-            user_id: userId,
-            name,
+            user_id: userId, // Guardamos quién lo creó para auditoría/trazabilidad
+            name: upperName,
             payment_condition: paymentCondition,
             credit_days: creditDays,
         },
@@ -39,12 +40,12 @@ const createProvider = async (userId, providerData) => {
 }
 
 const updateProvider = async (userId, id, providerData) => {
-    const { name, payment_condition, credit_days } = providerData;
+    const { name, paymentCondition, creditDays } = providerData;
+    const upperName = name.trim().toUpperCase();
 
     const existing = await prisma.provider.findFirst({
         where: {
-            id: parseInt(id),
-            user_id: userId
+            id: parseInt(id)
         }
     });
     if (!existing) {
@@ -54,8 +55,7 @@ const updateProvider = async (userId, id, providerData) => {
     }
     const nameExists = await prisma.provider.findFirst({
         where: {
-            name,
-            user_id: userId,
+            name: upperName,
             id: { not: parseInt(id) }
         }
     });
@@ -66,13 +66,12 @@ const updateProvider = async (userId, id, providerData) => {
     }
     const affected = await prisma.provider.updateMany({
         where: {
-            id: parseInt(id),
-            user_id: userId
+            id: parseInt(id)
         },
         data: {
-            name,
-            payment_condition,
-            credit_days,
+            name: upperName,
+            payment_condition: paymentCondition,
+            credit_days: creditDays,
         }
     })
 
@@ -82,14 +81,13 @@ const updateProvider = async (userId, id, providerData) => {
         throw error;
     }
 
-    return { id: parseInt(id), name, payment_condition, credit_days };
+    return { id: parseInt(id), name: upperName, payment_condition: paymentCondition, credit_days: creditDays };
 }
 
 const deleteProvider = async (userId, id) => {
     const affected = await prisma.provider.deleteMany({
         where: {
-            id: parseInt(id),
-            user_id: userId
+            id: parseInt(id)
         },
     });
 

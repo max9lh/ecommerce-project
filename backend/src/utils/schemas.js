@@ -2,7 +2,7 @@ const { z } = require('zod');
 
 const statusAmount = ["Pendiente", "Pagado"];
 const paymentCondition = ["Contado", "Credito"];
-const budgetCategory = ['Mercaderia', 'Ahorro', 'Gastos fijos'];
+const budgetCategory = ['Mercadería', 'Ahorro', 'Gastos Fijos'];
 
 // Los porcentajes se almacenan como decimales en la DB (Decimal(3,2))
 // Enviar 0.60 para representar 60%, no 60.
@@ -19,9 +19,15 @@ const registerSchema = z.object({
         .max(20, 'El usuario no puede tener más de 20 caracteres'),
     password: z.string()
         .min(8, 'La contraseña debe tener al menos 8 caracteres'),
-    pct_merchandise: pctField('mercadería'),
-    pct_fixed_expenses: pctField('gastos fijos'),
-    pct_savings: pctField('ahorros'),
+    pct_merchandise: pctField('Mercadería'),
+    pct_fixed_expenses: pctField('Gastos Fijos'),
+    pct_savings: pctField('Ahorros'),
+    role: z.enum(['ADMIN', 'EMPLOYEE']).optional(),
+    first_name: z.string().optional(),
+    last_name: z.string().optional(),
+    salary_type: z.enum(['hourly', 'fixed']).optional(),
+    hourly_rate: z.number().optional(),
+    monthly_salary: z.number().optional()
 }).refine(
     (data) => Math.abs(data.pct_merchandise + data.pct_fixed_expenses + data.pct_savings - 1) < 0.001,
     {
@@ -93,10 +99,11 @@ const expensesSchema = z.object({
     path: ['due_date'],
 });
 
+
 const updatePercentagesSchema = z.object({
     pct_merchandise: pctField('mercadería'),
-    pct_fixed_expenses: pctField('gastos fijos'),
-    pct_savings: pctField('ahorros'),
+    pct_fixed_expenses: pctField('Gastos Fijos'),
+    pct_savings: pctField('Ahorros'),
 }).refine(
     (data) => Math.abs(data.pct_merchandise + data.pct_fixed_expenses + data.pct_savings - 1) < 0.001,
     {
@@ -114,6 +121,60 @@ const validate = (schema) => (req, res, next) => {
     next();
 };
 
+const createEmployeeSchema = z.object({
+    username: z.string()
+        .min(6, 'El usuario debe tener al menos 6 caracteres')
+        .max(20, 'El usuario no puede tener más de 20 caracteres'),
+    password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+    first_name: z.string()
+        .min(2, 'El nombre debe tener al menos 2 caracteres')
+        .max(50, 'El nombre no puede tener más de 50 caracteres'),
+    last_name: z.string()
+        .min(2, 'El apellido debe tener al menos 2 caracteres')
+        .max(50, 'El apellido no puede tener más de 50 caracteres'),
+    hourly_rate: z.number().nonnegative('La tarifa por hora debe ser mayor o igual a 0'),
+    salary_type: z.enum(['hourly', 'fixed'], { errorMap: () => ({ message: 'Tipo de salario inválido' }) }),
+    monthly_salary: z.number().nonnegative('El salario mensual debe ser mayor o igual a 0').nullable().optional()
+});
+
+const updatePermissionsSchema = z.object({
+    canRegisterClosures: z.boolean(),
+    canRegisterExpenses: z.boolean(),
+    canPayExpenses: z.boolean(),
+    canManageProviders: z.boolean()
+});
+
+const updateProfileSchema = z.object({
+    hourly_rate: z.number().nonnegative('La tarifa por hora debe ser mayor o igual a 0'),
+    salary_type: z.enum(['hourly', 'fixed']),
+    monthly_salary: z.number().nonnegative('El salario mensual debe ser mayor o igual a 0').nullable().optional()
+});
+
+
+
+
+const createAttendanceSchema = z.object({
+    employeeId: z.number().int().positive('ID de empleado inválido'),
+    checkIn: z.coerce.date(),
+    checkOut: z.coerce.date()
+});
+
+const updateAttendanceSchema = z.object({
+    checkIn: z.coerce.date(),
+    checkOut: z.coerce.date()
+});
+
+const liquidatePayrollSchema = z.object({
+    employeeId: z.number().int().positive('ID de empleado inválido'),
+    from: z.coerce.date(),
+    to: z.coerce.date(),
+    providerId: z.number().int().positive('ID de proveedor inválido'),
+    accountId: z.number().int().positive('ID de cuenta física inválido'),
+    budgetCategory: z.enum(budgetCategory, {
+        errorMap: () => ({ message: 'Categoría de presupuesto no válida' }),
+    }).optional().default('Gastos Fijos')
+});
+
 module.exports = {
     registerSchema,
     loginSchema,
@@ -122,4 +183,10 @@ module.exports = {
     expensesSchema,
     updatePercentagesSchema,
     validate,
+    createEmployeeSchema,
+    updatePermissionsSchema,
+    updateProfileSchema,
+    createAttendanceSchema,
+    updateAttendanceSchema,
+    liquidatePayrollSchema,
 };

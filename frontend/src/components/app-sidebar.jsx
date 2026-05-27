@@ -1,25 +1,20 @@
 import * as React from "react"
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
   Building2,
-  Command,
-  Frame,
+  ClipboardList,
   GalleryVerticalEnd,
   LayoutDashboard,
   LineChart,
-  Map,
-  PieChart,
   ReceiptText,
-  Settings2,
-  SquareTerminal,
-  Wallet,
+  Users,
+  CalendarClock,
+  Sliders,
 } from "lucide-react"
 
+import { useAuth } from "@/context/AuthContext"
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
+
 import {
   Sidebar,
   SidebarContent,
@@ -31,132 +26,81 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  company: {
-    name: "Acme Inc",
-    logo: GalleryVerticalEnd,
-    plan: "Enterprise",
-  },
-  navMain: [
-    {
+/**
+ * Sidebar de la aplicación.
+ * Filtra dinámicamente las opciones del menú según el rol y permisos del usuario.
+ */
+export function AppSidebar({ ...props }) {
+  const { user, isAdmin, hasPermission } = useAuth()
+
+  const navMain = React.useMemo(() => {
+    const items = []
+
+    // Panel Principal — visible para todos
+    items.push({
       title: "Panel Principal",
       url: "/dashboard",
       icon: LayoutDashboard,
       isActive: true,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Cierres de Caja",
-      url: "/cierres",
-      icon: Wallet,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proveedores",
-      url: "/proveedores",
-      icon: Building2,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Egresos",
-      url: "/egresos",
-      icon: ReceiptText,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Reportes",
-      url: "/reportes",
-      icon: LineChart,
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
-  ],
-}
+    })
 
-export function AppSidebar({
-  ...props
-}) {
+    // Cierres de Caja — ADMIN siempre, EMPLOYEE si tiene permiso
+    if (hasPermission("canRegisterClosures")) {
+      items.push({
+        title: "Cierres de Caja",
+        url: "/cierres",
+        icon: ClipboardList,
+      })
+    }
+
+    // Proveedores — ADMIN siempre, EMPLOYEE si tiene permiso
+    if (hasPermission("canManageProviders")) {
+      items.push({
+        title: "Proveedores",
+        url: "/proveedores",
+        icon: Building2,
+      })
+    }
+
+    // Egresos — ADMIN siempre, EMPLOYEE si tiene algún permiso de gastos
+    if (hasPermission("canRegisterExpenses") || hasPermission("canPayExpenses")) {
+      items.push({
+        title: "Egresos",
+        url: "/egresos",
+        icon: ReceiptText,
+      })
+    }
+
+    // --- Secciones solo para ADMIN ---
+    if (isAdmin) {
+      items.push({
+        title: "Empleados",
+        url: "/empleados",
+        icon: Users,
+      })
+
+      items.push({
+        title: "Asistencia",
+        url: "/asistencia",
+        icon: CalendarClock,
+      })
+
+      items.push({
+        title: "Reportes",
+        url: "/reportes",
+        icon: LineChart,
+      })
+
+      items.push({
+        title: "Distribución",
+        url: "/distribucion",
+        icon: Sliders,
+      })
+    }
+
+    return items
+  }, [isAdmin, hasPermission])
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -164,24 +108,30 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="hover:bg-transparent cursor-default">
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-white">
-                <data.company.logo className="size-4" />
+                <GalleryVerticalEnd className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{data.company.name}</span>
-                <span className="truncate text-xs">{data.company.plan}</span>
+                <span className="truncate font-semibold">Gestor Financiero</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {isAdmin ? "Administrador" : "Empleado"}
+                </span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavMain items={navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser
+          user={{
+            name: user?.username || "Usuario",
+            role: user?.role || "EMPLOYEE",
+          }}
+        />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  );
+  )
 }
