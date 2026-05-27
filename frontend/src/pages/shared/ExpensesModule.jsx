@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/api';
 
-// Importaciones de Shadcn/ui
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -11,10 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-// Iconos de Lucide
-import { CreditCard, FilterX, MoreVertical, Plus, Loader2 } from "lucide-react";
+import { CreditCard, FilterX, MoreVertical, Plus, Loader2, ShieldAlert, Clock, CircleDollarSign } from "lucide-react";
 
-// Helper para leer el rol y permisos directamente del Token guardado
 function getAuthContext() {
     const token = localStorage.getItem("token");
     if (!token) return { role: null, permissions: {} };
@@ -33,22 +30,22 @@ function getAuthContext() {
 export default function ExpensesModule() {
     const auth = getAuthContext();
 
-    // Estados de datos
     const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    // Estados para filtros reactivos (Pedido en la Tarea 4.3)
+    const [upcomingExpenses, setUpcomingExpenses] = useState([]);
+    const [loadingUpcoming, setLoadingUpcoming] = useState(true);
+
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [categoryFilter, setCategoryFilter] = useState('ALL');
     const [dateFilter, setDateFilter] = useState('');
 
-    // Estados para el diálogo de confirmación de pago
     const [isPayDialogOpen, setIsPayDialogOpen] = useState(false);
     const [selectedExpense, setSelectedExpense] = useState(null);
+    const [payAccountId, setPayAccountId] = useState('');
     const [submittingPay, setSubmittingPay] = useState(false);
 
-    // Estados para registrar nuevo egreso
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [providers, setProviders] = useState([]);
     const [accounts, setAccounts] = useState([]);
@@ -63,7 +60,6 @@ export default function ExpensesModule() {
         due_date: ''
     });
 
-    // Carga de listados auxiliares de proveedores y cuentas físicas
     const fetchLists = async () => {
         try {
             setLoadingLists(true);
@@ -78,7 +74,6 @@ export default function ExpensesModule() {
             setProviders(provs);
             setAccounts(accs);
 
-            // Valores por defecto
             setCreateFormData(prev => ({
                 ...prev,
                 provider_id: provs.length > 0 ? String(provs[0].id) : '',
@@ -96,7 +91,6 @@ export default function ExpensesModule() {
         fetchLists();
     };
 
-    // Registro del nuevo egreso (POST a la API)
     const handleCreateExpense = async (e) => {
         e.preventDefault();
 
@@ -126,12 +120,11 @@ export default function ExpensesModule() {
                 budget_category: createFormData.budget_category,
                 amount: amt,
                 status: createFormData.status,
-                ...(createFormData.status === 'Pendiente' && { due_date: new Date(createFormData.due_date).toISOString() })
+                ...(createFormData.status === 'Pendiente' && { due_date: `${createFormData.due_date}T12:00:00.000Z` })
             };
 
             await api.post('/expenses', payload);
             setIsCreateDialogOpen(false);
-            // Limpiar formulario
             setCreateFormData({
                 provider_id: providers.length > 0 ? String(providers[0].id) : '',
                 account_id: accounts.length > 0 ? String(accounts[0].id) : '',
@@ -140,7 +133,8 @@ export default function ExpensesModule() {
                 status: 'Pagado',
                 due_date: ''
             });
-            fetchExpenses(); // Recargar grilla
+            fetchExpenses();
+            fetchUpcoming();
         } catch (err) {
             alert(err.response?.data?.message || err.response?.data?.errors?.[0]?.message || 'Error al registrar el egreso.');
         } finally {
@@ -148,13 +142,11 @@ export default function ExpensesModule() {
         }
     };
 
-    // Carga de egresos con filtros aplicados directamente a las Query Strings de la API
     const fetchExpenses = async () => {
         try {
             setLoading(true);
             setError('');
 
-            // Construimos los parámetros de búsqueda dinámicamente con las claves correctas para el Backend
             const params = {};
             if (statusFilter !== 'ALL') params.status = statusFilter;
             if (categoryFilter !== 'ALL') params.budget_category = categoryFilter;
@@ -172,24 +164,40 @@ export default function ExpensesModule() {
         }
     };
 
-    // Escucha cambios en los filtros para refrescar la tabla de forma asíncrona
+    const fetchUpcoming = async () => {
+        try {
+            setLoadingUpcoming(true);
+            const res = await api.get('/expenses/upcoming', { params: { days: 15 } });
+            setUpcomingExpenses(res.data);
+        } catch {
+            setUpcomingExpenses([]);
+        } finally {
+            setLoadingUpcoming(false);
+        }
+    };
+
     useEffect(() => {
-        // Regla 6.3 / 6.7: Solo el ADMIN puede ver o listar la tabla de egresos en el Dashboard
         if (auth.isAdmin) {
             fetchExpenses();
+            fetchUpcoming();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [statusFilter, categoryFilter, dateFilter]);
 
-    // Función que dispara el PUT atómico hacia el Backend para asentar el pago (Tarea 4.4)
     const handleConfirmPayment = async () => {
         if (!selectedExpense) return;
+        if (!payAccountId) {
+            alert('Debes seleccionar una cuenta física o banco.');
+            return;
+        }
         try {
             setSubmittingPay(true);
-            await api.put(`/expenses/${selectedExpense.id}/pay`);
+            await api.put(`/expenses/${selectedExpense.id}/pay`, {
+                account_id: parseInt(payAccountId)
+            });
             setIsPayDialogOpen(false);
             setSelectedExpense(null);
-            fetchExpenses(); // Recarga la lista inmediatamente reflejando los nuevos saldos del ADMIN
+            fetchExpenses();
+            fetchUpcoming();
         } catch (err) {
             alert(err.response?.data?.message || 'Ocurrió un error al procesar el pago en el servidor.');
         } finally {
@@ -205,175 +213,310 @@ export default function ExpensesModule() {
 
     const openPayDialog = (expense) => {
         setSelectedExpense(expense);
+        setPayAccountId(expense.account_id ? String(expense.account_id) : (accounts.length > 0 ? String(accounts[0].id) : ''));
         setIsPayDialogOpen(true);
+        if (accounts.length === 0) {
+            fetchLists();
+        }
     };
 
-    // RESTRICCIÓN DE PANTALLA COMPLETA (Regla 4.3 / 6.3 del plan de desarrollo)
     if (!auth.isAdmin) {
         return (
-            <Card className="max-w-md border-amber-200 bg-amber-50/50 mt-10">
-                <CardHeader>
-                    <CardTitle className="text-amber-700 text-lg">Acceso Condicionado por Rol</CardTitle>
-                    <CardDescription className="text-amber-600">
-                        Como empleado, no tenés permitido visualizar la sábana o listado de egresos financieros generales de la empresa. Acudí a tus formularios de acción directa si necesitás registrar un egreso.
-                    </CardDescription>
-                </CardHeader>
-            </Card>
+            <div className="space-y-6">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Egresos Financieros</h1>
+                    <p className="text-sm text-muted-foreground">Monitoreá las facturas, compras y estados de pago debitados de las cuentas del administrador.</p>
+                </div>
+                <Card className="border-dashed">
+                    <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="flex size-16 items-center justify-center rounded-full bg-muted mb-4">
+                            <ShieldAlert className="size-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold">Acceso restringido</h3>
+                        <p className="text-sm text-muted-foreground mt-2 max-w-sm">
+                            Como empleado, no tenés permitido visualizar el listado de egresos financieros generales de la empresa. Acudí a tus formularios de acción directa si necesitás registrar un egreso.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
         );
     }
 
     return (
-        <Card className="max-w-5xl shadow-sm">
-            <CardHeader>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                        <CardTitle className="text-2xl font-bold tracking-tight">💸 Control de Egresos</CardTitle>
-                        <CardDescription>Monitoreá las facturas, compras y estados de pago debitados de las cuentas del administrador.</CardDescription>
-                    </div>
-                    {(auth.isAdmin || auth.permissions.canRegisterExpenses) && (
-                        <Button onClick={openCreateDialog} className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2">
-                            <Plus className="h-4 w-4" />
-                            Registrar Egreso
-                        </Button>
-                    )}
+        <div className="space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Egresos Financieros</h1>
+                    <p className="text-sm text-muted-foreground">
+                        Monitoreá las facturas, compras y estados de pago debitados de las cuentas del administrador.
+                    </p>
                 </div>
-            </CardHeader>
-
-            <CardContent className="space-y-6">
-                {/* BARRA DE FILTROS (DISEÑO RESPONSIVE PC/MÓVIL) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-slate-50 dark:bg-muted/20 border border-slate-200 dark:border-border rounded-lg items-end">
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">Estado</label>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="bg-white dark:bg-background">
-                                <SelectValue placeholder="Filtrar por estado" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="ALL">Todos los estados</SelectItem>
-                                <SelectItem value="Pendiente">Pendiente</SelectItem>
-                                <SelectItem value="Pagado">Pagado</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">Categoría</label>
-                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                            <SelectTrigger className="bg-white dark:bg-background">
-                                <SelectValue placeholder="Filtrar categoría" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="ALL">Todas las categorías</SelectItem>
-                                <SelectItem value="Mercadería">Mercadería</SelectItem>
-                                <SelectItem value="Gastos Fijos">Gastos Fijos</SelectItem>
-                                <SelectItem value="Ahorro">Ahorros</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">Fecha Específica</label>
-                        <div className="relative">
-                            <Input
-                                type="date"
-                                className="bg-white dark:bg-background pr-8"
-                                value={dateFilter}
-                                onChange={(e) => setDateFilter(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    <Button variant="outline" onClick={resetFilters} className="w-full flex items-center gap-2 bg-white dark:bg-background">
-                        <FilterX className="h-4 w-4 text-muted-foreground" />
-                        Limpiar Filtros
+                {(auth.isAdmin || auth.permissions.canRegisterExpenses) && (
+                    <Button variant="outline" onClick={openCreateDialog} className="gap-2 w-full sm:w-auto justify-center">
+                        <Plus className="size-4" />
+                        Registrar Egreso
                     </Button>
+                )}
+            </div>
+
+            {error && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    {error}
                 </div>
+            )}
 
-                {error && <div className="p-3 text-sm bg-orange-50 border border-orange-200 text-orange-800 rounded-lg">{error}</div>}
+            {loading && (
+                <div className="flex items-center justify-center py-16">
+                    <Loader2 className="size-8 animate-spin text-muted-foreground" />
+                </div>
+            )}
 
-                {/* TABLA DE EGRESOS DE SHADCN */}
-                {loading ? (
-                    <p className="text-sm text-muted-foreground animate-pulse py-4">Sincronizando transacciones de egresos...</p>
-                ) : (
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Fecha</TableHead>
-                                    <TableHead>Descripción / Proveedor</TableHead>
-                                    <TableHead>Categoría</TableHead>
-                                    <TableHead>Monto</TableHead>
-                                    <TableHead>Estado</TableHead>
-                                    <TableHead className="text-right">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {expenses.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                                            No se encontraron egresos con los filtros seleccionados.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    expenses.map((expense) => (
-                                        <TableRow key={expense.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                                            <TableCell className="font-mono text-xs text-muted-foreground">
-                                                {new Date(expense.created_at).toLocaleDateString('es-AR')}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="font-semibold text-slate-900 dark:text-slate-100">{expense.budget_category}</div>
-                                                <div className="text-xs text-muted-foreground">Prov: {expense.provider?.name || 'Particular'}</div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline" className="text-slate-600 dark:text-slate-300 bg-slate-100/50 dark:bg-muted/30 border border-slate-200 dark:border-border">
-                                                    {expense.budget_category}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="font-semibold text-slate-900 dark:text-slate-100 font-mono">
+            {!loadingUpcoming && upcomingExpenses.length > 0 && (
+                <Card className="shadow-sm border-amber-500/20">
+                    <CardHeader className="pb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="flex size-10 items-center justify-center rounded-full bg-amber-500/15 text-amber-500">
+                                    <Clock className="size-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-base">Próximos a Vencer</CardTitle>
+                                    <CardDescription>
+                                        Egresos pendientes con vencimiento en los próximos 15 días.
+                                    </CardDescription>
+                                </div>
+                            </div>
+                            <div className="flex flex-col sm:items-end">
+                                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total a Liquidar</span>
+                                <span className="text-xl font-bold text-amber-600 dark:text-amber-500 font-mono">
+                                    ${upcomingExpenses.reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                                </span>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="divide-y divide-border rounded-lg border">
+                            {upcomingExpenses.map((expense) => {
+                                const dDate = new Date(expense.due_date);
+                                const dueDateLocalMidnight = new Date(dDate.getFullYear(), dDate.getMonth(), dDate.getDate());
+                                const todayLocalMidnight = new Date();
+                                todayLocalMidnight.setHours(0, 0, 0, 0);
+
+                                const diffDays = Math.round((dueDateLocalMidnight - todayLocalMidnight) / (1000 * 60 * 60 * 24));
+                                const isUrgent = diffDays <= 3;
+
+                                return (
+                                    <div key={expense.id} className="flex items-center justify-between gap-4 px-4 py-3">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className={`flex size-9 shrink-0 items-center justify-center rounded-full ${isUrgent
+                                                    ? 'bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400'
+                                                    : 'bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400'
+                                                }`}>
+                                                <CircleDollarSign className="size-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-semibold truncate">{expense.provider?.name || 'Sin proveedor'}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {expense.budget_category} · Vence {dDate.toLocaleDateString('es-AR')}
+                                                    <span className={`ml-1.5 font-semibold ${isUrgent ? 'text-red-500 animate-pulse' : 'text-amber-500'}`}>
+                                                        ({diffDays === 0 ? '¡Hoy!' : diffDays === 1 ? '¡Mañana!' : diffDays < 0 ? 'Vencido' : `en ${diffDays} días`})
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3 shrink-0">
+                                            <span className="font-mono text-sm font-semibold">
                                                 ${parseFloat(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge className={
-                                                    expense.status === 'Pagado'
-                                                        ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800 border hover:bg-green-100 shadow-none'
-                                                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 border hover:bg-amber-100 shadow-none'
-                                                }>
-                                                    {expense.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {/* CONDICIONAL DE ACCIÓN PAGO: Si el egreso está PENDIENTE y el usuario es ADMIN o tiene el permiso granular 'canPayExpenses' */}
-                                                {expense.status === 'Pendiente' && (auth.isAdmin || auth.permissions.canPayExpenses) ? (
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
-                                                                <MoreVertical className="h-4 w-4 text-slate-500" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem
-                                                                onClick={() => openPayDialog(expense)}
-                                                                className="cursor-pointer text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 font-medium"
-                                                            >
-                                                                <CreditCard className="mr-2 h-4 w-4" />
-                                                                Asentar Pago
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground font-mono">—</span>
-                                                )}
+                                            </span>
+                                            {(auth.isAdmin || auth.permissions.canPayExpenses) && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0 rounded-full"
+                                                    title="Asentar pago"
+                                                    onClick={() => openPayDialog(expense)}
+                                                >
+                                                    <CreditCard className="size-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {!loading && expenses.length === 0 && (
+                <Card className="border-dashed">
+                    <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="flex size-16 items-center justify-center rounded-full bg-muted mb-4">
+                            <CreditCard className="size-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold">Sin egresos registrados</h3>
+                        <p className="text-sm text-muted-foreground mt-2 max-w-sm">
+                            No se encontraron egresos con los filtros seleccionados o no hay egresos registrados.
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
+
+            {!loading && expenses.length > 0 && (
+                <Card className="shadow-sm">
+                    <CardHeader>
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                                <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                                    <CreditCard className="size-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-base">Listado de Egresos</CardTitle>
+                                    <CardDescription>
+                                        Visualizá e interactuá con el listado general de egresos del negocio.
+                                    </CardDescription>
+                                </div>
+                            </div>
+                        </div>
+                    </CardHeader>
+
+                    <CardContent className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-slate-50 dark:bg-muted/20 border border-slate-200 dark:border-border rounded-lg items-end">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold text-muted-foreground">Estado</label>
+                                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                    <SelectTrigger className="bg-white dark:bg-background">
+                                        <SelectValue placeholder="Filtrar por estado" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="ALL">Todos los estados</SelectItem>
+                                        <SelectItem value="Pendiente">Pendiente</SelectItem>
+                                        <SelectItem value="Pagado">Pagado</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold text-muted-foreground">Categoría</label>
+                                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                                    <SelectTrigger className="bg-white dark:bg-background">
+                                        <SelectValue placeholder="Filtrar categoría" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="ALL">Todas las categorías</SelectItem>
+                                        <SelectItem value="Mercadería">Mercadería</SelectItem>
+                                        <SelectItem value="Gastos Fijos">Gastos Fijos</SelectItem>
+                                        <SelectItem value="Ahorro">Ahorros</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold text-muted-foreground">Fecha Específica</label>
+                                <div className="relative">
+                                    <Input
+                                        type="date"
+                                        className="bg-white dark:bg-background pr-8"
+                                        value={dateFilter}
+                                        onChange={(e) => setDateFilter(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <Button variant="outline" onClick={resetFilters} className="w-full flex items-center gap-2">
+                                <FilterX className="h-4 w-4 text-muted-foreground" />
+                                Limpiar Filtros
+                            </Button>
+                        </div>
+
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>F. Registro</TableHead>
+                                        <TableHead>F. Vence</TableHead>
+                                        <TableHead>Descripción / Proveedor</TableHead>
+                                        <TableHead>Categoría</TableHead>
+                                        <TableHead>Monto</TableHead>
+                                        <TableHead>Estado</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {expenses.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
+                                                No se encontraron egresos con los filtros seleccionados.
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )}
-            </CardContent>
+                                    ) : (
+                                        expenses.map((expense) => (
+                                            <TableRow key={expense.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                                                <TableCell className="font-mono text-xs text-muted-foreground">
+                                                    {new Date(expense.created_at).toLocaleDateString('es-AR')}
+                                                </TableCell>
+                                                <TableCell className="font-mono text-xs">
+                                                    {expense.due_date ? (
+                                                        <span className={expense.status === 'Pendiente' ? 'text-amber-600 font-semibold' : 'text-muted-foreground'}>
+                                                            {new Date(expense.due_date).toLocaleDateString('es-AR')}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">—</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="font-semibold text-slate-900 dark:text-slate-100">{expense.budget_category}</div>
+                                                    <div className="text-xs text-muted-foreground">Prov: {expense.provider?.name || 'Particular'}</div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="text-slate-600 dark:text-slate-300 bg-slate-100/50 dark:bg-muted/30 border border-slate-200 dark:border-border">
+                                                        {expense.budget_category}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="font-semibold text-slate-900 dark:text-slate-100 font-mono">
+                                                    ${parseFloat(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge className={
+                                                        expense.status === 'Pagado'
+                                                            ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800 border hover:bg-green-100 shadow-none'
+                                                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 border hover:bg-amber-100 shadow-none'
+                                                    }>
+                                                        {expense.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {expense.status === 'Pendiente' && (auth.isAdmin || auth.permissions.canPayExpenses) ? (
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+                                                                    <MoreVertical className="h-4 w-4 text-slate-500" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem
+                                                                    onClick={() => openPayDialog(expense)}
+                                                                    className="cursor-pointer text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 font-medium"
+                                                                >
+                                                                    <CreditCard className="mr-2 h-4 w-4" />
+                                                                    Asentar Pago
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    ) : (
+                                                        <span className="text-xs text-muted-foreground font-mono">—</span>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
-            {/* MODAL / DIALOG DE SHADCN PARA CONFIRMAR EL PAGO */}
             <Dialog open={isPayDialogOpen} onOpenChange={setIsPayDialogOpen}>
                 <DialogContent className="sm:max-w-[400px]">
                     <DialogHeader>
@@ -383,9 +526,29 @@ export default function ExpensesModule() {
                         </DialogDescription>
                     </DialogHeader>
                     {selectedExpense && (
-                        <div className="py-3 px-4 bg-slate-50 dark:bg-muted/20 border border-slate-200 dark:border-border rounded-xl font-mono text-sm space-y-1.5">
-                            <p><span className="text-muted-foreground text-xs">Concepto:</span> {selectedExpense.budget_category}</p>
-                            <p><span className="text-muted-foreground text-xs">Importe Total:</span> <span className="font-bold text-red-600">${parseFloat(selectedExpense.amount).toFixed(2)}</span></p>
+                        <div className="space-y-4">
+                            <div className="py-3 px-4 bg-slate-50 dark:bg-muted/20 border border-slate-200 dark:border-border rounded-xl font-mono text-sm space-y-1.5">
+                                <p><span className="text-muted-foreground text-xs">Concepto:</span> {selectedExpense.budget_category}</p>
+                                <p><span className="text-muted-foreground text-xs">Importe Total:</span> <span className="font-bold text-red-600">${parseFloat(selectedExpense.amount).toFixed(2)}</span></p>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold text-muted-foreground">Cuenta Física o Banco *</label>
+                                <select
+                                    required
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring focus:border-emerald-600 dark:border-border"
+                                    value={payAccountId}
+                                    onChange={e => setPayAccountId(e.target.value)}
+                                >
+                                    {accounts.length === 0 ? (
+                                        <option value="">No hay cuentas registradas</option>
+                                    ) : (
+                                        accounts.map(a => (
+                                            <option key={a.id} value={a.id}>{a.name} (Saldo: ${parseFloat(a.balance).toLocaleString('es-AR', { minimumFractionDigits: 2 })})</option>
+                                        ))
+                                    )}
+                                </select>
+                            </div>
                         </div>
                     )}
                     <DialogFooter className="gap-2 sm:gap-0">
@@ -394,7 +557,6 @@ export default function ExpensesModule() {
                         </Button>
                         <Button
                             type="button"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
                             onClick={handleConfirmPayment}
                             disabled={submittingPay}
                         >
@@ -404,7 +566,6 @@ export default function ExpensesModule() {
                 </DialogContent>
             </Dialog>
 
-            {/* MODAL / DIALOG DE SHADCN PARA REGISTRAR NUEVO EGRESO */}
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogContent className="sm:max-w-[450px]">
                     <DialogHeader>
@@ -516,7 +677,7 @@ export default function ExpensesModule() {
                                 <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={submittingCreate}>
                                     Cancelar
                                 </Button>
-                                <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white" disabled={submittingCreate}>
+                                <Button type="submit" disabled={submittingCreate}>
                                     {submittingCreate ? (
                                         <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -531,6 +692,6 @@ export default function ExpensesModule() {
                     )}
                 </DialogContent>
             </Dialog>
-        </Card>
+        </div>
     );
 }
