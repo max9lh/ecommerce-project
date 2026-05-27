@@ -13,7 +13,7 @@ const payExpense = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { account_id } = req.body;
-        
+
         const updatedExpense = await expenseService.payExpense(req.user.id, parseInt(id), account_id);
         return res.status(200).json({
             message: 'Gasto actualizado exitosamente',
