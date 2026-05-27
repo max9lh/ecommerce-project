@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
-import Singup from './pages/Singup';
 import Dashboard from './pages/Dashboard';
 import Closures from './pages/Closures';
 import ClosuresList from './pages/ClosuresList';
@@ -10,6 +9,7 @@ import ProvidersModule from './pages/shared/ProvidersModule';
 import { ThemeProvider } from './components/theme-provider';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './components/protected-route';
+import DistributionSettings from './pages/admin/DistributionSettings';
 import './App.css';
 
 function App() {
@@ -19,7 +19,6 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
-          <Route path='/singup' element={<Singup />} />
 
           {/* Rutas protegidas dentro del layout */}
           <Route
@@ -72,12 +71,26 @@ function App() {
               <ProtectedRoute requiredRole="ADMIN">
                 <DashboardLayout>
                   <AttendanceAdmin />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/proveedores"
             element={
               <ProtectedRoute>
                 <DashboardLayout>
                   <ProvidersModule />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/distribucion"
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <DashboardLayout>
+                  <DistributionSettings />
                 </DashboardLayout>
               </ProtectedRoute>
             }

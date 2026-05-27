@@ -107,10 +107,62 @@ const deleteEmployee = async (id) => {
     return await prisma.user.delete({ where: { id } });
 };
 
+const getDistributionSettings = async (adminId) => {
+    const admin = await prisma.user.findUnique({
+        where: { id: adminId },
+        select: {
+            pct_merchandise: true,
+            pct_fixed_expenses: true,
+            pct_savings: true
+        }
+    });
+    if (!admin) {
+        const error = new Error('Administrador no encontrado');
+        error.statusCode = 404;
+        throw error;
+    }
+    return {
+        pct_merchandise: Number(admin.pct_merchandise),
+        pct_fixed_expenses: Number(admin.pct_fixed_expenses),
+        pct_savings: Number(admin.pct_savings)
+    };
+};
+
+const updateDistributionSettings = async (adminId, { pct_merchandise, pct_fixed_expenses, pct_savings }) => {
+    const sum = Number(pct_merchandise) + Number(pct_fixed_expenses) + Number(pct_savings);
+    if (Math.abs(sum - 1.00) > 0.001) {
+        const error = new Error('La suma de los porcentajes de distribución debe ser exactamente el 100% (1.00)');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const updated = await prisma.user.update({
+        where: { id: adminId },
+        data: {
+            pct_merchandise: Number(pct_merchandise),
+            pct_fixed_expenses: Number(pct_fixed_expenses),
+            pct_savings: Number(pct_savings)
+        },
+        select: {
+            pct_merchandise: true,
+            pct_fixed_expenses: true,
+            pct_savings: true
+        }
+    });
+
+    return {
+        pct_merchandise: Number(updated.pct_merchandise),
+        pct_fixed_expenses: Number(updated.pct_fixed_expenses),
+        pct_savings: Number(updated.pct_savings)
+    };
+};
+
 module.exports = {
     createEmployee,
     getEmployees,
     updateEmployeePermissions,
     updateEmployeeProfile,
-    deleteEmployee
+    deleteEmployee,
+    getDistributionSettings,
+    updateDistributionSettings
 };

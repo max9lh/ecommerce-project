@@ -48,10 +48,30 @@ const deleteEmployee = async (req, res, next) => {
     }
 };
 
+const getDistribution = async (req, res, next) => {
+    try {
+        const settings = await adminService.getDistributionSettings(req.user.id);
+        res.status(200).json({ success: true, data: settings });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateDistribution = async (req, res, next) => {
+    try {
+        const settings = await adminService.updateDistributionSettings(req.user.id, req.body);
+        res.status(200).json({ success: true, data: settings, message: 'Distribución de ingresos actualizada correctamente' });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createEmployee,
     getEmployees,
     updateEmployeePermissions,
     updateEmployeeProfile,
-    deleteEmployee
+    deleteEmployee,
+    getDistribution,
+    updateDistribution
 };

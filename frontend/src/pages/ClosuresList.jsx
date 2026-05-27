@@ -80,7 +80,7 @@ export default function ClosuresList() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Cierres de Caja</h1>
           <p className="text-sm text-muted-foreground">
@@ -88,7 +88,7 @@ export default function ClosuresList() {
           </p>
         </div>
         <Button
-          className="gap-2"
+          className="gap-2 w-full sm:w-auto justify-center"
           onClick={() => navigate("/cierres/nuevo")}
         >
           <PlusCircle className="size-4" />
