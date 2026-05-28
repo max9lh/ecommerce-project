@@ -46,7 +46,7 @@ export function EmployeeDashboard() {
       description: "Marcá como pagada una factura que estaba pendiente de pago.",
       icon: CreditCard,
       permission: "canPayExpenses",
-      route: "/egresos",
+      route: "/egresos/pagar",
       color: "text-emerald-500",
       bgColor: "bg-emerald-500/10",
     },
