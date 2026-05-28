@@ -1,0 +1,2466 @@
+﻿=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\config\db.js ===
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient();
+
+module.exports = prisma;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\controllers\accounts.controller.js ===
+const accountsService = require('../services/accounts.service');
+
+const createBalances = async (req, res, next) => {
+    try {
+        // Llama al servicio actualizado para crear la cuenta fÃ­sica en el Admin
+        const newAccount = await accountsService.createAccount(req.user.id, req.body);
+        return res.status(201).json({ data: newAccount });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getBalances = async (req, res, next) => {
+    try {
+        const balances = await accountsService.getBalances(req.user.id);
+        return res.status(200).json({ data: balances });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getBudgetBalances = async (req, res, next) => {
+    try {
+        const balances = await accountsService.getBudgetBalances(req.user.id);
+        return res.status(200).json({ data: balances });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { createBalances, getBalances, getBudgetBalances };
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\controllers\admin.controller.js ===
+const adminService = require('../services/admin.service');
+
+const createEmployee = async (req, res, next) => {
+    try {
+        const employee = await adminService.createEmployee(req.body);
+        res.status(201).json({ success: true, data: employee });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getEmployees = async (req, res, next) => {
+    try {
+        const employees = await adminService.getEmployees();
+        res.status(200).json({ success: true, data: employees });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateEmployeePermissions = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const updatedPermissions = await adminService.updateEmployeePermissions(Number(id), req.body);
+        res.status(200).json({ success: true, data: updatedPermissions });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateEmployeeProfile = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const updatedProfile = await adminService.updateEmployeeProfile(Number(id), req.body);
+        res.status(200).json({ success: true, data: updatedProfile });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deleteEmployee = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        await adminService.deleteEmployee(Number(id));
+        res.status(200).json({ success: true, message: 'Empleado eliminado correctamente' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getDistribution = async (req, res, next) => {
+    try {
+        const settings = await adminService.getDistributionSettings(req.user.id);
+        res.status(200).json({ success: true, data: settings });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateDistribution = async (req, res, next) => {
+    try {
+        const settings = await adminService.updateDistributionSettings(req.user.id, req.body);
+        res.status(200).json({ success: true, data: settings, message: 'DistribuciÃ³n de ingresos actualizada correctamente' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getAuditLogs = async (req, res, next) => {
+    try {
+        const page = req.query.page ? parseInt(req.query.page, 10) : null;
+        const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
+
+        const result = await adminService.getAuditLogs(page, limit);
+        res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = {
+    createEmployee,
+    getEmployees,
+    updateEmployeePermissions,
+    updateEmployeeProfile,
+    deleteEmployee,
+    getDistribution,
+    updateDistribution,
+    getAuditLogs
+};
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\controllers\attendance.controller.js ===
+const attendanceService = require('../services/attendance.service');
+
+const createAttendance = async (req, res, next) => {
+    try {
+        const { employeeId, checkIn, checkOut } = req.body;
+        const log = await attendanceService.registerAttendance(employeeId, checkIn, checkOut);
+        return res.status(201).json({ success: true, data: log });
+    } catch (error) {
+        next(error);
+    }
+}
+
+const getAllAttendance = async (req, res, next) => {
+    try {
+        const { employeeId, from, to } = req.query;
+        const logs = await attendanceService.getAttendanceLogs({ employeeId, from, to });
+        return res.json({ success: true, data: logs });
+    } catch (error) {
+        next(error);
+    }
+}
+
+const getMyAttendance = async (req, res, next) => {
+    try {
+        const { from, to } = req.query;
+        const logs = await attendanceService.getAttendanceLogs({ employeeId: req.user.id, from, to });
+        return res.json({ success: true, data: logs });
+    } catch (error) {
+        next(error);
+    }
+}
+
+const getSummary = async (req, res, next) => {
+    try {
+        const { from, to, employeeId } = req.query;
+        const summary = await attendanceService.getSummaryForPeriod(from, to, employeeId);
+        return res.json({ success: true, data: summary });
+    } catch (error) {
+        next(error);
+    }
+}
+
+const updateAttendance = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { checkIn, checkOut } = req.body;
+
+        const updatedLog = await attendanceService.updateAttendance(parseInt(id), checkIn, checkOut);
+
+        return res.json({ success: true, data: updatedLog });
+    } catch (error) {
+        next(error);
+    }
+}
+
+const removeAttendance = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        await attendanceService.deleteAttendance(parseInt(id));
+        return res.json({ success: true, message: 'Registro de asistencia eliminado correctamente' });
+    } catch (error) {
+        next(error);
+    }
+}
+
+const liquidatePayroll = async (req, res, next) => {
+    try {
+        const { employeeId, from, to, providerId, accountId, budgetCategory } = req.body;
+
+        const expense = await attendanceService.processPayrollToExpenses({
+            employeeId,
+            from,
+            to,
+            providerId,
+            accountId,
+            budgetCategory,
+            adminUserId: req.user.id
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: 'LiquidaciÃ³n procesada y enviada a egresos pendientes con Ã©xito',
+            data: expense
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+module.exports = {
+    createAttendance,
+    getAllAttendance,
+    getMyAttendance,
+    getSummary,
+    updateAttendance,
+    removeAttendance,
+    liquidatePayroll
+};
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\controllers\auth.controller.js ===
+const authService = require('../services/auth.service');
+
+const register = async (req, res, next) => {
+    try {
+        const user = await authService.register(req.body);
+        res.status(201).json({
+            status: 'success',
+            message: 'Usuario registrado correctamente',
+            data: user,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const login = async (req, res, next) => {
+    try {
+        const user = await authService.login(req.body);
+        res.status(200).json({
+            status: 'success',
+            message: 'Login exitoso',
+            data: user,
+        })
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updatePercentages = async (req, res, next) => {
+    try {
+        const user = await authService.updatePercentages({ userId: req.user.id, ...req.body });
+        res.status(200).json({
+            status: 'success',
+            message: 'Porcentajes actualizados',
+            data: user,
+        })
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { register, login, updatePercentages };
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\controllers\closure.controller.js ===
+const closureService = require('../services/closure.service');
+
+const createClosure = async (req, res, next) => {
+    try{
+        const dailyClosure = await closureService.createClosure({ user_id: req.user.id, ...req.body });
+        res.status(201).json({
+            status: 'success',
+            message: 'Caja diaria guardada correctamente',
+            data: dailyClosure,
+        });
+    } catch(error){
+        next(error);
+    }
+}
+
+const getClosures = async (req, res, next) => {
+    try {
+        const closures = await closureService.getClosures();
+        res.status(200).json({ data: closures });
+    } catch (error) {
+        next(error);
+    }
+}
+
+module.exports = { createClosure, getClosures };
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\controllers\expense.controller.js ===
+const expenseService = require('../services/expense.service');
+
+const createExpense = async (req, res, next) => {
+    try {
+        const newExpense = await expenseService.createExpense(req.user.id, req.body);
+        return res.status(201).json(newExpense);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const payExpense = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const account_id = req.body?.account_id;
+
+        const updatedExpense = await expenseService.payExpense(req.user.id, parseInt(id), account_id);
+        return res.status(200).json({
+            message: 'Gasto actualizado exitosamente',
+            data: updatedExpense
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getExpenses = async (req, res, next) => {
+    try {
+        const expenses = await expenseService.getExpenses(req.user.id, req.query);
+        return res.status(200).json(expenses);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getUpcomingExpenses = async (req, res, next) => {
+    try {
+        const days = req.query.days ? parseInt(req.query.days) : 15;
+        const expenses = await expenseService.getUpcomingExpenses(req.user.id, days);
+        return res.status(200).json(expenses);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deleteExpense = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        await expenseService.deleteExpense(req.user.id, id);
+        return res.status(200).json({ message: 'Gasto eliminado exitosamente' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = {
+    createExpense,
+    payExpense,
+    getExpenses,
+    getUpcomingExpenses,
+    deleteExpense
+}
+
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\controllers\providers.controller.js ===
+const providerService = require('../services/providers.service');
+
+const getAllProviders = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const userRole = req.user.role;
+        const page = req.query.page ? parseInt(req.query.page, 10) : null;
+        const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
+
+        const result = await providerService.getAllProviders(userId, userRole, page, limit);
+        return res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const createProvider = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { name, payment_condition, credit_days, visible_to_employee } = req.body;
+
+        // "Traduce" de snake_case (frontend) a camelCase (lo que espera el servicio seguro)
+        const newProvider = await providerService.createProvider(userId, {
+            name,
+            paymentCondition: payment_condition,
+            creditDays: credit_days,
+            visibleToEmployee: visible_to_employee
+        });
+
+        return res.status(201).json(newProvider);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateProvider = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+        const providerId = parseInt(id, 10);
+
+        if (isNaN(providerId) || providerId <= 0) {
+            const error = new Error('El ID del proveedor debe ser un nÃºmero positivo');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const { name, payment_condition, credit_days, visible_to_employee } = req.body;
+
+        const updatedProvider = await providerService.updateProvider(userId, providerId, {
+            name,
+            paymentCondition: payment_condition,
+            creditDays: credit_days,
+            visibleToEmployee: visible_to_employee
+        });
+
+        return res.status(200).json({
+            message: "El proveedor se actualizÃ³ correctamente",
+            data: updatedProvider
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deleteProvider = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+        const providerId = parseInt(id, 10);
+
+        if (isNaN(providerId) || providerId <= 0) {
+            const error = new Error('El ID del proveedor debe ser un nÃºmero positivo');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const result = await providerService.deleteProvider(userId, providerId);
+
+        return res.status(200).json({
+            message: "Se procesÃ³ la baja del proveedor correctamente",
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = {
+    getAllProviders,
+    createProvider,
+    updateProvider,
+    deleteProvider
+};
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\middlewares\authGuard.js ===
+const jwt = require('jsonwebtoken');
+
+const authGuard = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        const error = new Error('No autorizado');
+        error.statusCode = 401;
+        return next(error);
+    }
+
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_SECRET;
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (err) {
+        const error = new Error('Token invalido');
+        error.statusCode = 401;
+        return next(error);
+    }
+};
+
+module.exports = authGuard;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\middlewares\errorHandler.js ===
+// Middleware de errores global de Express.
+const errorHandler = (err, req, res, next) => {
+    console.error(`[ERROR] ${err.message}`);
+
+    const statusCode = err.statusCode || err.status || 500;
+
+    const response = {
+        status: 'error',
+        message: err.message || 'Error interno del servidor',
+    };
+
+    // En desarrollo, incluir el stack trace para facilitar el debugging
+    if (process.env.NODE_ENV !== 'production') {
+        response.stack = err.stack;
+    }
+
+    res.status(statusCode).json(response);
+};
+
+module.exports = errorHandler;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\middlewares\requireAdmin.js ===
+/**
+ * requireAdmin â€” Middleware de autorizaciÃ³n
+ *
+ * Bloquea con 403 Forbidden cualquier request cuyo usuario
+ * NO sea ADMIN. Requiere que authGuard haya corrido antes
+ * (para que req.user estÃ© poblado con el payload del JWT).
+ *
+ * Uso en rutas:
+ *   router.get('/accounts', authGuard, requireAdmin, controller.getBalances);
+ */
+const requireAdmin = (req, res, next) => {
+    if (!req.user || req.user.role !== 'ADMIN') {
+        const error = new Error('Acceso denegado: se requiere rol de Administrador');
+        error.statusCode = 403;
+        return next(error);
+    }
+    next();
+};
+
+module.exports = requireAdmin;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\middlewares\requirePermission.js ===
+const prisma = require('../config/db');
+const { ROLES } = require('../utils/constants');
+
+/**
+ * requirePermission â€” Factory de middlewares de autorizaciÃ³n granular flexible
+ *
+ * Ahora soporta mÃºltiples permisos (lÃ³gica OR). Si el empleado tiene al menos
+ * uno de los permisos provistos, se le concede el acceso.
+ *
+ * Ejemplos de uso:
+ *  - requirePermission('canRegisterClosures') -> Requiere obligatoriamente ese permiso.
+ *  - requirePermission('canRegisterExpenses', 'canPayExpenses') -> Pasa si tiene cualquiera de los dos.
+ *
+ * @param {...string} permissions - Uno o mÃ¡s campos de EmployeePermission
+ */
+const requirePermission = (...permissions) => {
+    return async (req, res, next) => {
+        if (!req.user) {
+            const error = new Error('No autorizado');
+            error.statusCode = 401;
+            return next(error);
+        }
+
+        // El administrador del local siempre tiene acceso irrestricto
+        if (req.user.role === ROLES.ADMIN) {
+            return next();
+        }
+
+        try {
+            const permissionsRecord = await prisma.employeePermission.findUnique({
+                where: { user_id: req.user.id }
+            });
+
+            if (!permissionsRecord) {
+                const error = new Error('Permisos de empleado no encontrados');
+                error.statusCode = 403;
+                return next(error);
+            }
+
+            // Verificamos si al menos uno de los permisos requeridos estÃ¡ en true
+            const hasRequiredPermission = permissions.some(
+                (perm) => permissionsRecord[perm] === true
+            );
+
+            if (!hasRequiredPermission) {
+                const listPerms = permissions.join(' o ');
+                const error = new Error(`Acceso denegado: requieres el permiso de "${listPerms}"`);
+                error.statusCode = 403;
+                return next(error);
+            }
+
+            // AutorizaciÃ³n concedida
+            next();
+        } catch (error) {
+            next(error);
+        }
+    };
+};
+
+module.exports = requirePermission;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\routes\accounts.routes.js ===
+const { Router } = require('express');
+const { getBalances, getBudgetBalances, createBalances } = require('../controllers/accounts.controller');
+const authGuard = require('../middlewares/authGuard');
+const requireAdmin = require('../middlewares/requireAdmin')
+
+const router = Router();
+
+router.post('/', authGuard, createBalances);
+router.get('/', authGuard, getBalances);
+router.get('/budget-balances', authGuard, requireAdmin, getBudgetBalances);
+
+
+module.exports = router;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\routes\admin.routes.js ===
+const { Router } = require('express');
+const {
+    createEmployee,
+    getEmployees,
+    updateEmployeePermissions,
+    updateEmployeeProfile,
+    deleteEmployee,
+    getDistribution,
+    updateDistribution,
+    getAuditLogs
+} = require('../controllers/admin.controller.js');
+const authGuard = require('../middlewares/authGuard.js');
+const requireAdmin = require('../middlewares/requireAdmin.js');
+const {
+    validate,
+    createEmployeeSchema,
+    updatePermissionsSchema,
+    updateProfileSchema
+} = require('../utils/schemas');
+
+const router = Router();
+
+router.use(authGuard, requireAdmin);
+
+router.post('/employees', validate(createEmployeeSchema), createEmployee);
+router.get('/employees', getEmployees);
+router.put('/employees/:id/permissions', validate(updatePermissionsSchema), updateEmployeePermissions);
+router.put('/employees/:id/profile', validate(updateProfileSchema), updateEmployeeProfile);
+router.delete('/employees/:id', deleteEmployee);
+
+router.get('/distribution', requireAdmin, getDistribution);
+router.put('/distribution', requireAdmin, updateDistribution);
+router.get('/audit-logs', requireAdmin, getAuditLogs);
+
+module.exports = router;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\routes\attendance.routes.js ===
+const { Router } = require('express');
+const { createAttendance, getAllAttendance, getMyAttendance, getSummary, updateAttendance, removeAttendance, liquidatePayroll } = require('../controllers/attendance.controller');
+const { validate, createAttendanceSchema, updateAttendanceSchema, liquidatePayrollSchema } = require('../utils/schemas');
+const authGuard = require('../middlewares/authGuard');
+const requireAdmin = require('../middlewares/requireAdmin');
+
+const router = Router();
+
+router.use(authGuard);
+
+router.get('/me', getMyAttendance);
+
+router.post('/', requireAdmin, validate(createAttendanceSchema), createAttendance);
+router.get('/', requireAdmin, getAllAttendance);
+router.get('/summary', requireAdmin, getSummary);
+router.put('/:id', requireAdmin, validate(updateAttendanceSchema), updateAttendance);
+router.delete('/:id', requireAdmin, removeAttendance);
+router.post('/liquidate', requireAdmin, validate(liquidatePayrollSchema), liquidatePayroll);
+
+module.exports = router;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\routes\auth.routes.js ===
+const { Router } = require('express');
+const { register, login, updatePercentages } = require('../controllers/auth.controller');
+const { validate, registerSchema, loginSchema, updatePercentagesSchema } = require('../utils/schemas');
+const authGuard = require('../middlewares/authGuard');
+
+const router = Router();
+
+// POST /api/auth/register
+router.post('/register', validate(registerSchema), register);
+
+router.post('/login', validate(loginSchema), login);
+
+router.put('/percentages', authGuard, validate(updatePercentagesSchema), updatePercentages);
+
+module.exports = router;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\routes\closure.routes.js ===
+const { Router } = require('express');
+const { createClosure, getClosures } = require('../controllers/closure.controller');
+const { validate, dailyClosureSchema } = require('../utils/schemas');
+const authGuard = require('../middlewares/authGuard');
+const requirePermission = require('../middlewares/requirePermission');
+
+
+const router = Router();
+
+router.post('/', authGuard, requirePermission('canRegisterClosures'), validate(dailyClosureSchema), createClosure);
+router.get('/', authGuard, requirePermission('canRegisterClosures'), getClosures);
+
+module.exports = router;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\routes\expense.routes.js ===
+const { Router } = require('express');
+const {
+    createExpense,
+    payExpense,
+    getExpenses,
+    getUpcomingExpenses,
+    deleteExpense
+} = require('../controllers/expense.controller');
+const { validate, expensesSchema } = require('../utils/schemas');
+const authGuard = require('../middlewares/authGuard');
+const requirePermission = require('../middlewares/requirePermission');
+const requireAdmin = require('../middlewares/requireAdmin');
+
+const router = Router();
+
+// Todas las rutas de egresos requieren sesiÃ³n activa
+router.use(authGuard);
+
+
+// Obtener egresos: Accesible para Administradores, Registradores y Pagadores
+// Crear egreso: Solo para quienes tengan el permiso granular de registro activo
+router.route('/')
+    .get(requirePermission('canRegisterExpenses', 'canPayExpenses'), getExpenses)
+    .post(requirePermission('canRegisterExpenses'), validate(expensesSchema), createExpense);
+
+
+// PrÃ³ximos vencimientos: Exclusivo del Administrador del negocio
+router.get('/upcoming', requireAdmin, getUpcomingExpenses);
+
+// Pagar egreso: Protegido por el permiso especÃ­fico para efectuar pagos
+router.put('/:id/pay', requirePermission('canPayExpenses'), payExpense);
+
+// Eliminar egreso: Solo el Administrador puede borrar del registro histÃ³rico
+router.delete('/:id', requireAdmin, deleteExpense);
+
+module.exports = router;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\routes\providers.routes.js ===
+const { Router } = require('express');
+const { getAllProviders, createProvider, updateProvider, deleteProvider } = require('../controllers/providers.controller');
+const authGuard = require('../middlewares/authGuard');
+const { validate, providerSchema } = require('../utils/schemas');
+const requirePermission = require('../middlewares/requirePermission');
+const requireAdmin = require('../middlewares/requireAdmin');
+
+const router = Router();
+
+router.get('/', authGuard, requirePermission('canManageProviders', 'canRegisterExpenses', 'canPayExpenses'),getAllProviders);
+
+router.post('/', authGuard, requirePermission('canManageProviders'), validate(providerSchema), createProvider);
+
+router.put('/:id', authGuard, requirePermission('canManageProviders'), validate(providerSchema), updateProvider);
+
+router.delete('/:id', authGuard, requireAdmin, deleteProvider);
+
+module.exports = router;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\services\accounts.service.js ===
+const prisma = require('../config/db');
+const { getAdminContext } = require('../utils/adminContext');
+
+/**
+ * Obtiene las cuentas fÃ­sicas y balances del Administrador del negocio
+ */
+const getBalances = async (user_id) => {
+    const adminCtx = await getAdminContext();
+    return prisma.account.findMany({
+        where: {
+            user_id: adminCtx.adminId
+        },
+        select: {
+            id: true,
+            name: true,
+            balance: true
+        }
+    });
+};
+
+/**
+ * Obtiene las bolsas virtuales de presupuesto acumuladas
+ */
+const getBudgetBalances = async (user_id) => {
+    const adminCtx = await getAdminContext();
+    return prisma.budgetBalance.findMany({
+        where: {
+            user_id: adminCtx.adminId
+        },
+        select: {
+            category: true,
+            balance: true
+        }
+    });
+};
+
+module.exports = {
+    getBalances,
+    getBudgetBalances
+};
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\services\admin.service.js ===
+const prisma = require('../config/db');
+const bcrypt = require('bcrypt');
+
+const createEmployee = async (employeeData) => {
+    const { username, first_name, last_name, password, hourly_rate, salary_type, monthly_salary } = employeeData;
+
+    const existingUser = await prisma.user.findUnique({ where: { username } });
+    if (existingUser) {
+        const error = new Error('El empleado ya se encuentra registrado');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const password_hash = await bcrypt.hash(password, 10);
+
+    return await prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+            data: {
+                username,
+                password_hash,
+                role: 'EMPLOYEE'
+            },
+            select: { id: true, username: true, role: true, created_at: true }
+        });
+
+        await tx.employeeProfile.create({
+            data: {
+                user_id: newUser.id,
+                hourly_rate,
+                first_name,
+                last_name,
+                salary_type,
+                monthly_salary: salary_type === 'fixed' ? monthly_salary : null
+            }
+        });
+
+        // Explicitamos todos los permisos en false para seguridad
+        await tx.employeePermission.create({
+            data: {
+                user_id: newUser.id,
+                canRegisterClosures: false,
+                canRegisterExpenses: false,
+                canPayExpenses: false,
+                canManageProviders: false
+            }
+        });
+
+        return newUser;
+    });
+};
+
+
+const getEmployees = async () => {
+    return await prisma.user.findMany({
+        where: { role: 'EMPLOYEE', deleted_at: null },
+        select: {
+            id: true,
+            username: true,
+            role: true,
+            created_at: true,
+            employeeProfile: true,
+            employeePermission: true
+        }
+    });
+};
+
+const updateEmployeePermissions = async (userId, permissionsData) => {
+    const permissionExists = await prisma.employeePermission.findUnique({ where: { user_id: userId } });
+    if (!permissionExists) {
+        const error = new Error('Permisos no encontrados para este usuario');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    return await prisma.employeePermission.update({
+        where: { user_id: userId },
+        data: {
+            canRegisterClosures: permissionsData.canRegisterClosures,
+            canRegisterExpenses: permissionsData.canRegisterExpenses,
+            canPayExpenses: permissionsData.canPayExpenses,
+            canManageProviders: permissionsData.canManageProviders
+        }
+    });
+};
+
+const updateEmployeeProfile = async (userId, profileData) => {
+    const profileExists = await prisma.employeeProfile.findUnique({ where: { user_id: userId } });
+    if (!profileExists) {
+        const error = new Error('Perfil de empleado no encontrado');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    return await prisma.employeeProfile.update({
+        where: { user_id: userId },
+        data: {
+            hourly_rate: profileData.hourly_rate,
+            salary_type: profileData.salary_type,
+            monthly_salary: profileData.salary_type === 'fixed' ? profileData.monthly_salary : null
+        }
+    });
+};
+
+const deleteEmployee = async (id) => {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user || user.role === 'ADMIN' || user.deleted_at !== null) {
+        const error = new Error('Empleado no encontrado');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    return await prisma.user.update({
+        where: { id },
+        data: { deleted_at: new Date() }
+    });
+};
+
+const getDistributionSettings = async (adminId) => {
+    const admin = await prisma.user.findUnique({
+        where: { id: adminId },
+        select: {
+            pct_merchandise: true,
+            pct_fixed_expenses: true,
+            pct_savings: true
+        }
+    });
+    if (!admin) {
+        const error = new Error('Administrador no encontrado');
+        error.statusCode = 404;
+        throw error;
+    }
+    return {
+        pct_merchandise: Number(admin.pct_merchandise),
+        pct_fixed_expenses: Number(admin.pct_fixed_expenses),
+        pct_savings: Number(admin.pct_savings)
+    };
+};
+
+const updateDistributionSettings = async (adminId, { pct_merchandise, pct_fixed_expenses, pct_savings }) => {
+    const sum = Number(pct_merchandise) + Number(pct_fixed_expenses) + Number(pct_savings);
+    if (Math.abs(sum - 1.00) > 0.001) {
+        const error = new Error('La suma de los porcentajes de distribuciÃ³n debe ser exactamente el 100% (1.00)');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const updated = await prisma.user.update({
+        where: { id: adminId },
+        data: {
+            pct_merchandise: Number(pct_merchandise),
+            pct_fixed_expenses: Number(pct_fixed_expenses),
+            pct_savings: Number(pct_savings)
+        },
+        select: {
+            pct_merchandise: true,
+            pct_fixed_expenses: true,
+            pct_savings: true
+        }
+    });
+
+    return {
+        pct_merchandise: Number(updated.pct_merchandise),
+        pct_fixed_expenses: Number(updated.pct_fixed_expenses),
+        pct_savings: Number(updated.pct_savings)
+    };
+};
+
+const getAuditLogs = async (page = null, limit = null) => {
+    if (!page && !limit) {
+        const logs = await prisma.auditLog.findMany({
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        role: true
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
+        return { success: true, data: logs };
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [total, logs] = await Promise.all([
+        prisma.auditLog.count(),
+        prisma.auditLog.findMany({
+            skip,
+            take: limitNum,
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        role: true
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
+    ]);
+
+    return {
+        success: true,
+        data: logs,
+        meta: {
+            total,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(total / limitNum)
+        }
+    };
+};
+
+module.exports = {
+    createEmployee,
+    getEmployees,
+    updateEmployeePermissions,
+    updateEmployeeProfile,
+    deleteEmployee,
+    getDistributionSettings,
+    updateDistributionSettings,
+    getAuditLogs
+};
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\services\attendance.service.js ===
+const prisma = require('../config/db');
+const { BUDGET_CATEGORIES, STATUS_AMOUNT } = require('../utils/constants');
+
+const attendanceService = {
+
+    async registerAttendance(employeeId, checkIn, checkOut) {
+        const start = new Date(checkIn);
+        const end = new Date(checkOut);
+
+        if (end <= start) {
+            const error = new Error('La fecha de salida (checkOut) debe ser posterior a la de entrada (checkIn)');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        // VerificaciÃ³n matemÃ¡tica de solapamiento de intervalos horaria
+        const overlappingLog = await prisma.attendanceLog.findFirst({
+            where: {
+                employee_id: employeeId,
+                check_in: { lt: end },
+                check_out: { gt: start }
+            }
+        });
+
+        if (overlappingLog) {
+            const error = new Error('El empleado ya tiene un turno registrado que se superpone con este horario');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const employee = await prisma.user.findFirst({
+            where: { id: employeeId, role: 'EMPLOYEE' },
+            include: { employeeProfile: true }
+        });
+
+        if (!employee || !employee.employeeProfile) {
+            const error = new Error('Empleado no encontrado o no posee un perfil configurado');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const { salary_type, hourly_rate } = employee.employeeProfile;
+        const diffMs = end - start;
+        const hoursWorked = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+
+        let amountEarned = 0;
+        if (salary_type === 'hourly') {
+            if (!hourly_rate) {
+                const error = new Error('El empleado es de tipo "hourly" pero no tiene una tarifa asignada');
+                error.statusCode = 400;
+                throw error;
+            }
+            amountEarned = parseFloat((hoursWorked * parseFloat(hourly_rate)).toFixed(2));
+        }
+
+        return await prisma.attendanceLog.create({
+            data: {
+                employee_id: employeeId,
+                check_in: start,
+                check_out: end,
+                hours_worked: hoursWorked,
+                amount_earned: amountEarned
+            }
+        });
+    },
+
+    async getAttendanceLogs({ employeeId, from, to }) {
+        const where = {};
+
+        if (employeeId) {
+            where.employee_id = parseInt(employeeId, 10);
+        }
+
+        if (from || to) {
+            where.check_in = {};
+            if (from) where.check_in.gte = new Date(from);
+            if (to) where.check_in.lte = new Date(to);
+        }
+
+        const logs = await prisma.attendanceLog.findMany({
+            where,
+            include: {
+                employee: {
+                    select: {
+                        id: true,
+                        username: true,
+                        employeeProfile: {
+                            select: { first_name: true, last_name: true }
+                        }
+                    }
+                }
+            },
+            orderBy: { check_in: 'desc' }
+        });
+
+        return logs.map(log => {
+            const profile = log.employee?.employeeProfile;
+            const fullName = profile ? `${profile.first_name} ${profile.last_name}` : `@${log.employee?.username}`;
+            return {
+                ...log,
+                employee: {
+                    id: log.employee?.id,
+                    username: log.employee?.username,
+                    name: fullName
+                }
+            };
+        });
+    },
+
+    async getSummaryForPeriod(from, to, employeeId = null, txClient = null) {
+        const client = txClient || prisma;
+        const where = {};
+
+        if (employeeId) where.employee_id = parseInt(employeeId, 10);
+        where.notes = null; // Ignorar asistencias ya liquidadas anteriormente
+
+        if (from || to) {
+            where.check_in = {};
+            if (from) where.check_in.gte = new Date(from);
+            if (to) where.check_in.lte = new Date(to);
+        }
+
+        const aggregations = await client.attendanceLog.groupBy({
+            by: ['employee_id'],
+            where,
+            _sum: { hours_worked: true, amount_earned: true }
+        });
+
+        return await Promise.all(
+            aggregations.map(async (agg) => {
+                const user = await client.user.findUnique({
+                    where: { id: agg.employee_id },
+                    include: { employeeProfile: true }
+                });
+
+                const totalHours = agg._sum.hours_worked ? parseFloat(agg._sum.hours_worked.toFixed(2)) : 0;
+                let totalToPay = agg._sum.amount_earned ? parseFloat(agg._sum.amount_earned.toFixed(2)) : 0;
+
+                if (user?.employeeProfile?.salary_type === 'fixed') {
+                    totalToPay = user.employeeProfile.monthly_salary ? parseFloat(user.employeeProfile.monthly_salary) : 0;
+                }
+
+                const profile = user?.employeeProfile;
+                const fullName = profile ? `${profile.first_name} ${profile.last_name}` : `@${user?.username}`;
+
+                return {
+                    employeeId: agg.employee_id,
+                    name: fullName,
+                    username: user?.username || 'desconocido',
+                    salaryType: user?.employeeProfile?.salary_type || 'No definido',
+                    totalHours,
+                    calculatedAmount: totalToPay
+                };
+            })
+        );
+    },
+
+    async updateAttendance(id, checkIn, checkOut) {
+        const start = new Date(checkIn);
+        const end = new Date(checkOut);
+
+        if (end <= start) {
+            const error = new Error('La fecha de salida debe ser posterior a la de entrada');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const log = await prisma.attendanceLog.findUnique({
+            where: { id },
+            include: { employee: { include: { employeeProfile: true } } }
+        });
+
+        if (!log) {
+            const error = new Error('Registro de asistencia no encontrado');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (log.notes) {
+            const error = new Error('No se pueden modificar registros de asistencia que ya han sido liquidados');
+            error.statusCode = 403;
+            throw error;
+        }
+
+        // VerificaciÃ³n matemÃ¡tica unificada excluyendo el registro actual
+        const overlappingLog = await prisma.attendanceLog.findFirst({
+            where: {
+                employee_id: log.employee_id,
+                NOT: { id: id },
+                check_in: { lt: end },
+                check_out: { gt: start }
+            }
+        });
+
+        if (overlappingLog) {
+            const error = new Error('El nuevo horario se superpone con otro turno ya existente para este empleado');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const employeeProfile = log.employee?.employeeProfile || {};
+        const salary_type = employeeProfile.salary_type;
+        const hourly_rate = employeeProfile.hourly_rate;
+        const diffMs = end - start;
+        const hoursWorked = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+
+        let amountEarned = 0;
+        if (salary_type === 'hourly') {
+            amountEarned = parseFloat((hoursWorked * parseFloat(hourly_rate)).toFixed(2));
+        }
+
+        return await prisma.attendanceLog.update({
+            where: { id },
+            data: {
+                check_in: start,
+                check_out: end,
+                hours_worked: hoursWorked,
+                amount_earned: amountEarned
+            }
+        });
+    },
+
+    async deleteAttendance(id) {
+        const log = await prisma.attendanceLog.findUnique({ where: { id } });
+        if (!log) {
+            const error = new Error('Registro de asistencia no encontrado');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (log.notes) {
+            const error = new Error('No se pueden eliminar registros de asistencia que ya han sido liquidados');
+            error.statusCode = 403;
+            throw error;
+        }
+
+        return await prisma.attendanceLog.delete({ where: { id } });
+    },
+
+    async processPayrollToExpenses({ employeeId, from, to, providerId, accountId, budgetCategory, adminUserId }) {
+        return await prisma.$transaction(async (tx) => {
+            const summary = await this.getSummaryForPeriod(from, to, employeeId, tx);
+            const employeeData = summary[0];
+
+            if (!employeeData || employeeData.calculatedAmount <= 0) {
+                throw new Error('No hay montos salariales vÃ¡lidos para liquidar en este perÃ­odo');
+            }
+
+            const category = budgetCategory || BUDGET_CATEGORIES.FIXED_EXPENSES;
+
+            const payrollExpense = await tx.expense.create({
+                data: {
+                    user_id: adminUserId,
+                    provider_id: providerId,
+                    account_id: accountId,
+                    amount: employeeData.calculatedAmount,
+                    status: STATUS_AMOUNT.PENDING,
+                    due_date: new Date(),
+                    budget_category: category
+                }
+            });
+
+            await tx.attendanceLog.updateMany({
+                where: {
+                    employee_id: employeeId,
+                    check_in: { gte: new Date(from), lte: new Date(to) },
+                    notes: null
+                },
+                data: {
+                    notes: `Liquidado automÃ¡ticamente en Egreso ID: ${payrollExpense.id}`
+                }
+            });
+
+            return payrollExpense;
+        });
+    }
+};
+
+module.exports = attendanceService;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\services\auth.service.js ===
+const bcrypt = require('bcrypt');
+const prisma = require('../config/db');
+const jwt = require('jsonwebtoken');
+
+const register = async (userData) => {
+    const { username, password, role } = userData;
+
+    const existing = await prisma.user.findUnique({ where: { username } });
+    if (existing) {
+        const error = new Error('El nombre de usuario ya estÃ¡ en uso');
+        error.statusCode = 409;
+        throw error;
+    }
+
+    const userRole = role === 'ADMIN' ? 'ADMIN' : 'EMPLOYEE';
+    const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+    const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+    return await prisma.$transaction(async (tx) => {
+
+        const user = await tx.user.create({
+            data: {
+                username,
+                password_hash,
+                role: userRole,
+                pct_merchandise: userRole === 'ADMIN' ? (userData.pct_merchandise || 0.60) : 0.00,
+                pct_fixed_expenses: userRole === 'ADMIN' ? (userData.pct_fixed_expenses || 0.30) : 0.00,
+                pct_savings: userRole === 'ADMIN' ? (userData.pct_savings || 0.10) : 0.00,
+            },
+            select: {
+                id: true,
+                username: true,
+                role: true,
+                pct_merchandise: true,
+                pct_fixed_expenses: true,
+                pct_savings: true,
+                created_at: true,
+            },
+        });
+
+        if (userRole === 'ADMIN') {
+            await tx.account.createMany({
+                data: [
+                    { user_id: user.id, name: 'Efectivo', balance: 0.00 },
+                    { user_id: user.id, name: 'Cuenta Bancaria', balance: 0.00 }
+                ]
+            });
+
+            await tx.budgetBalance.createMany({
+                data: [
+                    { user_id: user.id, category: 'MercaderÃ­a', balance: 0.00 },
+                    { user_id: user.id, category: 'Gastos Fijos', balance: 0.00 },
+                    { user_id: user.id, category: 'Ahorro', balance: 0.00 }
+                ]
+            });
+        }
+
+        else {
+            await tx.employeeProfile.create({
+                data: {
+                    user_id: user.id,
+                    first_name: userData.first_name,
+                    last_name: userData.last_name,
+                    salary_type: userData.salary_type || "hourly",
+                    hourly_rate: userData.hourly_rate ? parseFloat(userData.hourly_rate) : 0.00,
+                    monthly_salary: userData.monthly_salary ? parseFloat(userData.monthly_salary) : null
+                }
+            });
+
+            await tx.employeePermission.create({
+                data: {
+                    user_id: user.id,
+                    canRegisterClosures: true,
+                    canRegisterExpenses: true,
+                    canPayExpenses: false,
+                    canManageProviders: false
+                }
+            });
+        }
+        return user;
+    });
+};
+
+const login = async ({ username, password }) => {
+    const user = await prisma.user.findUnique({
+        where: { username },
+        include: { employeePermission: true }
+    });
+    if (!user || user.deleted_at !== null) {
+        const error = new Error('Credenciales incorrectas');
+        error.statusCode = 401;
+        throw error;
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    if (!isPasswordValid) {
+        const error = new Error('Credenciales incorrectas');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    const payload = {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+    };
+
+    if (user.role === 'EMPLOYEE') {
+        const permissions = await prisma.employeePermission.findUnique({
+            where: { user_id: user.id },
+            select: {
+                canRegisterClosures: true,
+                canRegisterExpenses: true,
+                canPayExpenses: true,
+                canManageProviders: true
+            }
+        });
+        payload.permissions = permissions;
+    }
+
+    const JWT_SECRET = process.env.JWT_SECRET;
+    const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN;
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+    return {
+        user: {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+        },
+        token,
+    };
+}
+
+const updatePercentages = async ({ userId, pct_merchandise, pct_fixed_expenses, pct_savings }) => {
+    const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { pct_merchandise, pct_fixed_expenses, pct_savings },
+        select: {
+            id: true,
+            pct_merchandise: true,
+            pct_fixed_expenses: true,
+            pct_savings: true,
+        },
+    });
+
+    return updatedUser;
+}
+
+module.exports = { register, login, updatePercentages };
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\services\closure.service.js ===
+const prisma = require('../config/db');
+const { getAdminContext } = require('../utils/adminContext');
+const { BUDGET_CATEGORIES } = require('../utils/constants');
+
+const createClosure = async ({ total_amount, details, user_id }) => {
+    const adminCtx = await getAdminContext();
+
+    const merchandise_amount = total_amount * adminCtx.pct.merchandise;
+    const fixed_amount = total_amount * adminCtx.pct.fixed_expenses;
+    const saving_amount = total_amount * adminCtx.pct.savings;
+
+    const result = await prisma.$transaction(async (tx) => {
+        const closure = await tx.dailyClosure.create({
+            data: {
+                user_id: user_id,
+                total_amount
+            }
+        });
+
+        await tx.dailyClosureDetail.createMany({
+            data: details.map(d => ({
+                closure_id: closure.id,
+                account_id: d.account_id,
+                amount: d.amount,
+            })),
+        });
+
+        // ActualizaciÃ³n de saldos en cuentas reales del local (bajo el Admin)
+        for (const detail of details) {
+            await tx.account.update({
+                where: { id: detail.account_id },
+                data: { balance: { increment: detail.amount } }
+            });
+        }
+
+        await tx.budgetAllocation.createMany({
+            data: [
+                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: merchandise_amount, category: BUDGET_CATEGORIES.MERCHANDISE },
+                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: fixed_amount, category: BUDGET_CATEGORIES.FIXED_EXPENSES },
+                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: saving_amount, category: BUDGET_CATEGORIES.SAVINGS },
+            ],
+        });
+
+        const categories = [
+            { name: BUDGET_CATEGORIES.MERCHANDISE, amount: merchandise_amount },
+            { name: BUDGET_CATEGORIES.FIXED_EXPENSES, amount: fixed_amount },
+            { name: BUDGET_CATEGORIES.SAVINGS, amount: saving_amount }
+        ];
+
+        for (const cat of categories) {
+            await tx.budgetBalance.upsert({
+                where: {
+                    user_id_category: { user_id: adminCtx.adminId, category: cat.name }
+                },
+                update: {
+                    balance: { increment: cat.amount }
+                },
+                create: {
+                    user_id: adminCtx.adminId,
+                    category: cat.name,
+                    balance: cat.amount
+                }
+            });
+        }
+
+        await tx.auditLog.create({
+            data: {
+                user_id: user_id,
+                action: 'REGISTRAR_CIERRE',
+                details: `RegistrÃ³ un cierre de caja por un total de $${parseFloat(total_amount).toFixed(2)}`
+            }
+        });
+
+        return closure;
+    });
+    return result;
+};
+
+const getClosures = async () => {
+    return prisma.dailyClosure.findMany({
+        orderBy: { date: 'desc' },
+        select: {
+            id: true,
+            total_amount: true,
+            date: true,
+            user: {
+                select: { username: true }
+            },
+            details: {
+                select: {
+                    amount: true,
+                    account: {
+                        select: { name: true }
+                    }
+                }
+            }
+        }
+    });
+};
+
+module.exports = { createClosure, getClosures };
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\services\expense.service.js ===
+const prisma = require('../config/db');
+const { getAdminContext } = require('../utils/adminContext');
+const { STATUS_AMOUNT } = require('../utils/constants');
+
+const createExpense = async (userId, expenseData) => {
+    const { provider_id, account_id, budget_category, amount, status, due_date } = expenseData;
+
+    return await prisma.$transaction(async (tx) => {
+        const adminCtx = await getAdminContext();
+
+        const budget = await tx.budgetBalance.findUnique({
+            where: {
+                user_id_category: { user_id: adminCtx.adminId, category: budget_category }
+            }
+        });
+        if (!budget) {
+            const error = new Error(`La bolsa de presupuesto "${budget_category}" no existe`);
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const finalStatus = status || STATUS_AMOUNT.PENDING;
+
+        if (finalStatus === STATUS_AMOUNT.PAID) {
+            const account = await tx.account.findUnique({
+                where: { id: parseInt(account_id, 10) }
+            });
+
+            if (!account) {
+                const error = new Error('La cuenta fÃ­sica seleccionada no existe');
+                error.statusCode = 404;
+                throw error;
+            }
+            if (Number(account.balance) < Number(amount)) {
+                const error = new Error('Saldo insuficiente en la cuenta fÃ­sica seleccionada');
+                error.statusCode = 400;
+                throw error;
+            }
+            if (Number(budget.balance) < Number(amount)) {
+                const error = new Error(`Saldo insuficiente en la bolsa virtual de "${budget_category}"`);
+                error.statusCode = 400;
+                throw error;
+            }
+
+            await tx.account.update({
+                where: { id: parseInt(account_id, 10) },
+                data: { balance: { decrement: amount } }
+            });
+
+            await tx.budgetBalance.update({
+                where: {
+                    user_id_category: { user_id: adminCtx.adminId, category: budget_category }
+                },
+                data: { balance: { decrement: amount } }
+            });
+        }
+
+        const expense = await tx.expense.create({
+            data: {
+                user_id: userId,
+                provider_id: parseInt(provider_id, 10),
+                account_id: parseInt(account_id, 10),
+                budget_category,
+                amount,
+                status: finalStatus,
+                due_date: due_date ? new Date(due_date) : null,
+                paid_at: finalStatus === STATUS_AMOUNT.PAID ? new Date() : null
+            }
+        });
+
+        await tx.auditLog.create({
+            data: {
+                user_id: userId,
+                action: 'REGISTRAR_EGRESO',
+                details: `RegistrÃ³ un egreso de tipo "${budget_category}" por un monto de $${parseFloat(amount).toFixed(2)} (Estado: ${finalStatus})`
+            }
+        });
+
+        return expense;
+    });
+};
+
+const payExpense = async (userId, expenseId, overrideAccountId = null) => {
+    return await prisma.$transaction(async (tx) => {
+        const adminCtx = await getAdminContext();
+
+        const expense = await tx.expense.findFirst({
+            where: { id: parseInt(expenseId, 10), deleted_at: null }
+        });
+
+        if (!expense) {
+            const error = new Error('El gasto seleccionado no existe');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (expense.status === STATUS_AMOUNT.PAID) {
+            const error = new Error('Este gasto ya ha sido pagado previamente');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const finalAccountId = overrideAccountId ? parseInt(overrideAccountId, 10) : expense.account_id;
+        const account = await tx.account.findFirst({
+            where: { id: finalAccountId }
+        });
+
+        if (!account) {
+            const error = new Error('La cuenta asociada a este gasto no existe');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const budget = await tx.budgetBalance.findUnique({
+            where: {
+                user_id_category: { user_id: adminCtx.adminId, category: expense.budget_category }
+            }
+        });
+
+        if (!budget) {
+            const error = new Error(`La bolsa de presupuesto "${expense.budget_category}" no existe`);
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (Number(account.balance) < Number(expense.amount)) {
+            const error = new Error('Saldo insuficiente en la cuenta fÃ­sica');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (Number(budget.balance) < Number(expense.amount)) {
+            const error = new Error(`Saldo insuficiente en la bolsa virtual de "${expense.budget_category}"`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        await tx.account.update({
+            where: { id: account.id },
+            data: { balance: { decrement: expense.amount } }
+        });
+
+        await tx.budgetBalance.update({
+            where: {
+                user_id_category: { user_id: adminCtx.adminId, category: expense.budget_category }
+            },
+            data: { balance: { decrement: expense.amount } }
+        });
+
+        const updatedExpense = await tx.expense.update({
+            where: { id: expense.id },
+            data: {
+                status: STATUS_AMOUNT.PAID,
+                paid_at: new Date(),
+                account_id: finalAccountId
+            }
+        });
+
+        await tx.auditLog.create({
+            data: {
+                user_id: userId,
+                action: 'PAGAR_EGRESO',
+                details: `PagÃ³ el egreso ID ${expenseId} (Concepto: "${expense.budget_category}") por un monto de $${parseFloat(expense.amount).toFixed(2)}`
+            }
+        });
+
+        return updatedExpense;
+    });
+};
+
+const getExpenses = async (userId, filters = {}) => {
+    const { status, budget_category, from_date, to_date, page, limit } = filters;
+    const whereConditions = { deleted_at: null };
+
+    if (status) {
+        whereConditions.status = status;
+    }
+
+    if (budget_category) {
+        whereConditions.budget_category = budget_category;
+    }
+
+    if (from_date || to_date) {
+        whereConditions.created_at = {};
+        if (from_date) whereConditions.created_at.gte = new Date(from_date);
+        if (to_date) whereConditions.created_at.lte = new Date(to_date);
+    }
+
+    if (!page && !limit) {
+        const expenses = await prisma.expense.findMany({
+            where: whereConditions,
+            include: {
+                provider: { select: { name: true } },
+                account: { select: { name: true } },
+                user: { select: { username: true } }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
+        return { success: true, data: expenses };
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [total, expenses] = await Promise.all([
+        prisma.expense.count({ where: whereConditions }),
+        prisma.expense.findMany({
+            where: whereConditions,
+            skip,
+            take: limitNum,
+            include: {
+                provider: { select: { name: true } },
+                account: { select: { name: true } },
+                user: { select: { username: true } }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
+    ]);
+
+    return {
+        success: true,
+        data: expenses,
+        meta: {
+            total,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(total / limitNum)
+        }
+    };
+};
+
+const getUpcomingExpenses = async (userId, daysWindow = 7) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const futureLimit = new Date();
+    futureLimit.setDate(today.getDate() + daysWindow);
+
+    return await prisma.expense.findMany({
+        where: {
+            status: STATUS_AMOUNT.PENDING,
+            deleted_at: null,
+            due_date: {
+                gte: today,
+                lte: futureLimit
+            }
+        },
+        include: {
+            provider: { select: { name: true } }
+        },
+        orderBy: {
+            due_date: 'asc'
+        }
+    });
+};
+
+const deleteExpense = async (userId, expenseId) => {
+    const idParsed = parseInt(expenseId, 10);
+    const expense = await prisma.expense.findFirst({ 
+        where: { id: idParsed, deleted_at: null } 
+    });
+    if (!expense) {
+        const error = new Error('Gasto no encontrado');
+        error.statusCode = 404;
+        throw error;
+    }
+    if (expense.status !== STATUS_AMOUNT.PAID) {
+        const error = new Error('Solo se pueden eliminar gastos que ya han sido pagados');
+        error.statusCode = 400;
+        throw error;
+    }
+    return await prisma.$transaction(async (tx) => {
+        const softDeleted = await tx.expense.update({ 
+            where: { id: idParsed },
+            data: { deleted_at: new Date() }
+        });
+        await tx.auditLog.create({
+            data: {
+                user_id: parseInt(userId, 10),
+                action: 'ELIMINAR_EGRESO',
+                details: `EliminÃ³ el egreso ID ${expenseId} (Concepto: "${expense.budget_category}") por un monto de $${parseFloat(expense.amount).toFixed(2)}`
+            }
+        });
+        return softDeleted;
+    });
+};
+
+module.exports = {
+    createExpense,
+    payExpense,
+    getExpenses,
+    getUpcomingExpenses,
+    deleteExpense
+};
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\services\providers.service.js ===
+const prisma = require('../config/db');
+const { getAdminContext } = require('../utils/adminContext');
+
+const getAllProviders = async (userId, userRole = 'ADMIN', page = null, limit = null) => {
+    const whereConditions = {};
+    if (userRole === 'EMPLOYEE') {
+        whereConditions.visible_to_employee = true;
+    }
+
+    if (!page && !limit) {
+        const providers = await prisma.provider.findMany({
+            where: whereConditions,
+            select: {
+                id: true,
+                name: true,
+                payment_condition: true,
+                credit_days: true,
+                visible_to_employee: true,
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        });
+        return { success: true, data: providers };
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [total, providers] = await Promise.all([
+        prisma.provider.count({ where: whereConditions }),
+        prisma.provider.findMany({
+            where: whereConditions,
+            skip,
+            take: limitNum,
+            select: {
+                id: true,
+                name: true,
+                payment_condition: true,
+                credit_days: true,
+                visible_to_employee: true,
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        })
+    ]);
+
+    return {
+        success: true,
+        data: providers,
+        meta: {
+            total,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(total / limitNum)
+        }
+    };
+};
+
+const createProvider = async (userId, providerData) => {
+    const { name, paymentCondition, creditDays, visibleToEmployee } = providerData;
+    const upperName = name.trim().toUpperCase();
+
+    const existing = await prisma.provider.findFirst({ where: { name: upperName } });
+    if (existing) {
+        const error = new Error('El proveedor ya estÃ¡ en la lista');
+        error.statusCode = 409;
+        throw error;
+    }
+
+    const adminCtx = await getAdminContext();
+
+    return await prisma.$transaction(async (tx) => {
+        const provider = await tx.provider.create({
+            data: {
+                user_id: adminCtx.adminId, // Siempre anclado bajo el Admin del negocio
+                name: upperName,
+                payment_condition: paymentCondition,
+                credit_days: creditDays,
+                visible_to_employee: visibleToEmployee !== undefined ? visibleToEmployee : true,
+            },
+            select: {
+                id: true,
+                name: true,
+                payment_condition: true,
+                credit_days: true,
+                visible_to_employee: true,
+            }
+        });
+
+        await tx.auditLog.create({
+            data: {
+                user_id: parseInt(userId, 10),
+                action: 'CREAR_PROVEEDOR',
+                details: `CreÃ³ el proveedor "${upperName}" (CondiciÃ³n: ${paymentCondition}, DÃ­as de crÃ©dito: ${creditDays})`
+            }
+        });
+
+        return provider;
+    });
+};
+
+const updateProvider = async (userId, id, providerData) => {
+    const { name, paymentCondition, creditDays, visibleToEmployee } = providerData;
+    const upperName = name.trim().toUpperCase();
+    const providerId = parseInt(id, 10);
+
+    const existing = await prisma.provider.findFirst({
+        where: { id: providerId }
+    });
+    if (!existing) {
+        const error = new Error('No se encontrÃ³ el proveedor');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    const nameExists = await prisma.provider.findFirst({
+        where: {
+            name: upperName,
+            id: { not: providerId }
+        }
+    });
+    if (nameExists) {
+        const error = new Error('El proveedor ya estÃ¡ en la lista');
+        error.statusCode = 409;
+        throw error;
+    }
+
+    return await prisma.$transaction(async (tx) => {
+        await tx.provider.update({
+            where: { id: providerId },
+            data: {
+                name: upperName,
+                payment_condition: paymentCondition,
+                credit_days: creditDays,
+                visible_to_employee: visibleToEmployee !== undefined ? visibleToEmployee : true,
+            }
+        });
+
+        await tx.auditLog.create({
+            data: {
+                user_id: parseInt(userId, 10),
+                action: 'MODIFICAR_PROVEEDOR',
+                details: `ModificÃ³ el proveedor ID ${providerId} (Nombre: "${upperName}", CondiciÃ³n: ${paymentCondition}, DÃ­as de crÃ©dito: ${creditDays}, Visible para empleados: ${visibleToEmployee !== undefined ? visibleToEmployee : true})`
+            }
+        });
+
+        return { 
+            id: providerId, 
+            name: upperName, 
+            payment_condition: paymentCondition, 
+            credit_days: creditDays,
+            visible_to_employee: visibleToEmployee !== undefined ? visibleToEmployee : true 
+        };
+    });
+};
+
+const deleteProvider = async (userId, id) => {
+    const providerId = parseInt(id, 10);
+    const providerToDelete = await prisma.provider.findFirst({
+        where: { id: providerId }
+    });
+    if (!providerToDelete) {
+        const error = new Error('No se encontrÃ³ el proveedor');
+        error.statusCode = 404;
+        throw error;
+    }
+    if (providerToDelete.name.endsWith(' (ELIMINADO)')) {
+        const error = new Error('Este proveedor ya ha sido eliminado');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    // 1. Verificar egresos pendientes
+    const pendingExpenses = await prisma.expense.count({
+        where: {
+            provider_id: providerId,
+            status: 'Pendiente'
+        }
+    });
+
+    if (pendingExpenses > 0) {
+        const error = new Error('No se puede eliminar el proveedor porque tiene pagos pendientes asociados');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    // 2. Verificar egresos pagados para soft-delete
+    const paidExpensesCount = await prisma.expense.count({
+        where: {
+            provider_id: providerId,
+            status: 'Pagado'
+        }
+    });
+
+    return await prisma.$transaction(async (tx) => {
+        let isSoft = false;
+        if (paidExpensesCount > 0) {
+            const newName = `${providerToDelete.name.slice(0, 85)} (ELIMINADO)`;
+            await tx.provider.update({
+                where: { id: providerId },
+                data: { name: newName }
+            });
+            isSoft = true;
+        } else {
+            await tx.provider.delete({
+                where: { id: providerId }
+            });
+        }
+
+        await tx.auditLog.create({
+            data: {
+                user_id: parseInt(userId, 10),
+                action: 'ELIMINAR_PROVEEDOR',
+                details: `${isSoft ? 'EliminÃ³ lÃ³gicamente (renombrÃ³)' : 'EliminÃ³ fÃ­sicamente'} el proveedor "${providerToDelete.name}" (ID ${providerId})`
+            }
+        });
+
+        return { id: providerId, success: true, softDeleted: isSoft };
+    });
+};
+
+module.exports = {
+    getAllProviders,
+    createProvider,
+    updateProvider,
+    deleteProvider
+};
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\utils\adminContext.js ===
+const prisma = require('../config/db');
+const { ROLES } = require('./constants');
+
+/**
+ * getAdminContext â€” Obtiene el contexto del Administrador principal
+ * * En un esquema de negocio local, todas las cuentas fÃ­sicas y bolsas virtuales
+ * de presupuesto pertenecen al Administrador. Este helper unifica el acceso
+ * para que tanto administradores como empleados operen sobre las mismas entidades.
+ */
+const getAdminContext = async () => {
+    const admin = await prisma.user.findFirst({
+        where: { role: ROLES.ADMIN },
+        include: {
+            accounts: true,
+            budget_balances: true
+        }
+    });
+
+    if (!admin) {
+        const error = new Error('ConfiguraciÃ³n invÃ¡lida: No existe un administrador registrado en el sistema.');
+        error.statusCode = 500;
+        throw error;
+    }
+
+    return {
+        adminId: admin.id,
+        pct: {
+            merchandise: Number(admin.pct_merchandise),
+            fixed_expenses: Number(admin.pct_fixed_expenses),
+            savings: Number(admin.pct_savings)
+        },
+        accounts: admin.accounts,
+        budgets: admin.budget_balances
+    };
+};
+
+module.exports = { getAdminContext };
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\utils\constants.js ===
+/**
+ * Constantes de Dominio de la AplicaciÃ³n
+ * * Centraliza los strings mÃ¡gicos y valores constantes del negocio
+ * para asegurar consistencia ortogrÃ¡fica y evitar errores de codificaciÃ³n.
+ */
+
+const BUDGET_CATEGORIES = {
+    MERCHANDISE: 'MercaderÃ­a',
+    FIXED_EXPENSES: 'Gastos Fijos',
+    SAVINGS: 'Ahorro'
+};
+
+const ROLES = {
+    ADMIN: 'ADMIN',
+    EMPLOYEE: 'EMPLOYEE'
+};
+
+const STATUS_AMOUNT = {
+    PENDING: 'Pendiente',
+    PAID: 'Pagado'
+};
+
+const PAYMENT_CONDITIONS = {
+    CASH: 'Contado',
+    CREDIT: 'Credito'
+};
+
+module.exports = {
+    BUDGET_CATEGORIES,
+    ROLES,
+    STATUS_AMOUNT,
+    PAYMENT_CONDITIONS
+};
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\utils\schemas.js ===
+const { z } = require('zod');
+const { BUDGET_CATEGORIES, STATUS_AMOUNT, PAYMENT_CONDITIONS } = require('./constants');
+
+// Mapeamos los arrays vÃ¡lidos directamente desde las constantes unificadas
+const statusAmountValues = Object.values(STATUS_AMOUNT);
+const paymentConditionValues = Object.values(PAYMENT_CONDITIONS);
+const budgetCategoryValues = Object.values(BUDGET_CATEGORIES);
+
+// Validador de porcentajes decimales (ej. 0.60 para 60%)
+const pctField = (fieldName) => {
+    return z.number()
+        .min(0, `El porcentaje de ${fieldName} debe ser mayor o igual a 0`)
+        .max(1, `El porcentaje de ${fieldName} debe ser menor o igual a 1`);
+};
+
+const registerSchema = z.object({
+    username: z.string()
+        .min(6, 'El usuario debe tener al menos 6 caracteres')
+        .max(20, 'El usuario no puede tener mÃ¡s de 20 caracteres'),
+    password: z.string()
+        .min(8, 'La contraseÃ±a debe tener al menos 8 caracteres'),
+    pct_merchandise: pctField('MercaderÃ­a'),
+    pct_fixed_expenses: pctField('Gastos Fijos'),
+    pct_savings: pctField('Ahorros'),
+    role: z.enum(['ADMIN', 'EMPLOYEE']).optional(),
+    first_name: z.string().optional(),
+    last_name: z.string().optional(),
+    salary_type: z.enum(['hourly', 'fixed']).optional(),
+    hourly_rate: z.number().optional(),
+    monthly_salary: z.number().optional()
+}).refine(
+    (data) => Math.abs(data.pct_merchandise + data.pct_fixed_expenses + data.pct_savings - 1) < 0.001,
+    {
+        message: 'Los porcentajes de distribuciÃ³n deben sumar exactamente el 100% (1.00)',
+        path: ['pct_merchandise'],
+    }
+);
+
+const loginSchema = z.object({
+    username: z.string()
+        .min(6, 'El usuario debe tener al menos 6 caracteres')
+        .max(20, 'El usuario no puede tener mÃ¡s de 20 caracteres'),
+    password: z.string()
+        .min(8, 'La contraseÃ±a debe tener al menos 8 caracteres'),
+});
+
+const dailyClosureSchema = z.object({
+    total_amount: z.number().positive('El monto total debe ser mayor a 0'),
+    details: z.array(z.object({
+        account_id: z.number().int().positive('El ID de cuenta debe ser un entero positivo'),
+        amount: z.number().nonnegative('El monto debe ser mayor o igual a 0'),
+    })).min(1, 'Debe ingresar al menos un medio de pago'),
+}).refine((data) => {
+    const sum_details = data.details.reduce((sum, detail) => sum + detail.amount, 0);
+    return Math.abs(sum_details - data.total_amount) < 0.01;
+}, {
+    message: 'La suma de los montos por cuenta debe coincidir con el total del cierre',
+    path: ['details'],
+});
+
+const providerSchema = z.object({
+    name: z.string()
+        .min(3, 'El nombre del proveedor debe tener al menos 3 caracteres')
+        .max(100, 'El nombre del proveedor no puede tener mÃ¡s de 100 caracteres'),
+    payment_condition: z.enum(paymentConditionValues, {
+        errorMap: () => ({ message: 'CondiciÃ³n de pago invÃ¡lida' })
+    }),
+    credit_days: z.number().int().nonnegative('La cantidad de dÃ­as debe ser mayor o igual a 0').default(0),
+    visible_to_employee: z.boolean().optional().default(true),
+}).refine((data) => {
+    if (data.payment_condition === STATUS_AMOUNT.PENDING || data.payment_condition === 'Credito') {
+        return data.credit_days > 0;
+    }
+    return true;
+}, {
+    message: 'Los proveedores a crÃ©dito deben tener una cantidad de dÃ­as de crÃ©dito mayor a 0',
+    path: ['credit_days'],
+}).refine((data) => {
+    if (data.payment_condition === 'Contado') {
+        return data.credit_days === 0;
+    }
+    return true;
+}, {
+    message: 'Los proveedores con pago al contado deben tener 0 dÃ­as de crÃ©dito',
+    path: ['credit_days'],
+});
+
+const expensesSchema = z.object({
+    provider_id: z.number().int().positive('ID de proveedor invÃ¡lido'),
+    account_id: z.number().int().positive('ID de cuenta fÃ­sica invÃ¡lido'),
+    amount: z.number().positive('El monto debe ser mayor a 0'),
+    status: z.enum(statusAmountValues).default(STATUS_AMOUNT.PAID),
+    budget_category: z.enum(budgetCategoryValues, {
+        errorMap: () => ({ message: 'CategorÃ­a de presupuesto no vÃ¡lida' }),
+    }),
+    due_date: z.coerce.date().optional(),
+}).refine((data) => {
+    if (data.status === STATUS_AMOUNT.PENDING && !data.due_date) return false;
+    return true;
+}, {
+    message: 'Los gastos pendientes requieren una fecha de vencimiento',
+    path: ['due_date'],
+});
+
+const updatePercentagesSchema = z.object({
+    pct_merchandise: pctField('MercaderÃ­a'),
+    pct_fixed_expenses: pctField('Gastos Fijos'),
+    pct_savings: pctField('Ahorros'),
+}).refine(
+    (data) => Math.abs(data.pct_merchandise + data.pct_fixed_expenses + data.pct_savings - 1) < 0.001,
+    {
+        message: 'Los porcentajes de distribuciÃ³n deben sumar exactamente el 100% (1.00)',
+        path: ['pct_merchandise'],
+    }
+);
+
+const createEmployeeSchema = z.object({
+    username: z.string()
+        .min(6, 'El usuario debe tener al menos 6 caracteres')
+        .max(20, 'El usuario no puede tener mÃ¡s de 20 caracteres'),
+    password: z.string().min(8, 'La contraseÃ±a debe tener al menos 8 caracteres'),
+    first_name: z.string()
+        .min(2, 'El nombre debe tener al menos 2 caracteres')
+        .max(50, 'El nombre no puede tener mÃ¡s de 50 caracteres'),
+    last_name: z.string()
+        .min(2, 'El apellido debe tener al menos 2 caracteres')
+        .max(50, 'El apellido no puede tener mÃ¡s de 50 caracteres'),
+    hourly_rate: z.number().nonnegative('La tarifa por hora debe ser mayor o igual a 0'),
+    salary_type: z.enum(['hourly', 'fixed'], { errorMap: () => ({ message: 'Tipo de salario invÃ¡lido' }) }),
+    monthly_salary: z.number().nonnegative('El salario mensual debe ser mayor o igual a 0').nullable().optional()
+});
+
+const updatePermissionsSchema = z.object({
+    canRegisterClosures: z.boolean(),
+    canRegisterExpenses: z.boolean(),
+    canPayExpenses: z.boolean(),
+    canManageProviders: z.boolean()
+});
+
+const updateProfileSchema = z.object({
+    hourly_rate: z.number().nonnegative('La tarifa por hora debe ser mayor o igual a 0'),
+    salary_type: z.enum(['hourly', 'fixed']),
+    monthly_salary: z.number().nonnegative('El salario mensual debe ser mayor o igual a 0').nullable().optional()
+});
+
+const createAttendanceSchema = z.object({
+    employeeId: z.number().int().positive('ID de empleado invÃ¡lido'),
+    checkIn: z.coerce.date(),
+    checkOut: z.coerce.date()
+});
+
+const updateAttendanceSchema = z.object({
+    checkIn: z.coerce.date(),
+    checkOut: z.coerce.date()
+});
+
+const liquidatePayrollSchema = z.object({
+    employeeId: z.number().int().positive('ID de empleado invÃ¡lido'),
+    from: z.coerce.date(),
+    to: z.coerce.date(),
+    providerId: z.number().int().positive('ID de proveedor invÃ¡lido'),
+    accountId: z.number().int().positive('ID de cuenta fÃ­sica invÃ¡lido'),
+    budgetCategory: z.enum(budgetCategoryValues, {
+        errorMap: () => ({ message: 'CategorÃ­a de presupuesto no vÃ¡lida' }),
+    }).optional().default(BUDGET_CATEGORIES.FIXED_EXPENSES)
+});
+
+// Middleware factory de validaciÃ³n
+const validate = (schema) => (req, res, next) => {
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+        return res.status(400).json({ errors: result.error.issues });
+    }
+    req.body = result.data;
+    next();
+};
+
+module.exports = {
+    registerSchema,
+    loginSchema,
+    dailyClosureSchema,
+    providerSchema,
+    expensesSchema,
+    updatePercentagesSchema,
+    validate,
+    createEmployeeSchema,
+    updatePermissionsSchema,
+    updateProfileSchema,
+    createAttendanceSchema,
+    updateAttendanceSchema,
+    liquidatePayrollSchema,
+};
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\app.js ===
+const express = require('express');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const cors = require('cors');
+const errorHandler = require('./middlewares/errorHandler');
+const authRouter = require('./routes/auth.routes');
+const closureRouter = require('./routes/closure.routes');
+const providerRouter = require('./routes/providers.routes');
+const expenseRouter = require('./routes/expense.routes');
+const accountsRouter = require('./routes/accounts.routes');
+const adminRouter = require('./routes/admin.routes');
+const attendanceRouter = require('./routes/attendance.routes');
+const app = express();
+
+app.use(helmet());
+app.use(cors());
+app.use(morgan('dev'));
+app.use(express.json());
+
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'OK', message: 'Sistema de finanzas activo' });
+});
+
+// Rutas
+app.use('/api/auth', authRouter);
+app.use('/api/closures', closureRouter);
+app.use('/api/providers', providerRouter);
+app.use('/api/expenses', expenseRouter);
+app.use('/api/accounts', accountsRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/attendance', attendanceRouter);
+
+// Error handler global (siempre al final)
+app.use(errorHandler);
+module.exports = app;
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\src\server.js ===
+require('dotenv').config();
+const app = require('./app');
+const prisma = require('./config/db');
+
+const PORT = process.env.PORT || 3000;
+
+async function main() {
+    try {
+        await prisma.$connect();
+        console.log('âœ… ConexiÃ³n exitosa a PostgreSQL con Prisma');
+
+        app.listen(PORT, () => {
+            console.log(`ðŸš€ Servidor corriendo en http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error('âŒ Error al iniciar el sistema:', error);
+        await prisma.$disconnect();
+        process.exit(1);
+    }
+}
+
+main();
+
+=== ARCHIVO: C:\Users\lauta\ecommerce-project\backend\package.json ===
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "prisma": "^5.22.0"
+  }
+}
+

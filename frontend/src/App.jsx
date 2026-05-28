@@ -37,7 +37,7 @@ function App() {
           <Route
             path="/cierres"
             element={
-              <ProtectedRoute requiredPermission="canRegisterClosures">
+              <ProtectedRoute requiredRole="ADMIN">
                 <DashboardLayout>
                   <ClosuresList />
                 </DashboardLayout>

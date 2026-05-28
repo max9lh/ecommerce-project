@@ -48,6 +48,7 @@ model User {
   attendanceLogs     AttendanceLog[]
 
   created_at         DateTime            @default(now())
+  deleted_at         DateTime?
 }
 
 // ============================================================
@@ -118,13 +119,14 @@ model BudgetAllocation {
 // ============================================================
 
 model Provider {
-  id                Int       @id @default(autoincrement())
-  user_id           Int
-  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  name              String    @db.VarChar(100)
-  payment_condition String    @db.VarChar(20)
-  credit_days       Int       @default(0)
-  expenses          Expense[]
+  id                  Int       @id @default(autoincrement())
+  user_id             Int
+  user                User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                String    @db.VarChar(100)
+  payment_condition   String    @db.VarChar(20)
+  credit_days         Int       @default(0)
+  visible_to_employee Boolean   @default(true)
+  expenses            Expense[]
 }
 
 model Expense {
@@ -141,6 +143,7 @@ model Expense {
   due_date        DateTime?
   paid_at         DateTime?
   created_at      DateTime  @default(now())
+  deleted_at      DateTime?
 }
 
 // ============================================================

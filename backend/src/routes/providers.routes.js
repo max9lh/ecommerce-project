@@ -7,7 +7,7 @@ const requireAdmin = require('../middlewares/requireAdmin');
 
 const router = Router();
 
-router.get('/', authGuard, requirePermission('canManageProviders'),getAllProviders);
+router.get('/', authGuard, requirePermission('canManageProviders', 'canRegisterExpenses', 'canPayExpenses'),getAllProviders);
 
 router.post('/', authGuard, requirePermission('canManageProviders'), validate(providerSchema), createProvider);
 

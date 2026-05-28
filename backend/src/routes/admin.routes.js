@@ -28,8 +28,8 @@ router.put('/employees/:id/permissions', validate(updatePermissionsSchema), upda
 router.put('/employees/:id/profile', validate(updateProfileSchema), updateEmployeeProfile);
 router.delete('/employees/:id', deleteEmployee);
 
-router.get('/distribution', getDistribution);
-router.put('/distribution', updateDistribution);
-router.get('/audit-logs', getAuditLogs);
+router.get('/distribution', requireAdmin, getDistribution);
+router.put('/distribution', requireAdmin, updateDistribution);
+router.get('/audit-logs', requireAdmin, getAuditLogs);
 
 module.exports = router;

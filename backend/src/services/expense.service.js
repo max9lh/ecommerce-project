@@ -1,5 +1,6 @@
 const prisma = require('../config/db');
 const { getAdminContext } = require('../utils/adminContext');
+const { STATUS_AMOUNT } = require('../utils/constants');
 
 const createExpense = async (userId, expenseData) => {
     const { provider_id, account_id, budget_category, amount, status, due_date } = expenseData;
@@ -18,11 +19,11 @@ const createExpense = async (userId, expenseData) => {
             throw error;
         }
 
-        const finalStatus = status || 'Pendiente';
+        const finalStatus = status || STATUS_AMOUNT.PENDING;
 
-        if (finalStatus === 'Pagado') {
+        if (finalStatus === STATUS_AMOUNT.PAID) {
             const account = await tx.account.findUnique({
-                where: { id: parseInt(account_id) }
+                where: { id: parseInt(account_id, 10) }
             });
 
             if (!account) {
@@ -42,7 +43,7 @@ const createExpense = async (userId, expenseData) => {
             }
 
             await tx.account.update({
-                where: { id: parseInt(account_id) },
+                where: { id: parseInt(account_id, 10) },
                 data: { balance: { decrement: amount } }
             });
 
@@ -57,13 +58,13 @@ const createExpense = async (userId, expenseData) => {
         const expense = await tx.expense.create({
             data: {
                 user_id: userId,
-                provider_id: parseInt(provider_id),
-                account_id: parseInt(account_id),
+                provider_id: parseInt(provider_id, 10),
+                account_id: parseInt(account_id, 10),
                 budget_category,
                 amount,
                 status: finalStatus,
                 due_date: due_date ? new Date(due_date) : null,
-                paid_at: finalStatus === 'Pagado' ? new Date() : null
+                paid_at: finalStatus === STATUS_AMOUNT.PAID ? new Date() : null
             }
         });
 
@@ -84,7 +85,7 @@ const payExpense = async (userId, expenseId, overrideAccountId = null) => {
         const adminCtx = await getAdminContext();
 
         const expense = await tx.expense.findFirst({
-            where: { id: parseInt(expenseId) }
+            where: { id: parseInt(expenseId, 10), deleted_at: null }
         });
 
         if (!expense) {
@@ -93,13 +94,13 @@ const payExpense = async (userId, expenseId, overrideAccountId = null) => {
             throw error;
         }
 
-        if (expense.status === 'Pagado') {
+        if (expense.status === STATUS_AMOUNT.PAID) {
             const error = new Error('Este gasto ya ha sido pagado previamente');
             error.statusCode = 400;
             throw error;
         }
 
-        const finalAccountId = overrideAccountId ? parseInt(overrideAccountId) : expense.account_id;
+        const finalAccountId = overrideAccountId ? parseInt(overrideAccountId, 10) : expense.account_id;
         const account = await tx.account.findFirst({
             where: { id: finalAccountId }
         });
@@ -149,7 +150,7 @@ const payExpense = async (userId, expenseId, overrideAccountId = null) => {
         const updatedExpense = await tx.expense.update({
             where: { id: expense.id },
             data: {
-                status: 'Pagado',
+                status: STATUS_AMOUNT.PAID,
                 paid_at: new Date(),
                 account_id: finalAccountId
             }
@@ -165,12 +166,11 @@ const payExpense = async (userId, expenseId, overrideAccountId = null) => {
 
         return updatedExpense;
     });
-}
+};
 
 const getExpenses = async (userId, filters = {}) => {
-    const { status, budget_category, from_date, to_date } = filters;
-
-    const whereConditions = {};
+    const { status, budget_category, from_date, to_date, page, limit } = filters;
+    const whereConditions = { deleted_at: null };
 
     if (status) {
         whereConditions.status = status;
@@ -182,26 +182,56 @@ const getExpenses = async (userId, filters = {}) => {
 
     if (from_date || to_date) {
         whereConditions.created_at = {};
-
-        if (from_date) {
-            whereConditions.created_at.gte = new Date(from_date);
-        }
-        if (to_date) {
-            whereConditions.created_at.lte = new Date(to_date);
-        }
+        if (from_date) whereConditions.created_at.gte = new Date(from_date);
+        if (to_date) whereConditions.created_at.lte = new Date(to_date);
     }
 
-    return await prisma.expense.findMany({
-        where: whereConditions,
-        include: {
-            provider: { select: { name: true } },
-            account: { select: { name: true } },
-            user: { select: { username: true } }
-        },
-        orderBy: {
-            created_at: 'desc'
+    if (!page && !limit) {
+        const expenses = await prisma.expense.findMany({
+            where: whereConditions,
+            include: {
+                provider: { select: { name: true } },
+                account: { select: { name: true } },
+                user: { select: { username: true } }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
+        return { success: true, data: expenses };
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [total, expenses] = await Promise.all([
+        prisma.expense.count({ where: whereConditions }),
+        prisma.expense.findMany({
+            where: whereConditions,
+            skip,
+            take: limitNum,
+            include: {
+                provider: { select: { name: true } },
+                account: { select: { name: true } },
+                user: { select: { username: true } }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
+    ]);
+
+    return {
+        success: true,
+        data: expenses,
+        meta: {
+            total,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(total / limitNum)
         }
-    });
+    };
 };
 
 const getUpcomingExpenses = async (userId, daysWindow = 7) => {
@@ -213,7 +243,8 @@ const getUpcomingExpenses = async (userId, daysWindow = 7) => {
 
     return await prisma.expense.findMany({
         where: {
-            status: 'Pendiente',
+            status: STATUS_AMOUNT.PENDING,
+            deleted_at: null,
             due_date: {
                 gte: today,
                 lte: futureLimit
@@ -229,27 +260,33 @@ const getUpcomingExpenses = async (userId, daysWindow = 7) => {
 };
 
 const deleteExpense = async (userId, expenseId) => {
-    const expense = await prisma.expense.findUnique({ where: { id: parseInt(expenseId) } });
+    const idParsed = parseInt(expenseId, 10);
+    const expense = await prisma.expense.findFirst({ 
+        where: { id: idParsed, deleted_at: null } 
+    });
     if (!expense) {
         const error = new Error('Gasto no encontrado');
         error.statusCode = 404;
         throw error;
     }
-    if (expense.status !== 'Pagado') {
+    if (expense.status !== STATUS_AMOUNT.PAID) {
         const error = new Error('Solo se pueden eliminar gastos que ya han sido pagados');
         error.statusCode = 400;
         throw error;
     }
     return await prisma.$transaction(async (tx) => {
-        const deleted = await tx.expense.delete({ where: { id: parseInt(expenseId) } });
+        const softDeleted = await tx.expense.update({ 
+            where: { id: idParsed },
+            data: { deleted_at: new Date() }
+        });
         await tx.auditLog.create({
             data: {
-                user_id: parseInt(userId),
+                user_id: parseInt(userId, 10),
                 action: 'ELIMINAR_EGRESO',
                 details: `Eliminó el egreso ID ${expenseId} (Concepto: "${expense.budget_category}") por un monto de $${parseFloat(expense.amount).toFixed(2)}`
             }
         });
-        return deleted;
+        return softDeleted;
     });
 };
 

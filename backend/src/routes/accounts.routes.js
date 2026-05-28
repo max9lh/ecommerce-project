@@ -6,7 +6,8 @@ const requireAdmin = require('../middlewares/requireAdmin')
 const router = Router();
 
 router.post('/', authGuard, createBalances);
-router.get('/', authGuard, requireAdmin, getBalances);
+router.get('/', authGuard, getBalances);
 router.get('/budget-balances', authGuard, requireAdmin, getBudgetBalances);
+
 
 module.exports = router;
