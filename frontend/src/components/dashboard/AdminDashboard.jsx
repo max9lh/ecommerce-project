@@ -1,6 +1,7 @@
 import { AccountAreaCard } from "@/components/dashboard/account-area-card"
 import { NewClosureCard } from "@/components/dashboard/new-closure-card"
 import { BudgetBucketsCard } from "@/components/dashboard/budget-buckets-card"
+import { RecentActivityCard } from "@/components/dashboard/recent-activity-card"
 import { UpcomingExpensesTable } from "@/components/dashboard/upcoming-expenses-table"
 import { useDashboard } from "@/hooks/useDashboard"
 import { Wallet, Landmark, DollarSign, Loader2 } from "lucide-react"
@@ -35,12 +36,16 @@ const mockCashData = [
 
 export function AdminDashboard() {
   const {
+    accounts,
+    budgetBalances,
     totalBalance,
     getAccountBalance,
     getBudgetBalance,
     upcomingExpenses,
+    recentActivity,
     loading,
     error,
+    refetch,
   } = useDashboard()
 
   // Saldos de las bolsas de presupuesto reales
@@ -54,13 +59,13 @@ export function AdminDashboard() {
   const pctFixedExpenses = totalBudget > 0 ? budgetFixedExpenses / totalBudget : 0.3
   const pctSavings = totalBudget > 0 ? budgetSavings / totalBudget : 0.1
 
-  const bankBalance = getAccountBalance("banco") || getAccountBalance("bank")
+  const bankBalance = getAccountBalance("bancaria") || getAccountBalance("bank")
   const cashBalance = getAccountBalance("efectivo") || getAccountBalance("caja") || getAccountBalance("cash")
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Panel Principal</h1>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Panel Principal</h1>
         <p className="text-muted-foreground mt-1">Resumen financiero del negocio.</p>
       </div>
 
@@ -80,15 +85,13 @@ export function AdminDashboard() {
       )}
 
       {/* Cards de cuentas */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
         <AccountAreaCard
           title="Dinero Total"
           description="Suma de todas las cuentas"
           currentAmount={loading ? 0 : totalBalance}
           chartData={mockChartData}
-          color="hsl(var(--chart-1))"
           Icon={DollarSign}
-          colorVar="--chart-1"
         />
 
         <AccountAreaCard
@@ -96,9 +99,7 @@ export function AdminDashboard() {
           description="Saldo disponible en banco"
           currentAmount={loading ? 0 : bankBalance}
           chartData={mockBankData}
-          color="hsl(var(--chart-2))"
           Icon={Landmark}
-          colorVar="--chart-2"
         />
 
         <AccountAreaCard
@@ -106,27 +107,43 @@ export function AdminDashboard() {
           description="Dinero en caja física"
           currentAmount={loading ? 0 : cashBalance}
           chartData={mockCashData}
-          color="hsl(var(--chart-3))"
           Icon={Wallet}
-          colorVar="--chart-3"
         />
 
         <NewClosureCard />
       </div>
 
-      {/* Bolsas de presupuesto con datos reales */}
-      <BudgetBucketsCard
-        totalIncome={totalBudget}
-        pctMerchandise={pctMerchandise}
-        pctFixedExpenses={pctFixedExpenses}
-        pctSavings={pctSavings}
-        usedMerchandise={0}
-        usedFixedExpenses={0}
-        usedSavings={0}
-      />
+      {/* Bolsas de presupuesto + Actividad Reciente */}
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+        <div className="flex flex-col">
+          <BudgetBucketsCard
+            totalIncome={totalBudget}
+            pctMerchandise={pctMerchandise}
+            pctFixedExpenses={pctFixedExpenses}
+            pctSavings={pctSavings}
+            usedMerchandise={0}
+            usedFixedExpenses={0}
+            usedSavings={0}
+            budgetBalances={budgetBalances}
+            totalBalance={totalBalance}
+            upcomingExpenses={upcomingExpenses}
+          />
+        </div>
 
-      {/* Tabla de vencimientos */}
-      <UpcomingExpensesTable expenses={upcomingExpenses} />
+        <div className="flex flex-col">
+          <RecentActivityCard
+            activities={recentActivity}
+            loading={loading}
+          />
+        </div>
+      </div>
+
+      {/* Tabla de vencimientos con acción de pago */}
+      <UpcomingExpensesTable
+        expenses={upcomingExpenses}
+        accounts={accounts}
+        onPaid={refetch}
+      />
     </div>
   )
 }
