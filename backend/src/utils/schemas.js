@@ -1,17 +1,17 @@
 const { z } = require('zod');
+const { BUDGET_CATEGORIES, STATUS_AMOUNT, PAYMENT_CONDITIONS } = require('./constants');
 
-const statusAmount = ["Pendiente", "Pagado"];
-const paymentCondition = ["Contado", "Credito"];
-const budgetCategory = ['Mercadería', 'Ahorro', 'Gastos Fijos'];
+// Mapeamos los arrays válidos directamente desde las constantes unificadas
+const statusAmountValues = Object.values(STATUS_AMOUNT);
+const paymentConditionValues = Object.values(PAYMENT_CONDITIONS);
+const budgetCategoryValues = Object.values(BUDGET_CATEGORIES);
 
-// Los porcentajes se almacenan como decimales en la DB (Decimal(3,2))
-// Enviar 0.60 para representar 60%, no 60.
+// Validador de porcentajes decimales (ej. 0.60 para 60%)
 const pctField = (fieldName) => {
     return z.number()
         .min(0, `El porcentaje de ${fieldName} debe ser mayor o igual a 0`)
         .max(1, `El porcentaje de ${fieldName} debe ser menor o igual a 1`);
-}
-
+};
 
 const registerSchema = z.object({
     username: z.string()
@@ -31,7 +31,7 @@ const registerSchema = z.object({
 }).refine(
     (data) => Math.abs(data.pct_merchandise + data.pct_fixed_expenses + data.pct_savings - 1) < 0.001,
     {
-        message: 'Los porcentajes deben sumar exactamente 100%',
+        message: 'Los porcentajes de distribución deben sumar exactamente el 100% (1.00)',
         path: ['pct_merchandise'],
     }
 );
@@ -62,10 +62,13 @@ const providerSchema = z.object({
     name: z.string()
         .min(3, 'El nombre del proveedor debe tener al menos 3 caracteres')
         .max(100, 'El nombre del proveedor no puede tener más de 100 caracteres'),
-    payment_condition: z.enum(paymentCondition),
+    payment_condition: z.enum(paymentConditionValues, {
+        errorMap: () => ({ message: 'Condición de pago inválida' })
+    }),
     credit_days: z.number().int().nonnegative('La cantidad de días debe ser mayor o igual a 0').default(0),
+    visible_to_employee: z.boolean().optional().default(true),
 }).refine((data) => {
-    if (data.payment_condition === 'Credito') {
+    if (data.payment_condition === STATUS_AMOUNT.PENDING || data.payment_condition === 'Credito') {
         return data.credit_days > 0;
     }
     return true;
@@ -86,40 +89,30 @@ const expensesSchema = z.object({
     provider_id: z.number().int().positive('ID de proveedor inválido'),
     account_id: z.number().int().positive('ID de cuenta física inválido'),
     amount: z.number().positive('El monto debe ser mayor a 0'),
-    status: z.enum(statusAmount).default('Pagado'),
-    budget_category: z.enum(budgetCategory, {
+    status: z.enum(statusAmountValues).default(STATUS_AMOUNT.PAID),
+    budget_category: z.enum(budgetCategoryValues, {
         errorMap: () => ({ message: 'Categoría de presupuesto no válida' }),
     }),
     due_date: z.coerce.date().optional(),
 }).refine((data) => {
-    if (data.status === 'Pendiente' && !data.due_date) return false;
+    if (data.status === STATUS_AMOUNT.PENDING && !data.due_date) return false;
     return true;
 }, {
     message: 'Los gastos pendientes requieren una fecha de vencimiento',
     path: ['due_date'],
 });
 
-
 const updatePercentagesSchema = z.object({
-    pct_merchandise: pctField('mercadería'),
+    pct_merchandise: pctField('Mercadería'),
     pct_fixed_expenses: pctField('Gastos Fijos'),
     pct_savings: pctField('Ahorros'),
 }).refine(
     (data) => Math.abs(data.pct_merchandise + data.pct_fixed_expenses + data.pct_savings - 1) < 0.001,
     {
-        message: 'Los porcentajes deben sumar exactamente 100%',
+        message: 'Los porcentajes de distribución deben sumar exactamente el 100% (1.00)',
         path: ['pct_merchandise'],
     }
 );
-
-const validate = (schema) => (req, res, next) => {
-    const result = schema.safeParse(req.body);
-    if (!result.success) {
-        return res.status(400).json({ errors: result.error.issues });
-    }
-    req.body = result.data;
-    next();
-};
 
 const createEmployeeSchema = z.object({
     username: z.string()
@@ -150,9 +143,6 @@ const updateProfileSchema = z.object({
     monthly_salary: z.number().nonnegative('El salario mensual debe ser mayor o igual a 0').nullable().optional()
 });
 
-
-
-
 const createAttendanceSchema = z.object({
     employeeId: z.number().int().positive('ID de empleado inválido'),
     checkIn: z.coerce.date(),
@@ -170,10 +160,20 @@ const liquidatePayrollSchema = z.object({
     to: z.coerce.date(),
     providerId: z.number().int().positive('ID de proveedor inválido'),
     accountId: z.number().int().positive('ID de cuenta física inválido'),
-    budgetCategory: z.enum(budgetCategory, {
+    budgetCategory: z.enum(budgetCategoryValues, {
         errorMap: () => ({ message: 'Categoría de presupuesto no válida' }),
-    }).optional().default('Gastos Fijos')
+    }).optional().default(BUDGET_CATEGORIES.FIXED_EXPENSES)
 });
+
+// Middleware factory de validación
+const validate = (schema) => (req, res, next) => {
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+        return res.status(400).json({ errors: result.error.issues });
+    }
+    req.body = result.data;
+    next();
+};
 
 module.exports = {
     registerSchema,

@@ -68,8 +68,11 @@ const updateDistribution = async (req, res, next) => {
 
 const getAuditLogs = async (req, res, next) => {
     try {
-        const logs = await adminService.getAuditLogs();
-        res.status(200).json({ success: true, data: logs });
+        const page = req.query.page ? parseInt(req.query.page, 10) : null;
+        const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
+
+        const result = await adminService.getAuditLogs(page, limit);
+        res.status(200).json(result);
     } catch (error) {
         next(error);
     }

@@ -1,44 +1,59 @@
+const prisma = require('../config/db');
+const { ROLES } = require('../utils/constants');
+
 /**
- * requirePermission — Factory de middlewares de autorización granular
+ * requirePermission — Factory de middlewares de autorización granular flexible
  *
- * Genera un middleware que verifica si el usuario autenticado
- * tiene activo el permiso solicitado en su EmployeePermission.
+ * Ahora soporta múltiples permisos (lógica OR). Si el empleado tiene al menos
+ * uno de los permisos provistos, se le concede el acceso.
  *
- * Reglas:
- *  - Si el usuario es ADMIN, siempre pasa (tiene todos los permisos).
- *  - Si el usuario es EMPLOYEE, se verifica el campo booleano
- *    correspondiente en req.user.permissions (payload del JWT).
- *  - Si no tiene el permiso, responde 403 Forbidden.
+ * Ejemplos de uso:
+ *  - requirePermission('canRegisterClosures') -> Requiere obligatoriamente ese permiso.
+ *  - requirePermission('canRegisterExpenses', 'canPayExpenses') -> Pasa si tiene cualquiera de los dos.
  *
- * Requiere que authGuard haya corrido antes.
- *
- * Uso en rutas:
- *   router.post('/closures', authGuard, requirePermission('canRegisterClosures'), controller.create);
- *   router.post('/expenses', authGuard, requirePermission('canRegisterExpenses'), controller.create);
- *
- * @param {string} permission - Nombre del campo en EmployeePermission
+ * @param {...string} permissions - Uno o más campos de EmployeePermission
  */
-const requirePermission = (permission) => {
-    return (req, res, next) => {
+const requirePermission = (...permissions) => {
+    return async (req, res, next) => {
         if (!req.user) {
             const error = new Error('No autorizado');
             error.statusCode = 401;
             return next(error);
         }
 
-        if (req.user.role === 'ADMIN') {
+        // El administrador del local siempre tiene acceso irrestricto
+        if (req.user.role === ROLES.ADMIN) {
             return next();
         }
 
-        const hasPermission = req.user.permissions && req.user.permissions[permission] === true;
+        try {
+            const permissionsRecord = await prisma.employeePermission.findUnique({
+                where: { user_id: req.user.id }
+            });
 
-        if (!hasPermission) {
-            const error = new Error(`Acceso denegado: no tenés el permiso "${permission}"`);
-            error.statusCode = 403;
-            return next(error);
+            if (!permissionsRecord) {
+                const error = new Error('Permisos de empleado no encontrados');
+                error.statusCode = 403;
+                return next(error);
+            }
+
+            // Verificamos si al menos uno de los permisos requeridos está en true
+            const hasRequiredPermission = permissions.some(
+                (perm) => permissionsRecord[perm] === true
+            );
+
+            if (!hasRequiredPermission) {
+                const listPerms = permissions.join(' o ');
+                const error = new Error(`Acceso denegado: requieres el permiso de "${listPerms}"`);
+                error.statusCode = 403;
+                return next(error);
+            }
+
+            // Autorización concedida
+            next();
+        } catch (error) {
+            next(error);
         }
-
-        next();
     };
 };
 

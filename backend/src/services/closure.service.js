@@ -1,16 +1,21 @@
 const prisma = require('../config/db');
 const { getAdminContext } = require('../utils/adminContext');
+const { BUDGET_CATEGORIES } = require('../utils/constants');
 
 const createClosure = async ({ total_amount, details, user_id }) => {
-
     const adminCtx = await getAdminContext();
 
-    const marchandise_amount = total_amount * adminCtx.pct.merchandise;
+    const merchandise_amount = total_amount * adminCtx.pct.merchandise;
     const fixed_amount = total_amount * adminCtx.pct.fixed_expenses;
     const saving_amount = total_amount * adminCtx.pct.savings;
 
     const result = await prisma.$transaction(async (tx) => {
-        const closure = await tx.dailyClosure.create({ data: { user_id: user_id, total_amount } });
+        const closure = await tx.dailyClosure.create({
+            data: {
+                user_id: user_id,
+                total_amount
+            }
+        });
 
         await tx.dailyClosureDetail.createMany({
             data: details.map(d => ({
@@ -20,6 +25,7 @@ const createClosure = async ({ total_amount, details, user_id }) => {
             })),
         });
 
+        // Actualización de saldos en cuentas reales del local (bajo el Admin)
         for (const detail of details) {
             await tx.account.update({
                 where: { id: detail.account_id },
@@ -29,16 +35,16 @@ const createClosure = async ({ total_amount, details, user_id }) => {
 
         await tx.budgetAllocation.createMany({
             data: [
-                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: marchandise_amount, category: 'Mercadería' },
-                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: fixed_amount, category: 'Gastos Fijos' },
-                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: saving_amount, category: 'Ahorro' },
+                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: merchandise_amount, category: BUDGET_CATEGORIES.MERCHANDISE },
+                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: fixed_amount, category: BUDGET_CATEGORIES.FIXED_EXPENSES },
+                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: saving_amount, category: BUDGET_CATEGORIES.SAVINGS },
             ],
         });
 
         const categories = [
-            { name: 'Mercadería', amount: marchandise_amount },
-            { name: 'Gastos Fijos', amount: fixed_amount },
-            { name: 'Ahorro', amount: saving_amount }
+            { name: BUDGET_CATEGORIES.MERCHANDISE, amount: merchandise_amount },
+            { name: BUDGET_CATEGORIES.FIXED_EXPENSES, amount: fixed_amount },
+            { name: BUDGET_CATEGORIES.SAVINGS, amount: saving_amount }
         ];
 
         for (const cat of categories) {

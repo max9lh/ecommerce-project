@@ -2,12 +2,13 @@ const accountsService = require('../services/accounts.service');
 
 const createBalances = async (req, res, next) => {
     try {
-        const newBalances = await accountsService.createAccount(req.user.id, req.body);
-        return res.status(201).json({ data: newBalances });
+        // Llama al servicio actualizado para crear la cuenta física en el Admin
+        const newAccount = await accountsService.createAccount(req.user.id, req.body);
+        return res.status(201).json({ data: newAccount });
     } catch (error) {
         next(error);
     }
-}
+};
 
 const getBalances = async (req, res, next) => {
     try {
@@ -16,7 +17,7 @@ const getBalances = async (req, res, next) => {
     } catch (error) {
         next(error);
     }
-}
+};
 
 const getBudgetBalances = async (req, res, next) => {
     try {
@@ -25,6 +26,6 @@ const getBudgetBalances = async (req, res, next) => {
     } catch (error) {
         next(error);
     }
-}
+};
 
 module.exports = { createBalances, getBalances, getBudgetBalances };

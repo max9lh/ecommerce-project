@@ -1,50 +1,98 @@
 const prisma = require('../config/db');
+const { getAdminContext } = require('../utils/adminContext');
 
-const getAllProviders = async (userId) => {
-    const providers = await prisma.provider.findMany({
-        select: {
-            id: true,
-            name: true,
-            payment_condition: true,
-            credit_days: true,
+const getAllProviders = async (userId, userRole = 'ADMIN', page = null, limit = null) => {
+    const whereConditions = {};
+    if (userRole === 'EMPLOYEE') {
+        whereConditions.visible_to_employee = true;
+    }
+
+    if (!page && !limit) {
+        const providers = await prisma.provider.findMany({
+            where: whereConditions,
+            select: {
+                id: true,
+                name: true,
+                payment_condition: true,
+                credit_days: true,
+                visible_to_employee: true,
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        });
+        return { success: true, data: providers };
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [total, providers] = await Promise.all([
+        prisma.provider.count({ where: whereConditions }),
+        prisma.provider.findMany({
+            where: whereConditions,
+            skip,
+            take: limitNum,
+            select: {
+                id: true,
+                name: true,
+                payment_condition: true,
+                credit_days: true,
+                visible_to_employee: true,
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        })
+    ]);
+
+    return {
+        success: true,
+        data: providers,
+        meta: {
+            total,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(total / limitNum)
         }
-    });
-    return providers;
-}
+    };
+};
 
 const createProvider = async (userId, providerData) => {
-    const { name, paymentCondition, creditDays } = providerData;
+    const { name, paymentCondition, creditDays, visibleToEmployee } = providerData;
     const upperName = name.trim().toUpperCase();
 
     const existing = await prisma.provider.findFirst({ where: { name: upperName } });
     if (existing) {
-        const error = new Error('El proveedor ya esta en la lista');
+        const error = new Error('El proveedor ya está en la lista');
         error.statusCode = 409;
         throw error;
     }
 
-    const { getAdminContext } = require('../utils/adminContext');
     const adminCtx = await getAdminContext();
 
     return await prisma.$transaction(async (tx) => {
         const provider = await tx.provider.create({
             data: {
-                user_id: adminCtx.adminId, // Siempre bajo el admin (dueño del negocio)
+                user_id: adminCtx.adminId, // Siempre anclado bajo el Admin del negocio
                 name: upperName,
                 payment_condition: paymentCondition,
                 credit_days: creditDays,
+                visible_to_employee: visibleToEmployee !== undefined ? visibleToEmployee : true,
             },
             select: {
                 id: true,
                 name: true,
                 payment_condition: true,
                 credit_days: true,
+                visible_to_employee: true,
             }
         });
 
         await tx.auditLog.create({
             data: {
-                user_id: userId,
+                user_id: parseInt(userId, 10),
                 action: 'CREAR_PROVEEDOR',
                 details: `Creó el proveedor "${upperName}" (Condición: ${paymentCondition}, Días de crédito: ${creditDays})`
             }
@@ -52,59 +100,67 @@ const createProvider = async (userId, providerData) => {
 
         return provider;
     });
-}
+};
 
 const updateProvider = async (userId, id, providerData) => {
-    const { name, paymentCondition, creditDays } = providerData;
+    const { name, paymentCondition, creditDays, visibleToEmployee } = providerData;
     const upperName = name.trim().toUpperCase();
+    const providerId = parseInt(id, 10);
 
     const existing = await prisma.provider.findFirst({
-        where: {
-            id: parseInt(id)
-        }
+        where: { id: providerId }
     });
     if (!existing) {
-        const error = new Error('No se encontro el proveedor');
+        const error = new Error('No se encontró el proveedor');
         error.statusCode = 404;
         throw error;
     }
+
     const nameExists = await prisma.provider.findFirst({
         where: {
             name: upperName,
-            id: { not: parseInt(id) }
+            id: { not: providerId }
         }
     });
     if (nameExists) {
-        const error = new Error('El proveedor ya esta en la lista');
+        const error = new Error('El proveedor ya está en la lista');
         error.statusCode = 409;
         throw error;
     }
 
     return await prisma.$transaction(async (tx) => {
         await tx.provider.update({
-            where: { id: parseInt(id) },
+            where: { id: providerId },
             data: {
                 name: upperName,
                 payment_condition: paymentCondition,
                 credit_days: creditDays,
+                visible_to_employee: visibleToEmployee !== undefined ? visibleToEmployee : true,
             }
         });
 
         await tx.auditLog.create({
             data: {
-                user_id: userId,
+                user_id: parseInt(userId, 10),
                 action: 'MODIFICAR_PROVEEDOR',
-                details: `Modificó el proveedor ID ${id} (Nombre: "${upperName}", Condición: ${paymentCondition}, Días de crédito: ${creditDays})`
+                details: `Modificó el proveedor ID ${providerId} (Nombre: "${upperName}", Condición: ${paymentCondition}, Días de crédito: ${creditDays}, Visible para empleados: ${visibleToEmployee !== undefined ? visibleToEmployee : true})`
             }
         });
 
-        return { id: parseInt(id), name: upperName, payment_condition: paymentCondition, credit_days: creditDays };
+        return { 
+            id: providerId, 
+            name: upperName, 
+            payment_condition: paymentCondition, 
+            credit_days: creditDays,
+            visible_to_employee: visibleToEmployee !== undefined ? visibleToEmployee : true 
+        };
     });
-}
+};
 
 const deleteProvider = async (userId, id) => {
+    const providerId = parseInt(id, 10);
     const providerToDelete = await prisma.provider.findFirst({
-        where: { id: parseInt(id) }
+        where: { id: providerId }
     });
     if (!providerToDelete) {
         const error = new Error('No se encontró el proveedor');
@@ -117,10 +173,10 @@ const deleteProvider = async (userId, id) => {
         throw error;
     }
 
-    // 1. Verificar si hay egresos PENDIENTES asociados a este proveedor
+    // 1. Verificar egresos pendientes
     const pendingExpenses = await prisma.expense.count({
         where: {
-            provider_id: parseInt(id),
+            provider_id: providerId,
             status: 'Pendiente'
         }
     });
@@ -131,10 +187,10 @@ const deleteProvider = async (userId, id) => {
         throw error;
     }
 
-    // 2. Si hay egresos ya PAGADOS, los conservamos cambiándole el nombre a "NOMBRE (ELIMINADO)"
+    // 2. Verificar egresos pagados para soft-delete
     const paidExpensesCount = await prisma.expense.count({
         where: {
-            provider_id: parseInt(id),
+            provider_id: providerId,
             status: 'Pagado'
         }
     });
@@ -142,33 +198,29 @@ const deleteProvider = async (userId, id) => {
     return await prisma.$transaction(async (tx) => {
         let isSoft = false;
         if (paidExpensesCount > 0) {
-            // Renombrar el proveedor agregando "(ELIMINADO)"
             const newName = `${providerToDelete.name.slice(0, 85)} (ELIMINADO)`;
             await tx.provider.update({
-                where: { id: parseInt(id) },
-                data: {
-                    name: newName
-                }
+                where: { id: providerId },
+                data: { name: newName }
             });
             isSoft = true;
         } else {
-            // Si no tiene ningún egreso (ni pendiente ni pago), lo podemos eliminar físicamente de la DB
             await tx.provider.delete({
-                where: { id: parseInt(id) }
+                where: { id: providerId }
             });
         }
 
         await tx.auditLog.create({
             data: {
-                user_id: userId,
+                user_id: parseInt(userId, 10),
                 action: 'ELIMINAR_PROVEEDOR',
-                details: `${isSoft ? 'Eliminó lógicamente (renombró)' : 'Eliminó físicamente'} el proveedor "${providerToDelete.name}" (ID ${id})`
+                details: `${isSoft ? 'Eliminó lógicamente (renombró)' : 'Eliminó físicamente'} el proveedor "${providerToDelete.name}" (ID ${providerId})`
             }
         });
 
-        return { id: parseInt(id), success: true, softDeleted: isSoft };
+        return { id: providerId, success: true, softDeleted: isSoft };
     });
-}
+};
 
 module.exports = {
     getAllProviders,

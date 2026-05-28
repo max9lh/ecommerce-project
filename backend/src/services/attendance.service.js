@@ -1,4 +1,5 @@
 const prisma = require('../config/db');
+const { BUDGET_CATEGORIES, STATUS_AMOUNT } = require('../utils/constants');
 
 const attendanceService = {
 
@@ -12,13 +13,12 @@ const attendanceService = {
             throw error;
         }
 
+        // Verificación matemática de solapamiento de intervalos horaria
         const overlappingLog = await prisma.attendanceLog.findFirst({
             where: {
                 employee_id: employeeId,
-                OR: [
-                    { check_in: { lte: start }, check_out: { gte: start } },
-                    { check_in: { lte: end }, check_out: { gte: end } },
-                ]
+                check_in: { lt: end },
+                check_out: { gt: start }
             }
         });
 
@@ -51,8 +51,6 @@ const attendanceService = {
                 throw error;
             }
             amountEarned = parseFloat((hoursWorked * parseFloat(hourly_rate)).toFixed(2));
-        } else {
-            amountEarned = 0;
         }
 
         return await prisma.attendanceLog.create({
@@ -114,7 +112,7 @@ const attendanceService = {
         const where = {};
 
         if (employeeId) where.employee_id = parseInt(employeeId, 10);
-        where.notes = null; // Ignorar los registros que ya fueron liquidados
+        where.notes = null; // Ignorar asistencias ya liquidadas anteriormente
 
         if (from || to) {
             where.check_in = {};
@@ -184,15 +182,13 @@ const attendanceService = {
             throw error;
         }
 
+        // Verificación matemática unificada excluyendo el registro actual
         const overlappingLog = await prisma.attendanceLog.findFirst({
             where: {
                 employee_id: log.employee_id,
                 NOT: { id: id },
-                OR: [
-                    { check_in: { lte: start }, check_out: { gte: start } },
-                    { check_in: { lte: end }, check_out: { gte: end } },
-                    { check_in: { gte: start }, check_out: { lte: end } }
-                ]
+                check_in: { lt: end },
+                check_out: { gt: start }
             }
         });
 
@@ -243,7 +239,6 @@ const attendanceService = {
 
     async processPayrollToExpenses({ employeeId, from, to, providerId, accountId, budgetCategory, adminUserId }) {
         return await prisma.$transaction(async (tx) => {
-
             const summary = await this.getSummaryForPeriod(from, to, employeeId, tx);
             const employeeData = summary[0];
 
@@ -251,15 +246,17 @@ const attendanceService = {
                 throw new Error('No hay montos salariales válidos para liquidar en este período');
             }
 
+            const category = budgetCategory || BUDGET_CATEGORIES.FIXED_EXPENSES;
+
             const payrollExpense = await tx.expense.create({
                 data: {
                     user_id: adminUserId,
                     provider_id: providerId,
                     account_id: accountId,
                     amount: employeeData.calculatedAmount,
-                    status: 'PENDIENTE',
+                    status: STATUS_AMOUNT.PENDING,
                     due_date: new Date(),
-                    budget_category: budgetCategory || 'Gastos Fijos'
+                    budget_category: category
                 }
             });
 

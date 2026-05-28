@@ -86,7 +86,7 @@ const login = async ({ username, password }) => {
         where: { username },
         include: { employeePermission: true }
     });
-    if (!user) {
+    if (!user || user.deleted_at !== null) {
         const error = new Error('Credenciales incorrectas');
         error.statusCode = 401;
         throw error;
