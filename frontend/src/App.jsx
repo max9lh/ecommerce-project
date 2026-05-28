@@ -7,6 +7,8 @@ import Employees from './pages/Employees';
 import AttendanceAdmin from './pages/AttendanceAdmin';
 import ProvidersModule from './pages/shared/ProvidersModule';
 import Expenses from './pages/shared/ExpensesModule';
+import NewExpense from './pages/NewExpense';
+import PayExpense from './pages/PayExpense';
 import { ThemeProvider } from './components/theme-provider';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './components/protected-route';
@@ -113,6 +115,26 @@ function App() {
               <ProtectedRoute>
                 <DashboardLayout>
                   <Expenses />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/egresos/nuevo"
+            element={
+              <ProtectedRoute requiredPermission="canRegisterExpenses">
+                <DashboardLayout>
+                  <NewExpense />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/egresos/pagar"
+            element={
+              <ProtectedRoute requiredPermission="canPayExpenses">
+                <DashboardLayout>
+                  <PayExpense />
                 </DashboardLayout>
               </ProtectedRoute>
             }

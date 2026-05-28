@@ -31,14 +31,26 @@ export default function AuditLogs() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedAction, setSelectedAction] = useState("")
 
+  // Paginación
+  const [page, setPage] = useState(1)
+  const [limit] = useState(12) // Mostrar 12 registros por página
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+
   const fetchLogs = async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get("/admin/audit-logs")
+      const res = await api.get("/admin/audit-logs", {
+        params: { page, limit }
+      })
       const logsData = res.data.data ?? []
+      const meta = res.data.meta ?? { total: logsData.length, page: 1, limit: 12, totalPages: 1 }
+
       setLogs(logsData)
       setFilteredLogs(logsData)
+      setTotalPages(meta.totalPages)
+      setTotal(meta.total)
     } catch (err) {
       setError(err.response?.data?.message || "Error al cargar el registro de auditoría")
     } finally {
@@ -48,7 +60,12 @@ export default function AuditLogs() {
 
   useEffect(() => {
     fetchLogs()
-  }, [])
+  }, [page])
+
+  // Reiniciar página cuando cambian los filtros
+  useEffect(() => {
+    setPage(1)
+  }, [searchTerm, selectedAction])
 
   useEffect(() => {
     let result = logs
@@ -261,6 +278,58 @@ export default function AuditLogs() {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Controles de Paginación */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-border">
+                <div className="text-sm text-muted-foreground font-medium">
+                  Mostrando <span className="font-semibold text-foreground">{((page - 1) * limit) + 1}</span> a{" "}
+                  <span className="font-semibold text-foreground">{Math.min(page * limit, total)}</span> de{" "}
+                  <span className="font-semibold text-foreground">{total}</span> registros de auditoría
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    Anterior
+                  </Button>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                    const isCurrent = p === page;
+                    // Mostrar solo primera, última, actual y adyacentes
+                    if (p === 1 || p === totalPages || Math.abs(p - page) <= 1) {
+                      return (
+                        <Button
+                          key={p}
+                          variant={isCurrent ? "default" : "outline"}
+                          size="sm"
+                          className={`size-9 p-0 ${isCurrent ? 'bg-primary text-primary-foreground font-bold' : ''}`}
+                          onClick={() => setPage(p)}
+                        >
+                          {p}
+                        </Button>
+                      );
+                    }
+                    if (p === 2 || p === totalPages - 1) {
+                      return <span key={p} className="text-muted-foreground px-1">...</span>;
+                    }
+                    return null;
+                  })}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

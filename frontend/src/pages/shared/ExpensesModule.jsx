@@ -34,6 +34,12 @@ export default function ExpensesModule() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    // Paginación
+    const [page, setPage] = useState(1);
+    const [limit] = useState(10); // Mostrar 10 egresos por página
+    const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
+
     const [upcomingExpenses, setUpcomingExpenses] = useState([]);
     const [loadingUpcoming, setLoadingUpcoming] = useState(true);
 
@@ -148,7 +154,7 @@ export default function ExpensesModule() {
             setLoading(true);
             setError('');
 
-            const params = {};
+            const params = { page, limit };
             if (statusFilter !== 'ALL') params.status = statusFilter;
             if (categoryFilter !== 'ALL') params.budget_category = categoryFilter;
             if (dateFilter) {
@@ -157,7 +163,23 @@ export default function ExpensesModule() {
             }
 
             const res = await api.get('/expenses', { params });
-            setExpenses(res.data);
+            const data = res.data;
+            if (Array.isArray(data)) {
+                setExpenses(data);
+                setTotalPages(1);
+                setTotal(data.length);
+            } else if (data.success) {
+                setExpenses(data.data);
+                if (data.meta) {
+                    setTotalPages(data.meta.totalPages);
+                    setTotal(data.meta.total);
+                } else {
+                    setTotalPages(1);
+                    setTotal(data.data.length);
+                }
+            } else {
+                setError(data.message || 'Error al obtener egresos.');
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Error al conectar con el servidor de egresos.');
         } finally {
@@ -177,12 +199,17 @@ export default function ExpensesModule() {
         }
     };
 
+    // Reiniciar página cuando cambian los filtros
+    useEffect(() => {
+        setPage(1);
+    }, [statusFilter, categoryFilter, dateFilter]);
+
     useEffect(() => {
         if (auth.isAdmin) {
             fetchExpenses();
             fetchUpcoming();
         }
-    }, [statusFilter, categoryFilter, dateFilter]);
+    }, [statusFilter, categoryFilter, dateFilter, page]);
 
     const handleConfirmPayment = async () => {
         if (!selectedExpense) return;
@@ -280,11 +307,7 @@ export default function ExpensesModule() {
                 </div>
             )}
 
-            {loading && (
-                <div className="flex items-center justify-center py-16">
-                    <Loader2 className="size-8 animate-spin text-muted-foreground" />
-                </div>
-            )}
+
 
             {!loadingUpcoming && upcomingExpenses.length > 0 && (
                 <Card className="shadow-sm border-amber-500/20">
@@ -362,38 +385,22 @@ export default function ExpensesModule() {
                     </CardContent>
                 </Card>
             )}
-
-            {!loading && expenses.length === 0 && (
-                <Card className="border-dashed">
-                    <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="flex size-16 items-center justify-center rounded-full bg-muted mb-4">
-                            <CreditCard className="size-8 text-muted-foreground" />
-                        </div>
-                        <h3 className="text-lg font-semibold">Sin egresos registrados</h3>
-                        <p className="text-sm text-muted-foreground mt-2 max-w-sm">
-                            No se encontraron egresos con los filtros seleccionados o no hay egresos registrados.
-                        </p>
-                    </CardContent>
-                </Card>
-            )}
-
-            {!loading && expenses.length > 0 && (
-                <Card className="shadow-sm">
-                    <CardHeader>
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                                <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
-                                    <CreditCard className="size-5" />
-                                </div>
-                                <div>
-                                    <CardTitle className="text-base">Listado de Egresos</CardTitle>
-                                    <CardDescription>
-                                        Visualizá e interactuá con el listado general de egresos del negocio.
-                                    </CardDescription>
-                                </div>
+            <Card className="shadow-sm">
+                <CardHeader>
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                                <CreditCard className="size-5" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-base">Listado de Egresos</CardTitle>
+                                <CardDescription>
+                                    Visualizá e interactuá con el listado general de egresos del negocio.
+                                </CardDescription>
                             </div>
                         </div>
-                    </CardHeader>
+                    </div>
+                </CardHeader>
 
                     <CardContent className="space-y-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-slate-50 dark:bg-muted/20 border border-slate-200 dark:border-border rounded-lg items-end">
@@ -444,7 +451,7 @@ export default function ExpensesModule() {
                             </Button>
                         </div>
 
-                        <div className="rounded-md border">
+                        <div className="rounded-md border overflow-hidden">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -458,10 +465,29 @@ export default function ExpensesModule() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {expenses.length === 0 ? (
+                                    {loading ? (
+                                        // Skeleton rows — el layout no salta
+                                        Array.from({ length: 5 }).map((_, i) => (
+                                            <TableRow key={i} className="animate-pulse">
+                                                <TableCell><div className="h-3 w-20 rounded bg-muted" /></TableCell>
+                                                <TableCell><div className="h-3 w-20 rounded bg-muted" /></TableCell>
+                                                <TableCell>
+                                                    <div className="h-3 w-32 rounded bg-muted mb-1" />
+                                                    <div className="h-2.5 w-20 rounded bg-muted/60" />
+                                                </TableCell>
+                                                <TableCell><div className="h-5 w-20 rounded-full bg-muted" /></TableCell>
+                                                <TableCell><div className="h-3 w-16 rounded bg-muted" /></TableCell>
+                                                <TableCell><div className="h-5 w-16 rounded-full bg-muted" /></TableCell>
+                                                <TableCell className="text-right"><div className="h-7 w-7 rounded-full bg-muted ml-auto" /></TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : expenses.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                                                No se encontraron egresos con los filtros seleccionados.
+                                            <TableCell colSpan={7} className="text-center h-40">
+                                                <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                                                    <CreditCard className="size-8 opacity-30" />
+                                                    <span className="text-sm font-medium">Sin egresos para los filtros seleccionados</span>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     ) : (
@@ -539,9 +565,60 @@ export default function ExpensesModule() {
                                 </TableBody>
                             </Table>
                         </div>
+
+                        {/* Controles de Paginación */}
+                        {totalPages > 1 && (
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-border">
+                                <div className="text-sm text-muted-foreground font-medium">
+                                    Mostrando <span className="font-semibold text-foreground">{((page - 1) * limit) + 1}</span> a{" "}
+                                    <span className="font-semibold text-foreground">{Math.min(page * limit, total)}</span> de{" "}
+                                    <span className="font-semibold text-foreground">{total}</span> egresos
+                                </div>
+                                <div className="flex items-center gap-1.5 font-sans">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                        disabled={page === 1}
+                                    >
+                                        Anterior
+                                    </Button>
+                                    
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                                        const isCurrent = p === page;
+                                        // Mostrar solo primera, última, actual y adyacentes
+                                        if (p === 1 || p === totalPages || Math.abs(p - page) <= 1) {
+                                            return (
+                                                <Button
+                                                    key={p}
+                                                    variant={isCurrent ? "default" : "outline"}
+                                                    size="sm"
+                                                    className={`size-9 p-0 ${isCurrent ? 'bg-primary text-primary-foreground font-bold' : ''}`}
+                                                    onClick={() => setPage(p)}
+                                                >
+                                                    {p}
+                                                </Button>
+                                            );
+                                        }
+                                        if (p === 2 || p === totalPages - 1) {
+                                            return <span key={p} className="text-muted-foreground px-1">...</span>;
+                                        }
+                                        return null;
+                                    })}
+
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                        disabled={page === totalPages}
+                                    >
+                                        Siguiente
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
-            )}
 
             <Dialog open={isPayDialogOpen} onOpenChange={setIsPayDialogOpen}>
                 <DialogContent className="sm:max-w-[400px]">
