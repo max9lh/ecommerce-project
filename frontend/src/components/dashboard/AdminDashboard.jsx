@@ -113,7 +113,6 @@ export function AdminDashboard() {
         <NewClosureCard />
       </div>
 
-      {/* Bolsas de presupuesto + Actividad Reciente */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         <div className="flex flex-col">
           <BudgetBucketsCard

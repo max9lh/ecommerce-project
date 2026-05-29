@@ -148,6 +148,26 @@ export function BudgetBucketsCard({
     })
   }
 
+  if (fixedBalance < totalUpcoming) {
+  const deficit = totalUpcoming - fixedBalance
+  recommendations.unshift({
+    title: "⚠️ Riesgo de Liquidez",
+    desc: `Tu bolsa de Gastos Fijos no cubre tus deudas próximas. Te faltan ${formatCurrency(deficit)} para estar al día. Priorizá completar este fondo antes de comprar stock.`,
+    color: "bg-red-500/10 text-red-600 border-red-500/20",
+    badge: "Urgente",
+  })
+}
+
+if (totalBalance < totalAllocatedInBudgets) {
+  const realGap = totalAllocatedInBudgets - totalBalance
+  recommendations.unshift({
+    title: "Descalce de Caja",
+    desc: `Tus bolsas virtuales suman más dinero del que realmente tenés en el banco/efectivo (Faltan ${formatCurrency(realGap)}). Revisá si hubo un gasto no registrado.`,
+    color: "bg-destructive/10 text-destructive border-destructive/20",
+    badge: "Error de Saldo",
+  })
+}
+
   return (
     <Card className="h-full flex flex-col justify-between">
       <CardHeader className="pb-2 pt-4 px-4">

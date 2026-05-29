@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const prisma = require('../config/db');
 
-const authGuard = (req, res, next) => {
+const authGuard = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -14,6 +15,17 @@ const authGuard = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
+        
+        const user = await prisma.user.findFirst({
+            where: { id: decoded.id, deleted_at: null }
+        });
+
+        if (!user) {
+            const error = new Error('El usuario del token ya no existe en la base de datos');
+            error.statusCode = 401;
+            return next(error);
+        }
+
         req.user = decoded;
         next();
     } catch (err) {
