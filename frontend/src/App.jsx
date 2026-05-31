@@ -14,6 +14,7 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import { ProtectedRoute } from './components/protected-route';
 import DistributionSettings from './pages/admin/DistributionSettings';
 import AuditLogs from './pages/admin/AuditLogs';
+import Reports from './pages/admin/Reports';
 import './App.css';
 
 function App() {
@@ -51,6 +52,17 @@ function App() {
             path="/cierres/nuevo"
             element={
               <ProtectedRoute requiredPermission="canRegisterClosures">
+                <DashboardLayout>
+                  <Closures />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/cierres/editar/:id"
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
                 <DashboardLayout>
                   <Closures />
                 </DashboardLayout>
@@ -105,6 +117,16 @@ function App() {
               <ProtectedRoute requiredRole="ADMIN">
                 <DashboardLayout>
                   <AuditLogs />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reportes"
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <DashboardLayout>
+                  <Reports />
                 </DashboardLayout>
               </ProtectedRoute>
             }

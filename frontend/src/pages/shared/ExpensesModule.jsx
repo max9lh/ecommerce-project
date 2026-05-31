@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
-import { CreditCard, FilterX, MoreVertical, Plus, Loader2, ShieldAlert, Clock, CircleDollarSign, Trash2 } from "lucide-react";
+
+import { CreditCard, FilterX, Plus, Loader2, ShieldAlert, Clock, CircleDollarSign, Trash2, SlidersHorizontal } from "lucide-react";
 
 function getAuthContext() {
     const token = localStorage.getItem("token");
@@ -46,6 +47,7 @@ export default function ExpensesModule() {
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [categoryFilter, setCategoryFilter] = useState('ALL');
     const [dateFilter, setDateFilter] = useState('');
+    const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
     const [isPayDialogOpen, setIsPayDialogOpen] = useState(false);
     const [selectedExpense, setSelectedExpense] = useState(null);
@@ -65,6 +67,10 @@ export default function ExpensesModule() {
         status: 'Pagado',
         due_date: ''
     });
+
+    const [deletingExpenseId, setDeletingExpenseId] = useState(null);
+    const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+    const [modalError, setModalError] = useState(null);
 
     const fetchLists = async () => {
         try {
@@ -94,6 +100,7 @@ export default function ExpensesModule() {
     };
 
     const openCreateDialog = () => {
+        setModalError(null);
         setIsCreateDialogOpen(true);
         fetchLists();
     };
@@ -102,22 +109,24 @@ export default function ExpensesModule() {
         e.preventDefault();
 
         if (!createFormData.provider_id) {
-            alert('Debes seleccionar un proveedor.');
+            setModalError('Debes seleccionar un proveedor.');
             return;
         }
         if (!createFormData.account_id) {
-            alert('Debes seleccionar una cuenta física.');
+            setModalError('Debes seleccionar una cuenta física.');
             return;
         }
         const amt = parseFloat(createFormData.amount);
         if (isNaN(amt) || amt <= 0) {
-            alert('El monto debe ser un número positivo.');
+            setModalError('El monto debe ser un número positivo.');
             return;
         }
         if (createFormData.status === 'Pendiente' && !createFormData.due_date) {
-            alert('Los egresos pendientes requieren una fecha de vencimiento.');
+            setModalError('Los egresos pendientes requieren una fecha de vencimiento.');
             return;
         }
+
+        setModalError(null);
 
         try {
             setSubmittingCreate(true);
@@ -143,7 +152,7 @@ export default function ExpensesModule() {
             fetchExpenses();
             fetchUpcoming();
         } catch (err) {
-            alert(err.response?.data?.message || err.response?.data?.errors?.[0]?.message || 'Error al registrar el egreso.');
+            setModalError(err.response?.data?.message || err.response?.data?.errors?.[0]?.message || 'Error al registrar el egreso.');
         } finally {
             setSubmittingCreate(false);
         }
@@ -214,9 +223,10 @@ export default function ExpensesModule() {
     const handleConfirmPayment = async () => {
         if (!selectedExpense) return;
         if (!payAccountId) {
-            alert('Debes seleccionar una cuenta física o banco.');
+            setModalError('Debes seleccionar una cuenta física o banco.');
             return;
         }
+        setModalError(null);
         try {
             setSubmittingPay(true);
             await api.put(`/expenses/${selectedExpense.id}/pay`, {
@@ -227,7 +237,7 @@ export default function ExpensesModule() {
             fetchExpenses();
             fetchUpcoming();
         } catch (err) {
-            alert(err.response?.data?.message || 'Ocurrió un error al procesar el pago en el servidor.');
+            setModalError(err.response?.data?.message || 'Ocurrió un error al procesar el pago en el servidor.');
         } finally {
             setSubmittingPay(false);
         }
@@ -240,6 +250,7 @@ export default function ExpensesModule() {
     };
 
     const openPayDialog = (expense) => {
+        setModalError(null);
         setSelectedExpense(expense);
         setPayAccountId(expense.account_id ? String(expense.account_id) : (accounts.length > 0 ? String(accounts[0].id) : ''));
         setIsPayDialogOpen(true);
@@ -248,17 +259,19 @@ export default function ExpensesModule() {
         }
     };
 
-    const handleDeleteExpense = async (expenseId) => {
-        if (!confirm('¿Estás seguro de que deseas eliminar este egreso? Esta acción es irreversible y no afectará el saldo de tus cuentas ni presupuestos.')) {
-            return;
-        }
-
+    const handleDeleteExpense = async () => {
+        if (!deletingExpenseId) return;
+        setIsDeleteLoading(true);
         try {
-            await api.delete(`/expenses/${expenseId}`);
+            await api.delete(`/expenses/${deletingExpenseId}`);
             fetchExpenses();
             fetchUpcoming();
+            setDeletingExpenseId(null);
         } catch (err) {
-            alert(err.response?.data?.message || 'Error al eliminar el egreso.');
+            setError(err.response?.data?.message || 'Error al eliminar el egreso.');
+            setDeletingExpenseId(null);
+        } finally {
+            setIsDeleteLoading(false);
         }
     };
 
@@ -386,10 +399,10 @@ export default function ExpensesModule() {
                 </Card>
             )}
             <Card className="shadow-sm">
-                <CardHeader>
-                    <div className="flex items-center justify-between gap-3">
+                <CardHeader className="pb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                            <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                            <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
                                 <CreditCard className="size-5" />
                             </div>
                             <div>
@@ -399,11 +412,20 @@ export default function ExpensesModule() {
                                 </CardDescription>
                             </div>
                         </div>
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="sm:hidden flex items-center justify-center gap-2 text-xs font-semibold"
+                            onClick={() => setShowFiltersMobile(!showFiltersMobile)}
+                        >
+                            <SlidersHorizontal className="size-3.5" />
+                            {showFiltersMobile ? "Ocultar Filtros" : "Filtrar Egresos"}
+                        </Button>
                     </div>
                 </CardHeader>
 
                     <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-slate-50 dark:bg-muted/20 border border-slate-200 dark:border-border rounded-lg items-end">
+                        <div className={`${showFiltersMobile ? "grid" : "hidden sm:grid"} grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-slate-50 dark:bg-muted/20 border border-slate-200 dark:border-border rounded-lg items-end`}>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-semibold text-muted-foreground">Estado</label>
                                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -527,37 +549,33 @@ export default function ExpensesModule() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    {(auth.isAdmin || auth.permissions.canRegisterExpenses || auth.permissions.canPayExpenses) ? (
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
-                                                                    <MoreVertical className="h-4 w-4 text-slate-500" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                {expense.status === 'Pendiente' && (auth.isAdmin || auth.permissions.canPayExpenses) && (
-                                                                    <DropdownMenuItem
-                                                                        onClick={() => openPayDialog(expense)}
-                                                                        className="cursor-pointer text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 font-medium"
-                                                                    >
-                                                                        <CreditCard className="mr-2 h-4 w-4" />
-                                                                        Asentar Pago
-                                                                    </DropdownMenuItem>
-                                                                )}
-                                                                {expense.status === 'Pagado' && auth.isAdmin && (
-                                                                    <DropdownMenuItem
-                                                                        onClick={() => handleDeleteExpense(expense.id)}
-                                                                        className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-950/30 font-medium"
-                                                                    >
-                                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                                        Eliminar Gasto
-                                                                    </DropdownMenuItem>
-                                                                )}
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    ) : (
-                                                        <span className="text-xs text-muted-foreground font-mono">—</span>
-                                                    )}
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                        {expense.status === 'Pendiente' && (auth.isAdmin || auth.permissions.canPayExpenses) && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="size-8"
+                                                                title="Asentar Pago"
+                                                                onClick={() => openPayDialog(expense)}
+                                                            >
+                                                                <CreditCard className="size-3.5" />
+                                                            </Button>
+                                                        )}
+                                                        {expense.status === 'Pagado' && auth.isAdmin && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="size-8 text-destructive hover:bg-destructive/10"
+                                                                title="Eliminar Gasto"
+                                                                onClick={() => setDeletingExpenseId(expense.id)}
+                                                            >
+                                                                <Trash2 className="size-3.5" />
+                                                            </Button>
+                                                        )}
+                                                        {!(auth.isAdmin || auth.permissions.canRegisterExpenses || auth.permissions.canPayExpenses) && (
+                                                            <span className="text-xs text-muted-foreground font-mono">—</span>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))
@@ -620,7 +638,7 @@ export default function ExpensesModule() {
                     </CardContent>
                 </Card>
 
-            <Dialog open={isPayDialogOpen} onOpenChange={setIsPayDialogOpen}>
+            <Dialog open={isPayDialogOpen} onOpenChange={(v) => { setIsPayDialogOpen(v); if (!v) setModalError(null); }}>
                 <DialogContent className="sm:max-w-[400px]">
                     <DialogHeader>
                         <DialogTitle>¿Confirmar liquidación de egreso?</DialogTitle>
@@ -628,6 +646,11 @@ export default function ExpensesModule() {
                             Esta acción ejecutará una transacción atómica reduciendo instantáneamente el saldo de la cuenta de fondos del Administrador por el importe de esta factura.
                         </DialogDescription>
                     </DialogHeader>
+                    {modalError && (
+                        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs font-semibold text-destructive mb-3 animate-fade-in">
+                            {modalError}
+                        </div>
+                    )}
                     {selectedExpense && (
                         <div className="space-y-4">
                             <div className="py-3 px-4 bg-slate-50 dark:bg-muted/20 border border-slate-200 dark:border-border rounded-xl font-mono text-sm space-y-1.5">
@@ -669,7 +692,7 @@ export default function ExpensesModule() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <Dialog open={isCreateDialogOpen} onOpenChange={(v) => { setIsCreateDialogOpen(v); if (!v) setModalError(null); }}>
                 <DialogContent className="sm:max-w-[450px]">
                     <DialogHeader>
                         <DialogTitle>Registrar Nuevo Egreso</DialogTitle>
@@ -677,6 +700,11 @@ export default function ExpensesModule() {
                             Registrá una factura o gasto del negocio. Al marcarlo como "Pagado", se debitará automáticamente de la cuenta seleccionada.
                         </DialogDescription>
                     </DialogHeader>
+                    {modalError && (
+                        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs font-semibold text-destructive mb-3 animate-fade-in">
+                            {modalError}
+                        </div>
+                    )}
                     {loadingLists ? (
                         <div className="flex items-center justify-center py-8 gap-2 text-sm text-muted-foreground font-mono">
                             <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
@@ -795,6 +823,16 @@ export default function ExpensesModule() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={!!deletingExpenseId}
+                onOpenChange={(open) => { if (!open) setDeletingExpenseId(null) }}
+                title="Eliminar Egreso"
+                description="¿Estás seguro de que deseas eliminar este egreso? Esta acción es irreversible y no afectará el saldo de tus cuentas ni presupuestos."
+                confirmLabel="Eliminar Egreso"
+                loading={isDeleteLoading}
+                onConfirm={handleDeleteExpense}
+            />
         </div>
     );
 }
