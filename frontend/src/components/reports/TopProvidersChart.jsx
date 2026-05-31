@@ -82,19 +82,19 @@ export function TopProvidersChart({ data, loading }) {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-3">
           <div>
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Building2 className="size-4 text-muted-foreground" />
               Top Proveedores
             </CardTitle>
-            <CardDescription>Concentración de gasto por proveedor</CardDescription>
+            <CardDescription className="mt-0.5">Concentración de gasto por proveedor</CardDescription>
           </div>
-          <div className="text-right">
+          <div className="text-left xs:text-right shrink-0">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Total
             </p>
-            <p className="text-sm font-bold font-mono">{formatCurrency(total)}</p>
+            <p className="text-sm font-bold font-mono whitespace-nowrap">{formatCurrency(total)}</p>
           </div>
         </div>
       </CardHeader>
@@ -107,18 +107,18 @@ export function TopProvidersChart({ data, loading }) {
 
             return (
               <div key={item.providerId} className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div
                       className="size-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: color }}
                     />
-                    <span className="text-sm font-medium truncate max-w-[160px]">
+                    <span className="text-sm font-medium truncate">
                       {item.providerName}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-sm font-mono font-semibold">
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <span className="text-sm font-mono font-semibold whitespace-nowrap">
                       {formatCurrency(item.amount)}
                     </span>
                     <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-semibold min-w-[40px] text-center">

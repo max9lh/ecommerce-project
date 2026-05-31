@@ -33,12 +33,13 @@ const formatDate = (dateStr) =>
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
   })
 
 const getDaysUntil = (dateStr) => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const due = new Date(dateStr)
+  const due = new Date(dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00`)
   due.setHours(0, 0, 0, 0)
   return Math.round((due - today) / (1000 * 60 * 60 * 24))
 }

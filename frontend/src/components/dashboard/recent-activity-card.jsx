@@ -101,7 +101,7 @@ const formatRelativeTime = (dateStr) => {
   if (diffHours < 24) return `Hace ${diffHours}h`
   if (diffDays < 7) return `Hace ${diffDays}d`
 
-  return date.toLocaleDateString("es-AR", {
+  return date.toLocaleDateString("es-CL", {
     day: "2-digit",
     month: "short",
   })
@@ -118,7 +118,7 @@ function ActivityItem({ entry, isLast }) {
       {/* Timeline vertical */}
       <div className="flex flex-col items-center">
         <div
-          className={`flex size-8 shrink-0 items-center justify-center rounded-full ${bg} ${border} border transition-transform group-hover:scale-110`}
+          className={`flex size-8 shrink-0 items-center justify-center rounded-full ${bg} ${border} border transition-all group-hover:opacity-50`}
         >
           <Icon className={`size-3.5 ${color}`} />
         </div>
@@ -135,11 +135,6 @@ function ActivityItem({ entry, isLast }) {
               {entry.details}
             </p>
             <div className="flex items-center gap-2 mt-1">
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${bg} ${color}`}
-              >
-                {entry.user?.role === "ADMIN" ? "Admin" : "Empleado"}
-              </span>
               <span className="text-xs text-muted-foreground">
                 {entry.user?.username}
               </span>
@@ -166,9 +161,6 @@ export function RecentActivityCard({ activities = [], loading }) {
               Actividad Reciente
             </CardTitle>
             <CardDescription className="text-xs">Últimas operaciones del negocio</CardDescription>
-          </div>
-          <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Activity className="size-4" />
           </div>
         </div>
       </CardHeader>

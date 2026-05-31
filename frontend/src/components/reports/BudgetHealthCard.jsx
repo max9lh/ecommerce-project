@@ -47,20 +47,20 @@ function BudgetItem({ item }) {
   const usageWidth = Math.min(100, item.usagePercent)
 
   return (
-    <div className={`rounded-xl border ${config.border} ${config.bg} p-4 transition-all hover:shadow-md`}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2.5">
-          <div className={`flex size-8 items-center justify-center rounded-lg ${config.bg}`}>
+    <div className={`rounded-xl border ${config.border} ${config.bg} p-4 transition-all hover:shadow-md flex flex-col justify-between`}>
+      <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2.5 mb-3 pb-2.5 border-b border-border/10">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className={`flex size-8 items-center justify-center rounded-lg ${config.bg} shrink-0`}>
             <StatusIcon className={`size-4 ${config.color}`} />
           </div>
-          <div>
-            <h4 className="text-sm font-semibold">{item.category}</h4>
+          <div className="min-w-0">
+            <h4 className="text-sm font-semibold truncate leading-tight">{item.category}</h4>
             <span className={`text-xs font-semibold ${config.color}`}>{config.label}</span>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-lg font-bold font-mono">{formatCurrency(item.currentBalance)}</p>
-          <p className="text-xs text-muted-foreground">disponible</p>
+        <div className="text-left xs:text-right shrink-0">
+          <p className="text-lg font-bold font-mono whitespace-nowrap leading-none">{formatCurrency(item.currentBalance)}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">disponible</p>
         </div>
       </div>
 
@@ -72,15 +72,15 @@ function BudgetItem({ item }) {
             style={{ width: `${usageWidth}%` }}
           />
         </div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>
-            Gastado: <span className="font-mono font-semibold text-foreground">{formatCurrency(item.totalSpent)}</span>
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground gap-2">
+          <span className="truncate">
+            Gastado: <span className="font-mono font-semibold text-foreground whitespace-nowrap">{formatCurrency(item.totalSpent)}</span>
           </span>
-          <span>
-            Asignado: <span className="font-mono font-semibold text-foreground">{formatCurrency(item.totalAllocated)}</span>
+          <span className="truncate text-right">
+            Asignado: <span className="font-mono font-semibold text-foreground whitespace-nowrap">{formatCurrency(item.totalAllocated)}</span>
           </span>
         </div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground gap-2">
           <span>
             Consumido: <span className="font-mono font-semibold">{item.usagePercent}%</span>
           </span>
@@ -102,7 +102,7 @@ export function BudgetHealthCard({ data, loading }) {
           <div className="h-4 w-56 rounded bg-muted animate-pulse mt-1" />
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="h-32 rounded-xl bg-muted/50 animate-pulse" />
             ))}
@@ -119,7 +119,7 @@ export function BudgetHealthCard({ data, loading }) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <HeartPulse className="size-4 text-muted-foreground" />
@@ -129,20 +129,6 @@ export function BudgetHealthCard({ data, loading }) {
               Estado de cada bolsa virtual comparado con su asignación histórica
             </CardDescription>
           </div>
-          {hasData && (criticalCount > 0 || warningCount > 0) && (
-            <div className="flex items-center gap-2">
-              {criticalCount > 0 && (
-                <span className="flex items-center gap-1 text-xs font-semibold text-rose-500 bg-rose-500/10 px-2.5 py-1 rounded-full">
-                  <XCircle className="size-3" /> {criticalCount} crítico{criticalCount > 1 ? "s" : ""}
-                </span>
-              )}
-              {warningCount > 0 && (
-                <span className="flex items-center gap-1 text-xs font-semibold text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full">
-                  <AlertTriangle className="size-3" /> {warningCount} precaución
-                </span>
-              )}
-            </div>
-          )}
         </div>
       </CardHeader>
 
@@ -152,7 +138,7 @@ export function BudgetHealthCard({ data, loading }) {
             No se encontraron bolsas de presupuesto configuradas.
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {data.map((item) => (
               <BudgetItem key={item.category} item={item} />
             ))}

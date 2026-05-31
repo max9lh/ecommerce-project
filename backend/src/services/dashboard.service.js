@@ -69,7 +69,6 @@ const getIncomeVsExpenses = async (months = 6) => {
         }
     });
 
-    // Ordenar cronológicamente
     const result = Array.from(monthMap.values());
     result.sort((a, b) => a.date.localeCompare(b.date));
 
@@ -102,5 +101,102 @@ const getRecentActivity = async (limit = 10) => {
     });
 };
 
-module.exports = { getIncomeVsExpenses, getRecentActivity };
+/**
+ * Reconstruye el historial de saldos mensuales para dinero total, cuenta bancaria y efectivo.
+ *
+ * @param {number} months — Cantidad de meses hacia atrás a consultar
+ * @returns {Promise<{ total: Array, bank: Array, cash: Array }>}
+ */
+const getAccountHistory = async (months = 6) => {
+    const { getAdminContext } = require('../utils/adminContext');
+    const adminCtx = await getAdminContext();
+    const adminId = adminCtx.adminId;
+
+    const accounts = await prisma.account.findMany({
+        where: { user_id: adminId }
+    });
+
+    const historyPoints = [];
+    const now = new Date();
+
+    for (let i = 0; i < months; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i + 1, 0); // Fin de mes de hace i meses
+        d.setHours(23, 59, 59, 999);
+        historyPoints.push({
+            label: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`, // Primer día del mes como key de gráfico
+            dateLimit: new Date(d),
+        });
+    }
+    historyPoints.reverse();
+
+    const oldestDate = historyPoints[0].dateLimit;
+    const closuresAfter = await prisma.dailyClosureDetail.findMany({
+        where: {
+            closure: {
+                date: { gt: oldestDate }
+            }
+        },
+        include: {
+            closure: true
+        }
+    });
+
+    const expensesAfter = await prisma.expense.findMany({
+        where: {
+            status: 'Pagado',
+            paid_at: { gt: oldestDate }
+        }
+    });
+
+    const accountsHistory = {};
+    const totalHistory = historyPoints.map(point => ({ date: point.label, amount: 0 }));
+
+    accounts.forEach(acc => {
+        accountsHistory[acc.id] = [];
+        const currentBal = Number(acc.balance);
+
+        historyPoints.forEach((point, idx) => {
+            // Cierres de caja posteriores para esta cuenta
+            const subsequentClosures = closuresAfter
+                .filter(c => c.account_id === acc.id && new Date(c.closure.date) > point.dateLimit)
+                .reduce((sum, c) => sum + Number(c.amount), 0);
+
+            // Egresos posteriores para esta cuenta
+            const subsequentExpenses = expensesAfter
+                .filter(e => e.account_id === acc.id && new Date(e.paid_at) > point.dateLimit)
+                .reduce((sum, e) => sum + Number(e.amount), 0);
+
+            const histBalance = currentBal - subsequentClosures + subsequentExpenses;
+            const finalAmount = Math.max(0, histBalance);
+
+            accountsHistory[acc.id].push({
+                date: point.label,
+                amount: finalAmount
+            });
+
+            totalHistory[idx].amount += finalAmount;
+        });
+    });
+
+    // Identificar cuenta bancaria y efectivo por su nombre
+    const bankAcc = accounts.find(a => a.name.toLowerCase().includes('banc') || a.name.toLowerCase().includes('bank'));
+    const cashAcc = accounts.find(a => a.name.toLowerCase().includes('efec') || a.name.toLowerCase().includes('caja') || a.name.toLowerCase().includes('cash'));
+
+    const bankHistory = bankAcc && accountsHistory[bankAcc.id]
+        ? accountsHistory[bankAcc.id]
+        : historyPoints.map(p => ({ date: p.label, amount: 0 }));
+
+    const cashHistory = cashAcc && accountsHistory[cashAcc.id]
+        ? accountsHistory[cashAcc.id]
+        : historyPoints.map(p => ({ date: p.label, amount: 0 }));
+
+    return {
+        total: totalHistory,
+        bank: bankHistory,
+        cash: cashHistory
+    };
+};
+
+module.exports = { getIncomeVsExpenses, getRecentActivity, getAccountHistory };
+
 

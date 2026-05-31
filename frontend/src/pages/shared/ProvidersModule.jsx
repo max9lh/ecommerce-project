@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { SearchBar } from "@/components/ui/search-bar"
 import {
@@ -47,6 +48,8 @@ export default function ProvidersModule() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({ ...DEFAULT_FORM })
   const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false)
 
   const filtered = providers.filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -129,13 +132,18 @@ export default function ProvidersModule() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("¿Estás seguro de que querés eliminar este proveedor?")) return
+  const handleDelete = async () => {
+    if (!deletingId) return
+    setIsDeleteLoading(true)
     try {
-      await api.delete(`/providers/${id}`)
+      await api.delete(`/providers/${deletingId}`)
       await fetchProviders()
+      setDeletingId(null)
     } catch (err) {
       setError(err.response?.data?.message || "Error al eliminar el proveedor")
+      setDeletingId(null)
+    } finally {
+      setIsDeleteLoading(false)
     }
   }
 
@@ -226,10 +234,10 @@ export default function ProvidersModule() {
 
       {!loading && providers.length > 0 && (
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
                   <Store className="size-5" />
                 </div>
                 <div>
@@ -326,7 +334,7 @@ export default function ProvidersModule() {
                               className="size-8 text-destructive hover:bg-destructive/10"
                               disabled={!isAdmin || isEliminated}
                               onClick={() => {
-                                handleDelete(p.id)
+                                setDeletingId(p.id)
                               }}
                               title={!isAdmin ? "Solo el administrador puede eliminar proveedores" : ""}
                             >
@@ -492,6 +500,16 @@ export default function ProvidersModule() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!deletingId}
+        onOpenChange={(open) => { if (!open) setDeletingId(null) }}
+        title="Eliminar Proveedor"
+        description="¿Estás seguro de que querés eliminar este proveedor? Esta acción es irreversible y eliminará permanentemente el registro del sistema."
+        confirmLabel="Eliminar Proveedor"
+        loading={isDeleteLoading}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

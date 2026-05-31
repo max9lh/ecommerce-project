@@ -60,6 +60,17 @@ function App() {
           />
 
           <Route
+            path="/cierres/editar/:id"
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <DashboardLayout>
+                  <Closures />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/empleados"
             element={
               <ProtectedRoute requiredRole="ADMIN">

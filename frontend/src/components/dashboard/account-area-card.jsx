@@ -21,7 +21,7 @@ const formatCurrency = (value) =>
 
 const formatMonth = (dateStr) => {
   const date = new Date(dateStr)
-  return date.toLocaleDateString("es-AR", { month: "short", year: "2-digit" })
+  return date.toLocaleDateString("es-AR", { month: "short", year: "2-digit", timeZone: "UTC" })
 }
 
 /**

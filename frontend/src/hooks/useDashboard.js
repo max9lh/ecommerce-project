@@ -12,6 +12,7 @@ export function useDashboard() {
   const [upcomingExpenses, setUpcomingExpenses] = useState([])
   const [incomeVsExpenses, setIncomeVsExpenses] = useState([])
   const [recentActivity, setRecentActivity] = useState([])
+  const [accountHistory, setAccountHistory] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -30,6 +31,7 @@ export function useDashboard() {
       setUpcomingExpenses(upcomingRes.data ?? [])
       setIncomeVsExpenses(summaryRes.data.incomeVsExpenses ?? [])
       setRecentActivity(summaryRes.data.recentActivity ?? [])
+      setAccountHistory(summaryRes.data.accountHistory ?? null)
     } catch (err) {
       setError(err.response?.data?.message || "Error al cargar los datos del panel")
     } finally {
@@ -60,6 +62,7 @@ export function useDashboard() {
     upcomingExpenses,
     incomeVsExpenses,
     recentActivity,
+    accountHistory,
     totalBalance,
     getAccountBalance,
     getBudgetBalance,

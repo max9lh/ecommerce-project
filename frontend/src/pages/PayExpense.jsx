@@ -82,7 +82,7 @@ export default function PayExpense() {
   const handleConfirmPayment = async () => {
     if (!selectedExpense) return
     if (!payAccountId) {
-      alert("Debes seleccionar una cuenta física o banco.")
+      setError("Debes seleccionar una cuenta física o banco.")
       return
     }
 
