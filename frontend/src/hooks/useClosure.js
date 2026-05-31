@@ -57,12 +57,17 @@ export function useClosure(closureId) {
 
   // --- Helpers ---
 
-  // Actualizar el monto de una cuenta específica
+  // Actualizar el monto de una cuenta específica y recalcular el total de forma automática
   const setAmount = useCallback((accountId, value) => {
-    setAmounts((prev) => ({
-      ...prev,
-      [accountId]: Number(value) || 0,
-    }))
+    setAmounts((prev) => {
+      const next = {
+        ...prev,
+        [accountId]: Number(value) || 0,
+      }
+      const newSum = Object.values(next).reduce((sum, val) => sum + val, 0)
+      setTotalAmount(newSum)
+      return next
+    })
   }, [])
 
   // Suma de todos los montos por cuenta

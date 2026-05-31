@@ -147,134 +147,266 @@ export default function Employees() {
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Empleado</TableHead>
-                  <TableHead>Tipo de Contrato</TableHead>
-                  <TableHead>Remuneración</TableHead>
-                  <TableHead>Permisos Activos</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEmployees.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                      {searchTerm
-                        ? `No se encontraron empleados con "${searchTerm}".`
-                        : "No hay empleados registrados."}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredEmployees.map((emp) => {
-                    const profile = emp.employeeProfile || {}
-                    const perms = emp.employeePermission || {}
-                    return (
-                      <TableRow key={emp.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-semibold">
-                              {profile.first_name} {profile.last_name}
-                            </p>
-                            <p className="text-xs text-muted-foreground font-mono">
-                              @{emp.username}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="capitalize text-sm font-medium">
-                            {profile.salary_type === "hourly" ? "Por Hora" : "Sueldo Fijo"}
+            {/* Vista Mobile (Tarjetas) */}
+            <div className="block md:hidden space-y-4">
+              {filteredEmployees.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  {searchTerm
+                    ? `No se encontraron empleados con "${searchTerm}".`
+                    : "No hay empleados registrados."}
+                </div>
+              ) : (
+                filteredEmployees.map((emp) => {
+                  const profile = emp.employeeProfile || {}
+                  const perms = emp.employeePermission || {}
+                  return (
+                    <div
+                      key={emp.id}
+                      className="rounded-xl border border-border bg-slate-50/50 dark:bg-slate-900/10 p-4 space-y-3.5 shadow-sm"
+                    >
+                      {/* Fila superior: Empleado y Acciones */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm truncate">
+                            {profile.first_name} {profile.last_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground font-mono truncate">
+                            @{emp.username}
+                          </p>
+                        </div>
+
+                        {/* Botones de acción */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-muted-foreground hover:text-foreground"
+                            title="Editar Remuneración"
+                            onClick={() => {
+                              setSelectedEmp(emp)
+                              setEditProfileOpen(true)
+                            }}
+                          >
+                            <DollarSign className="size-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-muted-foreground hover:text-foreground"
+                            title="Modificar Permisos"
+                            onClick={() => {
+                              setSelectedEmp(emp)
+                              setEditPermissionsOpen(true)
+                            }}
+                          >
+                            <Key className="size-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-destructive hover:bg-destructive/10 shrink-0"
+                            title="Eliminar Empleado"
+                            onClick={() => {
+                              setSelectedEmp(emp)
+                              setDeleteOpen(true)
+                            }}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Fila del medio: Remuneración */}
+                      <div className="grid grid-cols-2 gap-3 py-2 px-3 bg-muted/40 dark:bg-muted/10 rounded-lg text-xs font-medium">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground block font-semibold uppercase tracking-wider mb-0.5">Contrato</span>
+                          <span className="capitalize">{profile.salary_type === "hourly" ? "Por Hora" : "Sueldo Fijo"}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-muted-foreground block font-semibold uppercase tracking-wider mb-0.5">Remuneración</span>
+                          <span className="font-semibold text-foreground">
+                            {profile.salary_type === "hourly" ? (
+                              <span>${formatMoney(profile.hourly_rate)} / hr</span>
+                            ) : (
+                              <span>${formatMoney(profile.monthly_salary || 0)} / mes</span>
+                            )}
                           </span>
-                        </TableCell>
-                        <TableCell className="font-semibold">
-                          {profile.salary_type === "hourly" ? (
-                            <span>${formatMoney(profile.hourly_rate)} / hr</span>
-                          ) : (
-                            <span>${formatMoney(profile.monthly_salary || 0)} / mes</span>
+                        </div>
+                      </div>
+
+                      {/* Fila inferior: Permisos */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Permisos Activos</span>
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {perms.canRegisterClosures && (
+                            <span className="rounded bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-500">
+                              Cierres
+                            </span>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1.5">
-                            {perms.canRegisterClosures && (
-                              <span className="rounded bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-500">
-                                Cierres
+                          {perms.canRegisterExpenses && (
+                            <span className="rounded bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-500">
+                              Gastos
+                            </span>
+                          )}
+                          {perms.canPayExpenses && (
+                            <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-500">
+                              Pagar Egresos
+                            </span>
+                          )}
+                          {perms.canManageProviders && (
+                            <span className="rounded bg-purple-500/10 px-2 py-0.5 text-xs font-semibold text-purple-500">
+                              Proveedores
+                            </span>
+                          )}
+                          {!perms.canRegisterClosures &&
+                            !perms.canRegisterExpenses &&
+                            !perms.canPayExpenses &&
+                            !perms.canManageProviders && (
+                              <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                Sin permisos
                               </span>
                             )}
-                            {perms.canRegisterExpenses && (
-                              <span className="rounded bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-500">
-                                Gastos
-                              </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+
+            {/* Vista Desktop (Tabla) */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Empleado</TableHead>
+                    <TableHead>Tipo de Contrato</TableHead>
+                    <TableHead>Remuneración</TableHead>
+                    <TableHead>Permisos Activos</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredEmployees.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                        {searchTerm
+                          ? `No se encontraron empleados con "${searchTerm}".`
+                          : "No hay empleados registrados."}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredEmployees.map((emp) => {
+                      const profile = emp.employeeProfile || {}
+                      const perms = emp.employeePermission || {}
+                      return (
+                        <TableRow key={emp.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-semibold">
+                                {profile.first_name} {profile.last_name}
+                              </p>
+                              <p className="text-xs text-muted-foreground font-mono">
+                                @{emp.username}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="capitalize text-sm font-medium">
+                              {profile.salary_type === "hourly" ? "Por Hora" : "Sueldo Fijo"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-semibold">
+                            {profile.salary_type === "hourly" ? (
+                              <span>${formatMoney(profile.hourly_rate)} / hr</span>
+                            ) : (
+                              <span>${formatMoney(profile.monthly_salary || 0)} / mes</span>
                             )}
-                            {perms.canPayExpenses && (
-                              <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-500">
-                                Pagar Egresos
-                              </span>
-                            )}
-                            {perms.canManageProviders && (
-                              <span className="rounded bg-purple-500/10 px-2 py-0.5 text-xs font-semibold text-purple-500">
-                                Proveedores
-                              </span>
-                            )}
-                            {!perms.canRegisterClosures &&
-                              !perms.canRegisterExpenses &&
-                              !perms.canPayExpenses &&
-                              !perms.canManageProviders && (
-                                <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                                  Sin permisos
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1.5">
+                              {perms.canRegisterClosures && (
+                                <span className="rounded bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-500">
+                                  Cierres
                                 </span>
                               )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {/* Modificar perfil */}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Editar Remuneración"
-                              onClick={() => {
-                                setSelectedEmp(emp)
-                                setEditProfileOpen(true)
-                              }}
-                            >
-                              <DollarSign className="size-4" />
-                            </Button>
+                              {perms.canRegisterExpenses && (
+                                <span className="rounded bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-500">
+                                  Gastos
+                                </span>
+                              )}
+                              {perms.canPayExpenses && (
+                                <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-500">
+                                  Pagar Egresos
+                                </span>
+                              )}
+                              {perms.canManageProviders && (
+                                <span className="rounded bg-purple-500/10 px-2 py-0.5 text-xs font-semibold text-purple-500">
+                                  Proveedores
+                                </span>
+                              )}
+                              {!perms.canRegisterClosures &&
+                                !perms.canRegisterExpenses &&
+                                !perms.canPayExpenses &&
+                                !perms.canManageProviders && (
+                                  <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                    Sin permisos
+                                  </span>
+                                )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {/* Modificar perfil */}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Editar Remuneración"
+                                onClick={() => {
+                                  setSelectedEmp(emp)
+                                  setEditProfileOpen(true)
+                                }}
+                              >
+                                <DollarSign className="size-4" />
+                              </Button>
 
-                            {/* Modificar permisos */}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Modificar Permisos"
-                              onClick={() => {
-                                setSelectedEmp(emp)
-                                setEditPermissionsOpen(true)
-                              }}
-                            >
-                              <Key className="size-4" />
-                            </Button>
+                              {/* Modificar permisos */}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Modificar Permisos"
+                                onClick={() => {
+                                  setSelectedEmp(emp)
+                                  setEditPermissionsOpen(true)
+                                }}
+                              >
+                                <Key className="size-4" />
+                              </Button>
 
-                            {/* Eliminar */}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Eliminar Empleado"
-                              className="text-destructive hover:bg-destructive/10"
-                              onClick={() => {
-                                setSelectedEmp(emp)
-                                setDeleteOpen(true)
-                              }}
-                            >
-                              <Trash2 className="size-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
-            </Table>
+                              {/* Eliminar */}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Eliminar Empleado"
+                                className="text-destructive hover:bg-destructive/10"
+                                onClick={() => {
+                                  setSelectedEmp(emp)
+                                  setDeleteOpen(true)
+                                }}
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}

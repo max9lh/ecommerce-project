@@ -149,8 +149,8 @@ export default function NewExpense() {
               <p className="text-sm text-muted-foreground max-w-xs">
                 Se registró el gasto por un monto de{" "}
                 <span className="font-semibold text-foreground">
-                  ${parseFloat(formData.amount).toLocaleString("es-AR", {
-                    minimumFractionDigits: 2,
+                  ${parseFloat(formData.amount).toLocaleString("es-CL", {
+                    minimumFractionDigits: 0,
                   })}
                 </span>{" "}
                 de tipo "{formData.budget_category}" con éxito.
@@ -270,7 +270,7 @@ export default function NewExpense() {
                       ) : (
                         accounts.map((a) => (
                           <option key={a.id} value={a.id}>
-                            {a.name} (Saldo: ${Number(a.balance).toLocaleString("es-AR")})
+                            {a.name} (Saldo: ${Number(a.balance).toLocaleString("es-CL")})
                           </option>
                         ))
                       )}

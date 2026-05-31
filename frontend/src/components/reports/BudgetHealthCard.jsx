@@ -8,9 +8,9 @@ import {
 import { ShieldCheck, AlertTriangle, XCircle, HeartPulse } from "lucide-react"
 
 const formatCurrency = (value) =>
-  new Intl.NumberFormat("es-AR", {
+  new Intl.NumberFormat("es-CL", {
     style: "currency",
-    currency: "ARS",
+    currency: "CLP",
     minimumFractionDigits: 0,
   }).format(value)
 

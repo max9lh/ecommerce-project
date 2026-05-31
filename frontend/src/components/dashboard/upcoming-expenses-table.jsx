@@ -257,8 +257,7 @@ export function UpcomingExpensesTable({ expenses = [], accounts = [], onPaid }) 
                       <td className="px-4 py-3 text-center">
                         <Button
                           size="sm"
-                          variant="outline"
-                          className="gap-1.5 text-xs h-8 border-green-500/30 text-green-600 hover:bg-green-500/10 hover:text-green-600 dark:text-green-400 dark:hover:text-green-400"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs"
                           onClick={() => setPayingExpense(exp)}
                         >
                           <CreditCard className="size-3.5" />
