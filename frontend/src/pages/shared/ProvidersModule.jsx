@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { SearchBar } from "@/components/ui/search-bar"
 import {
@@ -19,7 +20,6 @@ import {
 import {
   Loader2,
   PlusCircle,
-  Search,
   Store,
   MoreHorizontal,
   Pencil,
@@ -27,7 +27,7 @@ import {
   ShieldAlert,
 } from "lucide-react"
 
-const DEFAULT_FORM = { id: null, name: "", payment_condition: "Contado", credit_days: 0 }
+const DEFAULT_FORM = { id: null, name: "", payment_condition: "Contado", credit_days: 0, visible_to_employee: true }
 
 export default function ProvidersModule() {
   const { user } = useAuth()
@@ -39,28 +39,43 @@ export default function ProvidersModule() {
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState("")
 
+  // Paginación
+  const [page, setPage] = useState(1)
+  const [limit] = useState(8) // Mostrar 8 proveedores por página
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({ ...DEFAULT_FORM })
   const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false)
 
   const filtered = providers.filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  useEffect(() => {
-    fetchProviders()
-  }, [])
-
-  const fetchProviders = async () => {
+  async function fetchProviders() {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get("/providers")
+      const res = await api.get("/providers", {
+        params: { page, limit }
+      })
       const data = res.data
       if (Array.isArray(data)) {
         setProviders(data)
+        setTotalPages(1)
+        setTotal(data.length)
       } else if (data.success) {
         setProviders(data.data)
+        if (data.meta) {
+          setTotalPages(data.meta.totalPages)
+          setTotal(data.meta.total)
+        } else {
+          setTotalPages(1)
+          setTotal(data.data.length)
+        }
       } else {
         setError(data.message || "Error al obtener proveedores")
       }
@@ -70,6 +85,15 @@ export default function ProvidersModule() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchProviders()
+  }, [page])
+
+  // Reiniciar página cuando cambia la búsqueda
+  useEffect(() => {
+    setPage(1)
+  }, [searchTerm])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -85,6 +109,7 @@ export default function ProvidersModule() {
       name: formData.name,
       payment_condition: conditionClean,
       credit_days: conditionClean === "Credito" ? Number(formData.credit_days) : 0,
+      visible_to_employee: formData.visible_to_employee,
     }
 
     try {
@@ -107,13 +132,18 @@ export default function ProvidersModule() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("¿Estás seguro de que querés eliminar este proveedor?")) return
+  const handleDelete = async () => {
+    if (!deletingId) return
+    setIsDeleteLoading(true)
     try {
-      await api.delete(`/providers/${id}`)
+      await api.delete(`/providers/${deletingId}`)
       await fetchProviders()
+      setDeletingId(null)
     } catch (err) {
       setError(err.response?.data?.message || "Error al eliminar el proveedor")
+      setDeletingId(null)
+    } finally {
+      setIsDeleteLoading(false)
     }
   }
 
@@ -124,6 +154,7 @@ export default function ProvidersModule() {
         name: provider.name,
         payment_condition: provider.payment_condition ?? "Contado",
         credit_days: provider.credit_days ?? 0,
+        visible_to_employee: provider.visible_to_employee ?? true,
       })
     } else {
       setFormData({ ...DEFAULT_FORM })
@@ -137,7 +168,6 @@ export default function ProvidersModule() {
     setIsModalOpen(false)
   }
 
-  // ── Sin permiso ──────────────────────────────────────────────
   if (!canManage) {
     return (
       <div className="space-y-6">
@@ -160,11 +190,9 @@ export default function ProvidersModule() {
     )
   }
 
-  // ── Vista principal ──────────────────────────────────────────
   return (
     <div className="space-y-6">
 
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Proveedores</h1>
@@ -178,21 +206,18 @@ export default function ProvidersModule() {
         </Button>
       </div>
 
-      {/* Error banner */}
       {error && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
-      {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       )}
 
-      {/* Estado vacío */}
       {!loading && providers.length === 0 && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
@@ -207,13 +232,12 @@ export default function ProvidersModule() {
         </Card>
       )}
 
-      {/* Tabla */}
       {!loading && providers.length > 0 && (
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
                   <Store className="size-5" />
                 </div>
                 <div>
@@ -224,7 +248,6 @@ export default function ProvidersModule() {
                 </div>
               </div>
 
-              {/* Búsqueda */}
               <SearchBar
                 placeholder="Buscar por nombre..."
                 value={searchTerm}
@@ -253,65 +276,134 @@ export default function ProvidersModule() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${
-                            p.payment_condition === "Credito"
+                  filtered.map((p) => {
+                    const isEliminated = p.name.includes('(ELIMINADO)');
+                    const displayName = p.name.replace(' (ELIMINADO)', '');
+                    return (
+                      <TableRow key={p.id} className={isEliminated ? "opacity-60 bg-muted/10" : ""}>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={isEliminated ? 'text-muted-foreground line-through' : ''}>
+                              {displayName}
+                            </span>
+                            {!p.visible_to_employee && !isEliminated && (
+                              <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                Oculto para empleados
+                              </span>
+                            )}
+                            {isEliminated && (
+                              <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-900/50">
+                                Eliminado
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${p.payment_condition === "Credito"
                               ? "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800"
                               : "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                          }`}
-                        >
-                          {p.payment_condition === "Credito" ? "Crédito" : "Contado"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {p.payment_condition === "Credito" ? (
-                          <span className="font-mono tabular-nums">{p.credit_days} días</span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="size-8 rounded-full">
-                              <span className="sr-only">Abrir menú</span>
-                              <MoreHorizontal className="size-4" />
+                              }`}
+                          >
+                            {p.payment_condition === "Credito" ? "Crédito" : "Contado"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {p.payment_condition === "Credito" ? (
+                            <span className="font-mono tabular-nums">{p.credit_days} días</span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              disabled={!canManage || isEliminated}
+                              onClick={() => {
+                                openModal(p)
+                              }}
+                            >
+                              <Pencil className="size-3.5" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuGroup>
-                              <DropdownMenuItem onClick={() => openModal(p)}>
-                                <Pencil className="size-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onClick={() => handleDelete(p.id)}
-                              >
-                                <Trash2 className="size-4 mr-2" />
-                                Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-destructive hover:bg-destructive/10"
+                              disabled={!isAdmin || isEliminated}
+                              onClick={() => {
+                                setDeletingId(p.id)
+                              }}
+                              title={!isAdmin ? "Solo el administrador puede eliminar proveedores" : ""}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
+
+            {/* Controles de Paginación */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-border">
+                <div className="text-sm text-muted-foreground font-medium">
+                  Mostrando <span className="font-semibold text-foreground">{((page - 1) * limit) + 1}</span> a{" "}
+                  <span className="font-semibold text-foreground">{Math.min(page * limit, total)}</span> de{" "}
+                  <span className="font-semibold text-foreground">{total}</span> proveedores
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    Anterior
+                  </Button>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                    const isCurrent = p === page;
+                    // Mostrar solo primera, última, actual y adyacentes
+                    if (p === 1 || p === totalPages || Math.abs(p - page) <= 1) {
+                      return (
+                        <Button
+                          key={p}
+                          variant={isCurrent ? "default" : "outline"}
+                          size="sm"
+                          className={`size-9 p-0 ${isCurrent ? 'bg-primary text-primary-foreground font-bold' : ''}`}
+                          onClick={() => setPage(p)}
+                        >
+                          {p}
+                        </Button>
+                      );
+                    }
+                    if (p === 2 || p === totalPages - 1) {
+                      return <span key={p} className="text-muted-foreground px-1">...</span>;
+                    }
+                    return null;
+                  })}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {/* Modal crear / editar */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -369,6 +461,21 @@ export default function ProvidersModule() {
               </div>
             )}
 
+            <div className="flex items-center gap-2 pt-1 bg-muted/20 border border-border/40 rounded-lg p-2.5">
+              <input
+                id="p-visibility"
+                type="checkbox"
+                className="size-4 rounded border-input bg-background accent-emerald-600 focus:ring-emerald-500"
+                checked={formData.visible_to_employee}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, visible_to_employee: e.target.checked }))
+                }
+              />
+              <Label htmlFor="p-visibility" className="text-sm font-medium cursor-pointer text-foreground select-none">
+                Mostrar a empleados al registrar egresos
+              </Label>
+            </div>
+
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={closeModal} disabled={saving}>
                 Cancelar
@@ -393,6 +500,16 @@ export default function ProvidersModule() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!deletingId}
+        onOpenChange={(open) => { if (!open) setDeletingId(null) }}
+        title="Eliminar Proveedor"
+        description="¿Estás seguro de que querés eliminar este proveedor? Esta acción es irreversible y eliminará permanentemente el registro del sistema."
+        confirmLabel="Eliminar Proveedor"
+        loading={isDeleteLoading}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

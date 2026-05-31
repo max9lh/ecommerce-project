@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import { useClosure } from "@/hooks/useClosure"
 import { useAuth } from "@/context/AuthContext"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -41,6 +41,7 @@ function getAccountIcon(name) {
 }
 
 export default function Closures() {
+  const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
   const {
@@ -57,7 +58,7 @@ export default function Closures() {
     setTotalAmount,
     submit,
     reset,
-  } = useClosure()
+  } = useClosure(id)
 
   // Porcentajes hardcodeados para preview (el backend hace la distribución real)
   const pctMerchandise = 0.6
@@ -78,19 +79,27 @@ export default function Closures() {
               <CheckCircle2 className="size-10 text-emerald-500" />
             </div>
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold">¡Cierre registrado!</h2>
+              <h2 className="text-2xl font-bold">{id ? "¡Cierre modificado!" : "¡Cierre registrado!"}</h2>
               <p className="text-sm text-muted-foreground max-w-xs">
-                Se registraron <span className="font-semibold text-foreground">${totalAmount.toLocaleString("es-AR")}</span> y 
+                Se {id ? "modificaron" : "registraron"} <span className="font-semibold text-foreground">${totalAmount.toLocaleString("es-AR")}</span> y 
                 la distribución automática se aplicó correctamente.
               </p>
             </div>
             <div className="flex gap-3 w-full max-w-xs">
-              <Button variant="outline" className="flex-1" onClick={reset}>
-                Nuevo cierre
-              </Button>
-              <Button className="flex-1" onClick={() => navigate("/dashboard")}>
-                Ir al panel
-              </Button>
+              {id ? (
+                <Button className="w-full" onClick={() => navigate("/cierres")}>
+                  Volver al registro
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" className="flex-1" onClick={reset}>
+                    Nuevo cierre
+                  </Button>
+                  <Button className="flex-1" onClick={() => navigate("/dashboard")}>
+                    Ir al panel
+                  </Button>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -114,15 +123,17 @@ export default function Closures() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(id ? "/cierres" : "/dashboard")}
           className="shrink-0"
         >
           <ArrowLeft className="size-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Cierre de Caja Diario</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {id ? `Editar Cierre de Caja #${id}` : "Cierre de Caja Diario"}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Registrá los ingresos del día desglosados por medio de pago.
+            {id ? "Modificá los ingresos del día desglosados por medio de pago." : "Registrá los ingresos del día desglosados por medio de pago."}
           </p>
         </div>
       </div>
@@ -139,11 +150,11 @@ export default function Closures() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+              <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
                 <ClipboardList className="size-5" />
               </div>
               <div>
-                <CardTitle>Registro de Caja</CardTitle>
+                <CardTitle>{id ? "Modificar Cierre de Caja" : "Registro de Caja"}</CardTitle>
               </div>
             </div>
           </CardHeader>
@@ -247,12 +258,12 @@ export default function Closures() {
                 {submitting ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
-                    Registrando...
+                    {id ? "Guardando..." : "Registrando..."}
                   </>
                 ) : (
                   <>
                     <ClipboardList className="size-4" />
-                    Registrar Cierre de Caja
+                    {id ? "Guardar Cambios" : "Registrar Cierre de Caja"}
                   </>
                 )}
               </Button>

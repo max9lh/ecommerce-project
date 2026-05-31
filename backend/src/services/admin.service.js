@@ -34,9 +34,14 @@ const createEmployee = async (employeeData) => {
             }
         });
 
+        // Explicitamos todos los permisos en false para seguridad
         await tx.employeePermission.create({
             data: {
-                user_id: newUser.id
+                user_id: newUser.id,
+                canRegisterClosures: false,
+                canRegisterExpenses: false,
+                canPayExpenses: false,
+                canManageProviders: false
             }
         });
 
@@ -44,9 +49,10 @@ const createEmployee = async (employeeData) => {
     });
 };
 
+
 const getEmployees = async () => {
     return await prisma.user.findMany({
-        where: { role: 'EMPLOYEE' },
+        where: { role: 'EMPLOYEE', deleted_at: null },
         select: {
             id: true,
             username: true,
@@ -57,7 +63,6 @@ const getEmployees = async () => {
         }
     });
 };
-
 
 const updateEmployeePermissions = async (userId, permissionsData) => {
     const permissionExists = await prisma.employeePermission.findUnique({ where: { user_id: userId } });
@@ -98,13 +103,16 @@ const updateEmployeeProfile = async (userId, profileData) => {
 
 const deleteEmployee = async (id) => {
     const user = await prisma.user.findUnique({ where: { id } });
-    if (!user || user.role === 'ADMIN') {
+    if (!user || user.role === 'ADMIN' || user.deleted_at !== null) {
         const error = new Error('Empleado no encontrado');
         error.statusCode = 404;
         throw error;
     }
 
-    return await prisma.user.delete({ where: { id } });
+    return await prisma.user.update({
+        where: { id },
+        data: { deleted_at: new Date() }
+    });
 };
 
 const getDistributionSettings = async (adminId) => {
@@ -157,6 +165,59 @@ const updateDistributionSettings = async (adminId, { pct_merchandise, pct_fixed_
     };
 };
 
+const getAuditLogs = async (page = null, limit = null) => {
+    if (!page && !limit) {
+        const logs = await prisma.auditLog.findMany({
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        role: true
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
+        return { success: true, data: logs };
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [total, logs] = await Promise.all([
+        prisma.auditLog.count(),
+        prisma.auditLog.findMany({
+            skip,
+            take: limitNum,
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        role: true
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
+    ]);
+
+    return {
+        success: true,
+        data: logs,
+        meta: {
+            total,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(total / limitNum)
+        }
+    };
+};
+
 module.exports = {
     createEmployee,
     getEmployees,
@@ -164,5 +225,6 @@ module.exports = {
     updateEmployeeProfile,
     deleteEmployee,
     getDistributionSettings,
-    updateDistributionSettings
+    updateDistributionSettings,
+    getAuditLogs
 };

@@ -46,7 +46,7 @@ export function EmployeeDashboard() {
       description: "Marcá como pagada una factura que estaba pendiente de pago.",
       icon: CreditCard,
       permission: "canPayExpenses",
-      route: "/egresos",
+      route: "/egresos/pagar",
       color: "text-emerald-500",
       bgColor: "bg-emerald-500/10",
     },
@@ -153,11 +153,10 @@ export function EmployeeDashboard() {
             return (
               <div
                 key={perm.key}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  active
-                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                    : "bg-muted text-muted-foreground"
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${active
+                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                  : "bg-muted text-muted-foreground"
+                  }`}
               >
                 {active ? (
                   <ShieldCheck className="size-3.5" />

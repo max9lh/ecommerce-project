@@ -40,6 +40,7 @@ model User {
   // Historial de operaciones — user_id guarda quién operó (trazabilidad)
   daily_closures     DailyClosure[]
   expenses           Expense[]
+  auditLogs          AuditLog[]
 
   // Relaciones exclusivas del EMPLOYEE
   employeeProfile    EmployeeProfile?
@@ -47,6 +48,7 @@ model User {
   attendanceLogs     AttendanceLog[]
 
   created_at         DateTime            @default(now())
+  deleted_at         DateTime?
 }
 
 // ============================================================
@@ -117,13 +119,14 @@ model BudgetAllocation {
 // ============================================================
 
 model Provider {
-  id                Int       @id @default(autoincrement())
-  user_id           Int
-  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  name              String    @db.VarChar(100)
-  payment_condition String    @db.VarChar(20)
-  credit_days       Int       @default(0)
-  expenses          Expense[]
+  id                  Int       @id @default(autoincrement())
+  user_id             Int
+  user                User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                String    @db.VarChar(100)
+  payment_condition   String    @db.VarChar(20)
+  credit_days         Int       @default(0)
+  visible_to_employee Boolean   @default(true)
+  expenses            Expense[]
 }
 
 model Expense {
@@ -140,6 +143,7 @@ model Expense {
   due_date        DateTime?
   paid_at         DateTime?
   created_at      DateTime  @default(now())
+  deleted_at      DateTime?
 }
 
 // ============================================================
@@ -185,4 +189,17 @@ model AttendanceLog {
   amount_earned Decimal?  @db.Decimal(15, 2)
   notes         String?   @db.VarChar(255)
   created_at    DateTime  @default(now())
+}
+
+// ============================================================
+// AUDITORÍA — Registro de acciones realizadas por usuarios
+// ============================================================
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  action      String   @db.VarChar(100) // "REGISTRAR_CIERRE", "CREAR_PROVEEDOR", "PAGAR_EGRESO", "ELIMINAR_EGRESO", etc.
+  details     String   @db.Text
+  created_at  DateTime @default(now())
 }

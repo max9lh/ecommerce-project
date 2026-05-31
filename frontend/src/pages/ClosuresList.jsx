@@ -19,9 +19,12 @@ import {
   Wallet,
   Landmark,
   Banknote,
+  Pencil,
 } from "lucide-react"
 
 export default function ClosuresList() {
+
+
   const navigate = useNavigate()
   const { isAdmin } = useAuth()
   const [closures, setClosures] = useState([])
@@ -129,7 +132,7 @@ export default function ClosuresList() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+              <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
                 <ClipboardList className="size-5" />
               </div>
               <div>
@@ -150,6 +153,7 @@ export default function ClosuresList() {
                   <TableHead>Registrado por</TableHead>
                   <TableHead>Desglose</TableHead>
                   <TableHead className="text-right">Total</TableHead>
+                  {isAdmin && <TableHead className="text-center w-[100px]">Acción</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -186,6 +190,19 @@ export default function ClosuresList() {
                     <TableCell className="text-right font-semibold tabular-nums">
                       ${formatMoney(closure.total_amount)}
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          onClick={() => navigate(`/cierres/editar/${closure.id}`)}
+                          title="Editar Cierre de Caja"
+                        >
+                          <Pencil className="size-3.5" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

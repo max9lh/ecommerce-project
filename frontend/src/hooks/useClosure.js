@@ -9,7 +9,7 @@ import api from "@/api/api"
  * 3. Valida en tiempo real que la suma de los detalles coincida con el total
  * 4. Envía el cierre al backend (POST /api/closures)
  */
-export function useClosure() {
+export function useClosure(closureId) {
   const [accounts, setAccounts] = useState([])
 
   // Mapa { accountId: monto } — un input por cada cuenta
@@ -21,28 +21,39 @@ export function useClosure() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    const fetchAccounts = async () => {
+    const init = async () => {
       setLoading(true)
       setError(null)
       try {
-        const res = await api.get("/accounts")
-        const data = res.data.data ?? []
-        setAccounts(data)
+        const accountsRes = await api.get("/accounts")
+        const accountsData = accountsRes.data.data ?? []
+        setAccounts(accountsData)
 
-        const initial = {}
-        data.forEach((acc) => {
-          initial[acc.id] = 0
+        const initialAmounts = {}
+        accountsData.forEach((acc) => {
+          initialAmounts[acc.id] = 0
         })
-        setAmounts(initial)
+
+        if (closureId) {
+          const closureRes = await api.get(`/closures/${closureId}`)
+          const closureData = closureRes.data.data
+          if (closureData) {
+            setTotalAmount(Number(closureData.total_amount))
+            closureData.details.forEach((detail) => {
+              initialAmounts[detail.account_id] = Number(detail.amount)
+            })
+          }
+        }
+        setAmounts(initialAmounts)
       } catch (err) {
-        setError(err.response?.data?.message || "Error al cargar las cuentas")
+        setError(err.response?.data?.message || "Error al inicializar los datos")
       } finally {
         setLoading(false)
       }
     }
 
-    fetchAccounts()
-  }, [])
+    init()
+  }, [closureId])
 
   // --- Helpers ---
 
@@ -82,22 +93,29 @@ export function useClosure() {
           amount,
         }))
 
-      await api.post("/closures", {
-        total_amount: totalAmount,
-        details,
-      })
+      if (closureId) {
+        await api.put(`/closures/${closureId}`, {
+          total_amount: totalAmount,
+          details,
+        })
+      } else {
+        await api.post("/closures", {
+          total_amount: totalAmount,
+          details,
+        })
+      }
 
       setSuccess(true)
     } catch (err) {
       const msg =
         err.response?.data?.errors?.[0]?.message ||
         err.response?.data?.message ||
-        "Error al registrar el cierre de caja"
+        (closureId ? "Error al modificar el cierre de caja" : "Error al registrar el cierre de caja")
       setError(msg)
     } finally {
       setSubmitting(false)
     }
-  }, [isValid, amounts, totalAmount])
+  }, [isValid, amounts, totalAmount, closureId])
 
   const reset = useCallback(() => {
     setTotalAmount(0)

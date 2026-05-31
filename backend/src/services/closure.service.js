@@ -1,16 +1,21 @@
 const prisma = require('../config/db');
 const { getAdminContext } = require('../utils/adminContext');
+const { BUDGET_CATEGORIES } = require('../utils/constants');
 
 const createClosure = async ({ total_amount, details, user_id }) => {
-
     const adminCtx = await getAdminContext();
 
-    const marchandise_amount = total_amount * adminCtx.pct.merchandise;
+    const merchandise_amount = total_amount * adminCtx.pct.merchandise;
     const fixed_amount = total_amount * adminCtx.pct.fixed_expenses;
     const saving_amount = total_amount * adminCtx.pct.savings;
 
     const result = await prisma.$transaction(async (tx) => {
-        const closure = await tx.dailyClosure.create({ data: { user_id: user_id, total_amount } });
+        const closure = await tx.dailyClosure.create({
+            data: {
+                user_id: user_id,
+                total_amount
+            }
+        });
 
         await tx.dailyClosureDetail.createMany({
             data: details.map(d => ({
@@ -20,6 +25,7 @@ const createClosure = async ({ total_amount, details, user_id }) => {
             })),
         });
 
+        // Actualización de saldos en cuentas reales del local (bajo el Admin)
         for (const detail of details) {
             await tx.account.update({
                 where: { id: detail.account_id },
@@ -29,16 +35,16 @@ const createClosure = async ({ total_amount, details, user_id }) => {
 
         await tx.budgetAllocation.createMany({
             data: [
-                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: marchandise_amount, category: 'Mercadería' },
-                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: fixed_amount, category: 'Gastos Fijos' },
-                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: saving_amount, category: 'Ahorro' },
+                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: merchandise_amount, category: BUDGET_CATEGORIES.MERCHANDISE },
+                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: fixed_amount, category: BUDGET_CATEGORIES.FIXED_EXPENSES },
+                { closure_id: closure.id, user_id: adminCtx.adminId, amount_allocated: saving_amount, category: BUDGET_CATEGORIES.SAVINGS },
             ],
         });
 
         const categories = [
-            { name: 'Mercadería', amount: marchandise_amount },
-            { name: 'Gastos Fijos', amount: fixed_amount },
-            { name: 'Ahorro', amount: saving_amount }
+            { name: BUDGET_CATEGORIES.MERCHANDISE, amount: merchandise_amount },
+            { name: BUDGET_CATEGORIES.FIXED_EXPENSES, amount: fixed_amount },
+            { name: BUDGET_CATEGORIES.SAVINGS, amount: saving_amount }
         ];
 
         for (const cat of categories) {
@@ -56,6 +62,14 @@ const createClosure = async ({ total_amount, details, user_id }) => {
                 }
             });
         }
+
+        await tx.auditLog.create({
+            data: {
+                user_id: user_id,
+                action: 'REGISTRAR_CIERRE',
+                details: `Registró un cierre de caja por un total de $${parseFloat(total_amount).toFixed(2)}`
+            }
+        });
 
         return closure;
     });
@@ -76,7 +90,7 @@ const getClosures = async () => {
                 select: {
                     amount: true,
                     account: {
-                        select: { name: true }
+                        select: { id: true, name: true }
                     }
                 }
             }
@@ -84,4 +98,151 @@ const getClosures = async () => {
     });
 };
 
-module.exports = { createClosure, getClosures };
+const getClosureById = async (id) => {
+    return prisma.dailyClosure.findUnique({
+        where: { id: parseInt(id) },
+        select: {
+            id: true,
+            total_amount: true,
+            date: true,
+            user_id: true,
+            details: {
+                select: {
+                    account_id: true,
+                    amount: true,
+                    account: {
+                        select: { name: true }
+                    }
+                }
+            },
+            budget_allocations: {
+                select: {
+                    category: true,
+                    amount_allocated: true
+                }
+            }
+        }
+    });
+};
+
+const updateClosure = async (id, { total_amount, details, user_id }) => {
+    const adminCtx = await getAdminContext();
+
+    const merchandise_amount = total_amount * adminCtx.pct.merchandise;
+    const fixed_amount = total_amount * adminCtx.pct.fixed_expenses;
+    const saving_amount = total_amount * adminCtx.pct.savings;
+
+    const result = await prisma.$transaction(async (tx) => {
+        // 1. Obtener el cierre actual con sus detalles y asignaciones de presupuesto
+        const oldClosure = await tx.dailyClosure.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                details: true,
+                budget_allocations: true
+            }
+        });
+
+        if (!oldClosure) {
+            const err = new Error('Cierre de caja no encontrado');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        // 2. Revertir saldos de cuentas físicas anteriores
+        for (const oldDetail of oldClosure.details) {
+            await tx.account.update({
+                where: { id: oldDetail.account_id },
+                data: { balance: { decrement: oldDetail.amount } }
+            });
+        }
+
+        // 3. Revertir saldos de bolsas virtuales anteriores
+        for (const oldAlloc of oldClosure.budget_allocations) {
+            await tx.budgetBalance.update({
+                where: {
+                    user_id_category: {
+                        user_id: adminCtx.adminId,
+                        category: oldAlloc.category
+                    }
+                },
+                data: { balance: { decrement: oldAlloc.amount_allocated } }
+            });
+        }
+
+        // 4. Actualizar el Cierre de Caja
+        const updatedClosure = await tx.dailyClosure.update({
+            where: { id: parseInt(id) },
+            data: {
+                total_amount
+            }
+        });
+
+        // 5. Eliminar detalles y asignaciones viejas
+        await tx.dailyClosureDetail.deleteMany({ where: { closure_id: oldClosure.id } });
+        await tx.budgetAllocation.deleteMany({ where: { closure_id: oldClosure.id } });
+
+        // 6. Crear nuevos detalles
+        await tx.dailyClosureDetail.createMany({
+            data: details.map(d => ({
+                closure_id: oldClosure.id,
+                account_id: d.account_id,
+                amount: d.amount,
+            })),
+        });
+
+        // 7. Aplicar nuevos saldos en cuentas reales
+        for (const detail of details) {
+            await tx.account.update({
+                where: { id: detail.account_id },
+                data: { balance: { increment: detail.amount } }
+            });
+        }
+
+        // 8. Crear nuevas asignaciones
+        await tx.budgetAllocation.createMany({
+            data: [
+                { closure_id: oldClosure.id, user_id: adminCtx.adminId, amount_allocated: merchandise_amount, category: BUDGET_CATEGORIES.MERCHANDISE },
+                { closure_id: oldClosure.id, user_id: adminCtx.adminId, amount_allocated: fixed_amount, category: BUDGET_CATEGORIES.FIXED_EXPENSES },
+                { closure_id: oldClosure.id, user_id: adminCtx.adminId, amount_allocated: saving_amount, category: BUDGET_CATEGORIES.SAVINGS },
+            ],
+        });
+
+        // 9. Aplicar nuevos saldos en bolsas virtuales
+        const categories = [
+            { name: BUDGET_CATEGORIES.MERCHANDISE, amount: merchandise_amount },
+            { name: BUDGET_CATEGORIES.FIXED_EXPENSES, amount: fixed_amount },
+            { name: BUDGET_CATEGORIES.SAVINGS, amount: saving_amount }
+        ];
+
+        for (const cat of categories) {
+            await tx.budgetBalance.upsert({
+                where: {
+                    user_id_category: { user_id: adminCtx.adminId, category: cat.name }
+                },
+                update: {
+                    balance: { increment: cat.amount }
+                },
+                create: {
+                    user_id: adminCtx.adminId,
+                    category: cat.name,
+                    balance: cat.amount
+                }
+            });
+        }
+
+        // 10. Registrar log de auditoría
+        await tx.auditLog.create({
+            data: {
+                user_id: user_id,
+                action: 'REGISTRAR_CIERRE',
+                details: `Editó el cierre de caja #${id} con un nuevo total de $${parseFloat(total_amount).toFixed(2)} (antes $${parseFloat(oldClosure.total_amount).toFixed(2)})`
+            }
+        });
+
+        return updatedClosure;
+    });
+
+    return result;
+};
+
+module.exports = { createClosure, getClosures, getClosureById, updateClosure };

@@ -1,41 +1,49 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import api from "@/api/api"
 
 /**
  * Hook centralizado para todos los datos del Dashboard.
- * Retorna: accounts, budgetBalances, upcomingExpenses, user, loading, error
+ * Retorna: accounts, budgetBalances, upcomingExpenses, incomeVsExpenses,
+ *          totalBalance, helpers, loading, error, refetch
  */
 export function useDashboard() {
   const [accounts, setAccounts] = useState([])
   const [budgetBalances, setBudgetBalances] = useState([])
   const [upcomingExpenses, setUpcomingExpenses] = useState([])
+  const [incomeVsExpenses, setIncomeVsExpenses] = useState([])
+  const [recentActivity, setRecentActivity] = useState([])
+  const [accountHistory, setAccountHistory] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    const fetchAll = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const [accountsRes, budgetRes, upcomingRes] = await Promise.all([
-          api.get("/accounts"),
-          api.get("/accounts/budget-balances"),
-          api.get("/expenses/upcoming"),
-        ])
-        setAccounts(accountsRes.data.data ?? [])
-        setBudgetBalances(budgetRes.data.data ?? [])
-        setUpcomingExpenses(upcomingRes.data ?? [])
-      } catch (err) {
-        setError(err.response?.data?.message || "Error al cargar los datos del panel")
-      } finally {
-        setLoading(false)
-      }
+  const fetchAll = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [accountsRes, budgetRes, upcomingRes, summaryRes] = await Promise.all([
+        api.get("/accounts"),
+        api.get("/accounts/budget-balances"),
+        api.get("/expenses/upcoming"),
+        api.get("/dashboard/summary"),
+      ])
+      setAccounts(accountsRes.data.data ?? [])
+      setBudgetBalances(budgetRes.data.data ?? [])
+      setUpcomingExpenses(upcomingRes.data ?? [])
+      setIncomeVsExpenses(summaryRes.data.incomeVsExpenses ?? [])
+      setRecentActivity(summaryRes.data.recentActivity ?? [])
+      setAccountHistory(summaryRes.data.accountHistory ?? null)
+    } catch (err) {
+      setError(err.response?.data?.message || "Error al cargar los datos del panel")
+    } finally {
+      setLoading(false)
     }
-
-    fetchAll()
   }, [])
 
-  // -- Derivados utiles para los componentes --
+  useEffect(() => {
+    fetchAll()
+  }, [fetchAll])
+
+  // -- Derivados útiles para los componentes --
 
   // Suma total de cuentas físicas
   const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0)
@@ -52,10 +60,14 @@ export function useDashboard() {
     accounts,
     budgetBalances,
     upcomingExpenses,
+    incomeVsExpenses,
+    recentActivity,
+    accountHistory,
     totalBalance,
     getAccountBalance,
     getBudgetBalance,
     loading,
     error,
+    refetch: fetchAll,
   }
 }

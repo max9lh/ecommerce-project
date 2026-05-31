@@ -126,10 +126,10 @@ export default function Employees() {
       {/* Tabla con listado */}
       {!loading && employees.length > 0 && (
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
                   <UserCheck className="size-5" />
                 </div>
                 <div>
