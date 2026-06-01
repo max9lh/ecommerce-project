@@ -7,199 +7,162 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================================
-// ENUMS
-// ============================================================
-
-enum Role {
-  ADMIN
-  EMPLOYEE
-}
-
-// ============================================================
-// CORE — Usuarios
-// ============================================================
-
 model User {
   id                 Int                 @id @default(autoincrement())
   username           String              @unique
   password_hash      String
-  role               Role                @default(EMPLOYEE)
-
-  // Porcentajes de distribución — solo relevantes para el ADMIN
   pct_merchandise    Decimal             @default(0.60) @db.Decimal(3, 2)
   pct_fixed_expenses Decimal             @default(0.30) @db.Decimal(3, 2)
   pct_savings        Decimal             @default(0.10) @db.Decimal(3, 2)
-
-  // Relaciones financieras (solo el ADMIN tendrá registros aquí)
-  accounts           Account[]
-  budget_balances    BudgetBalance[]
-  budget_allocations BudgetAllocation[]
-  providers          Provider[]
-
-  // Historial de operaciones — user_id guarda quién operó (trazabilidad)
-  daily_closures     DailyClosure[]
-  expenses           Expense[]
-  auditLogs          AuditLog[]
-
-  // Relaciones exclusivas del EMPLOYEE
-  employeeProfile    EmployeeProfile?
-  employeePermission EmployeePermission?
-  attendanceLogs     AttendanceLog[]
-
   created_at         DateTime            @default(now())
+  role               Role                @default(EMPLOYEE)
   deleted_at         DateTime?
+  accounts           Account[]
+  attendanceLogs     AttendanceLog[]
+  auditLogs          AuditLog[]
+  budget_allocations BudgetAllocation[]
+  budget_balances    BudgetBalance[]
+  daily_closures     DailyClosure[]
+  employeePermission EmployeePermission?
+  employeeProfile    EmployeeProfile?
+  expenses           Expense[]
+  providers          Provider[]
+  recurring_expenses RecurringExpense[]
 }
-
-// ============================================================
-// FINANCIERO — Cuentas físicas (solo del ADMIN)
-// ============================================================
 
 model Account {
   id                    Int                  @id @default(autoincrement())
   user_id               Int
-  user                  User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
   name                  String               @db.VarChar(20)
   balance               Decimal              @default(0.00) @db.Decimal(15, 2)
+  user                  User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
   daily_closure_details DailyClosureDetail[]
   expenses              Expense[]
 }
 
-// ============================================================
-// FINANCIERO — Bolsas virtuales de presupuesto (solo del ADMIN)
-// ============================================================
-
 model BudgetBalance {
   id       Int     @id @default(autoincrement())
   user_id  Int
-  user     User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
   category String  @db.VarChar(50)
   balance  Decimal @default(0.00) @db.Decimal(15, 2)
+  user     User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, category])
 }
 
-// ============================================================
-// OPERACIONES — Cierres de caja
-// user_id = quién operó (empleado o admin), no el dueño de las cuentas
-// ============================================================
-
 model DailyClosure {
   id                 Int                  @id @default(autoincrement())
   user_id            Int
-  user               User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
   total_amount       Decimal              @db.Decimal(15, 2)
   date               DateTime             @default(now())
-  details            DailyClosureDetail[]
   budget_allocations BudgetAllocation[]
+  user               User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  details            DailyClosureDetail[]
 }
 
 model DailyClosureDetail {
   id         Int          @id @default(autoincrement())
   closure_id Int
-  closure    DailyClosure @relation(fields: [closure_id], references: [id], onDelete: Cascade)
   account_id Int
-  account    Account      @relation(fields: [account_id], references: [id])
   amount     Decimal      @db.Decimal(15, 2)
+  account    Account      @relation(fields: [account_id], references: [id])
+  closure    DailyClosure @relation(fields: [closure_id], references: [id], onDelete: Cascade)
 }
 
 model BudgetAllocation {
   id               Int          @id @default(autoincrement())
   closure_id       Int
-  closure          DailyClosure @relation(fields: [closure_id], references: [id], onDelete: Cascade)
-  user_id          Int
-  user             User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
   category         String       @db.VarChar(50)
   amount_allocated Decimal      @db.Decimal(15, 2)
+  user_id          Int
+  closure          DailyClosure @relation(fields: [closure_id], references: [id], onDelete: Cascade)
+  user             User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
-
-// ============================================================
-// OPERACIONES — Proveedores y Gastos
-// user_id = quién registró/pagó el gasto (trazabilidad)
-// ============================================================
 
 model Provider {
   id                  Int       @id @default(autoincrement())
   user_id             Int
-  user                User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   name                String    @db.VarChar(100)
   payment_condition   String    @db.VarChar(20)
   credit_days         Int       @default(0)
   visible_to_employee Boolean   @default(true)
   expenses            Expense[]
+  user                User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model Expense {
   id              Int       @id @default(autoincrement())
   user_id         Int
-  user            User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   provider_id     Int
-  provider        Provider  @relation(fields: [provider_id], references: [id])
   account_id      Int
-  account         Account   @relation(fields: [account_id], references: [id])
   budget_category String    @db.VarChar(50)
   amount          Decimal   @db.Decimal(15, 2)
   status          String    @default("Pagado")
   due_date        DateTime?
-  paid_at         DateTime?
   created_at      DateTime  @default(now())
+  paid_at         DateTime?
   deleted_at      DateTime?
+  account         Account   @relation(fields: [account_id], references: [id])
+  provider        Provider  @relation(fields: [provider_id], references: [id])
+  user            User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
-
-// ============================================================
-// EMPLEADOS — Permisos (qué acciones puede hacer cada EMPLOYEE)
-// ============================================================
 
 model EmployeePermission {
   id                  Int     @id @default(autoincrement())
   user_id             Int     @unique
-  user                User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
   canRegisterClosures Boolean @default(false)
   canRegisterExpenses Boolean @default(false)
   canPayExpenses      Boolean @default(false)
   canManageProviders  Boolean @default(false)
+  user                User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
-
-// ============================================================
-// EMPLEADOS — Perfil de remuneración
-// ============================================================
 
 model EmployeeProfile {
   id             Int      @id @default(autoincrement())
   user_id        Int      @unique
-  user           User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  first_name     String   @db.VarChar(50)
-  last_name      String   @db.VarChar(50)
-  salary_type    String   @default("hourly") @db.VarChar(20) // "hourly" | "fixed"
+  salary_type    String   @default("hourly") @db.VarChar(20)
   hourly_rate    Decimal  @default(0.00) @db.Decimal(15, 2)
   monthly_salary Decimal? @db.Decimal(15, 2)
+  first_name     String   @db.VarChar(50)
+  last_name      String   @db.VarChar(50)
+  user           User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
-
-// ============================================================
-// EMPLEADOS — Registro de asistencia (cargado manualmente por el ADMIN)
-// ============================================================
 
 model AttendanceLog {
   id            Int       @id @default(autoincrement())
   employee_id   Int
-  employee      User      @relation(fields: [employee_id], references: [id], onDelete: Cascade)
   check_in      DateTime
   check_out     DateTime?
   hours_worked  Decimal?  @db.Decimal(5, 2)
   amount_earned Decimal?  @db.Decimal(15, 2)
   notes         String?   @db.VarChar(255)
   created_at    DateTime  @default(now())
+  employee      User      @relation(fields: [employee_id], references: [id], onDelete: Cascade)
 }
 
-// ============================================================
-// AUDITORÍA — Registro de acciones realizadas por usuarios
-// ============================================================
-
 model AuditLog {
-  id          Int      @id @default(autoincrement())
-  user_id     Int
-  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  action      String   @db.VarChar(100) // "REGISTRAR_CIERRE", "CREAR_PROVEEDOR", "PAGAR_EGRESO", "ELIMINAR_EGRESO", etc.
-  details     String   @db.Text
-  created_at  DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  action     String   @db.VarChar(100)
+  details    String
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model RecurringExpense {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  name       String   @db.VarChar(100)
+  amount     Decimal  @db.Decimal(15, 2)
+  due_day    Int
+  category   String   @default("Gastos Fijos") @db.VarChar(50)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  frequency  String   @default("monthly") @db.VarChar(20)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
 }

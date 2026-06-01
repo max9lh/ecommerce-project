@@ -81,7 +81,7 @@ export default function Closures() {
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-bold">{id ? "¡Cierre modificado!" : "¡Cierre registrado!"}</h2>
               <p className="text-sm text-muted-foreground max-w-xs">
-                Se {id ? "modificaron" : "registraron"} <span className="font-semibold text-foreground">${totalAmount.toLocaleString("es-AR")}</span> y 
+                Se {id ? "modificaron" : "registraron"} <span className="font-semibold text-foreground">${totalAmount.toLocaleString("es-AR")}</span> y
                 la distribución automática se aplicó correctamente.
               </p>
             </div>
@@ -227,11 +227,10 @@ export default function Closures() {
                 {/* Validación visual de la suma */}
                 {totalAmount > 0 && (
                   <div
-                    className={`flex items-center justify-between rounded-lg border px-4 py-3 text-sm transition-colors ${
-                      isValid
+                    className={`flex items-center justify-between rounded-lg border px-4 py-3 text-sm transition-colors ${isValid
                         ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
                         : "border-amber-500/30 bg-amber-500/5 text-amber-600 dark:text-amber-400"
-                    }`}
+                      }`}
                   >
                     <span>
                       Suma del desglose: <span className="font-semibold">${detailsSum.toLocaleString("es-AR")}</span>

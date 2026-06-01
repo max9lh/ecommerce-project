@@ -12,6 +12,9 @@ const adminRouter = require('./routes/admin.routes');
 const attendanceRouter = require('./routes/attendance.routes');
 const dashboardRouter = require('./routes/dashboard.routes');
 const reportsRouter = require('./routes/reports.routes');
+const projectionRouter = require('./routes/projection.routes');
+const recurringExpenseRouter = require('./routes/recurringExpense.routes');
+const payrollRouter = require('./routes/payroll.routes');
 const app = express();
 
 app.use(helmet());
@@ -33,6 +36,9 @@ app.use('/api/admin', adminRouter);
 app.use('/api/attendance', attendanceRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/projection', projectionRouter);
+app.use('/api/recurring-expenses', recurringExpenseRouter);
+app.use('/api/payroll', payrollRouter);
 
 // Error handler global (siempre al final)
 app.use(errorHandler);

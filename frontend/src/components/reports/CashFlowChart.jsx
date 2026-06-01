@@ -29,9 +29,9 @@ import { TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle2 } from 
  * Formatea un número como moneda local (pesos AR)
  */
 function formatCurrency(amount) {
-  return new Intl.NumberFormat("es-AR", {
+  return new Intl.NumberFormat("es-CL", {
     style: "currency",
-    currency: "ARS",
+    currency: "CLP",
     minimumFractionDigits: 0,
   }).format(amount)
 }

@@ -90,7 +90,6 @@ export default function ProvidersModule() {
     fetchProviders()
   }, [page])
 
-  // Reiniciar página cuando cambia la búsqueda
   useEffect(() => {
     setPage(1)
   }, [searchTerm])
