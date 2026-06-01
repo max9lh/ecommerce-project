@@ -65,21 +65,25 @@ export function AdminDashboard() {
           Icon={DollarSign}
         />
 
-        <AccountAreaCard
-          title="Cuenta Bancaria"
-          description="Saldo disponible en banco"
-          currentAmount={loading ? 0 : bankBalance}
-          chartData={accountHistory?.bank || []}
-          Icon={Landmark}
-        />
+        {(loading || bankBalance > 0) && (
+          <AccountAreaCard
+            title="Cuenta Bancaria"
+            description="Saldo disponible en banco"
+            currentAmount={loading ? 0 : bankBalance}
+            chartData={accountHistory?.bank || []}
+            Icon={Landmark}
+          />
+        )}
 
-        <AccountAreaCard
-          title="Efectivo (Caja)"
-          description="Dinero en caja física"
-          currentAmount={loading ? 0 : cashBalance}
-          chartData={accountHistory?.cash || []}
-          Icon={Wallet}
-        />
+        {(loading || cashBalance > 0) && (
+          <AccountAreaCard
+            title="Efectivo (Caja)"
+            description="Dinero en caja física"
+            currentAmount={loading ? 0 : cashBalance}
+            chartData={accountHistory?.cash || []}
+            Icon={Wallet}
+          />
+        )}
 
         <NewClosureCard />
       </div>
