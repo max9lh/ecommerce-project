@@ -10,6 +10,7 @@ import {
   CalendarClock,
   Sliders,
   ShieldAlert,
+  TrendingUp,
 } from "lucide-react"
 
 import { useAuth } from "@/context/AuthContext"
@@ -90,6 +91,12 @@ export function AppSidebar({ ...props }) {
         title: "Reportes",
         url: "/reportes",
         icon: LineChart,
+      })
+
+      items.push({
+        title: "Proyección",
+        url: "/proyeccion",
+        icon: TrendingUp,
       })
 
       items.push({

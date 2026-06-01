@@ -112,7 +112,7 @@ export default function ExpensesModule() {
             setModalError('Debes seleccionar un proveedor.');
             return;
         }
-        if (!createFormData.account_id) {
+        if (createFormData.status === 'Pagado' && !createFormData.account_id) {
             setModalError('Debes seleccionar una cuenta física.');
             return;
         }
@@ -730,23 +730,25 @@ export default function ExpensesModule() {
                                 </select>
                             </div>
 
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-semibold text-muted-foreground">Cuenta Física de Pago *</label>
-                                <select
-                                    required
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring focus:border-emerald-600 dark:border-border"
-                                    value={createFormData.account_id}
-                                    onChange={e => setCreateFormData({ ...createFormData, account_id: e.target.value })}
-                                >
-                                    {accounts.length === 0 ? (
-                                        <option value="">No hay cuentas registradas</option>
-                                    ) : (
-                                        accounts.map(a => (
-                                            <option key={a.id} value={a.id}>{a.name} (Saldo: ${parseFloat(a.balance).toLocaleString('es-AR', { minimumFractionDigits: 2 })})</option>
-                                        ))
-                                    )}
-                                </select>
-                            </div>
+                            {createFormData.status === 'Pagado' && (
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-muted-foreground">Cuenta Física de Pago *</label>
+                                    <select
+                                        required
+                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring focus:border-emerald-600 dark:border-border"
+                                        value={createFormData.account_id}
+                                        onChange={e => setCreateFormData({ ...createFormData, account_id: e.target.value })}
+                                    >
+                                        {accounts.length === 0 ? (
+                                            <option value="">No hay cuentas registradas</option>
+                                        ) : (
+                                            accounts.map(a => (
+                                                <option key={a.id} value={a.id}>{a.name} (Saldo: ${parseFloat(a.balance).toLocaleString('es-AR', { minimumFractionDigits: 2 })})</option>
+                                            ))
+                                        )}
+                                    </select>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1.5">

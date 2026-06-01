@@ -250,7 +250,7 @@ export default function PayExpense() {
                             {expense.budget_category}
                           </Badge>
                           <span>·</span>
-                          <span>Vence: {dDate.toLocaleDateString("es-AR")}</span>
+                          <span>Vence: {dDate.toLocaleDateString("es-CL")}</span>
                           <span
                             className={`font-semibold ${
                               isUrgent ? "text-red-500 animate-pulse" : "text-amber-500"
@@ -270,8 +270,8 @@ export default function PayExpense() {
                     <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 border-t sm:border-none pt-2.5 sm:pt-0">
                       <span className="font-mono text-base font-bold text-foreground">
                         $
-                        {parseFloat(expense.amount).toLocaleString("es-AR", {
-                          minimumFractionDigits: 2,
+                        {parseFloat(expense.amount).toLocaleString("es-CL", {
+                          minimumFractionDigits: 0,
                         })}
                       </span>
                       <Button
@@ -319,8 +319,8 @@ export default function PayExpense() {
                   <span className="text-muted-foreground text-xs">Monto Total:</span>{" "}
                   <span className="font-bold text-red-500">
                     $
-                    {parseFloat(selectedExpense.amount).toLocaleString("es-AR", {
-                      minimumFractionDigits: 2,
+                    {parseFloat(selectedExpense.amount).toLocaleString("es-CL", {
+                      minimumFractionDigits: 0,
                     })}
                   </span>
                 </p>
@@ -343,7 +343,7 @@ export default function PayExpense() {
                   ) : (
                     accounts.map((a) => (
                       <option key={a.id} value={a.id}>
-                        {a.name} (Saldo: ${Number(a.balance).toLocaleString("es-AR")})
+                        {a.name} (Saldo: ${Number(a.balance).toLocaleString("es-CL")})
                       </option>
                     ))
                   )}

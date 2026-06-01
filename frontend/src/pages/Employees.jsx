@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Loader2,
   Plus,
@@ -19,6 +20,7 @@ import {
   UserX,
   DollarSign,
   Key,
+  MoreVertical,
 } from "lucide-react"
 
 // Componentes modulares
@@ -227,8 +229,8 @@ export default function Employees() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {/* Modificar perfil */}
+                          {/* Vista Desktop: Botones de acción directos */}
+                          <div className="hidden md:flex items-center justify-end gap-2">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -241,7 +243,6 @@ export default function Employees() {
                               <DollarSign className="size-4" />
                             </Button>
 
-                            {/* Modificar permisos */}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -254,7 +255,6 @@ export default function Employees() {
                               <Key className="size-4" />
                             </Button>
 
-                            {/* Eliminar */}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -267,6 +267,48 @@ export default function Employees() {
                             >
                               <Trash2 className="size-4" />
                             </Button>
+                          </div>
+
+                          {/* Vista Mobile: Menú desplegable con tres puntos verticales */}
+                          <div className="md:hidden flex justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="size-8">
+                                  <MoreVertical className="size-4" />
+                                  <span className="sr-only">Acciones</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedEmp(emp)
+                                    setEditProfileOpen(true)
+                                  }}
+                                >
+                                  <DollarSign className="size-4 mr-2" />
+                                  Editar Remuneración
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedEmp(emp)
+                                    setEditPermissionsOpen(true)
+                                  }}
+                                >
+                                  <Key className="size-4 mr-2" />
+                                  Modificar Permisos
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => {
+                                    setSelectedEmp(emp)
+                                    setDeleteOpen(true)
+                                  }}
+                                >
+                                  <Trash2 className="size-4 mr-2" />
+                                  Eliminar Empleado
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>

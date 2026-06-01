@@ -25,6 +25,7 @@ import {
   ShieldAlert,
   Trash2,
   Edit,
+  SlidersHorizontal,
 } from "lucide-react"
 
 // Modales Modularizados
@@ -52,6 +53,7 @@ export default function AttendanceAdmin() {
   const [filterEmployeeId, setFilterEmployeeId] = useState("")
   const [filterFrom, setFilterFrom] = useState("")
   const [filterTo, setFilterTo] = useState("")
+  const [showFilters, setShowFilters] = useState(false)
 
   // --- Form Carga Turno ---
   const [createForm, setCreateForm] = useState({
@@ -363,59 +365,77 @@ export default function AttendanceAdmin() {
 
           {/* Tabla de registros */}
           <div className="lg:col-span-2 space-y-4">
-            {/* Filtros de historial */}
-            <Card>
-              <CardContent className="py-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="f-employee" className="text-xs">Filtrar Empleado</Label>
-                  <select
-                    id="f-employee"
-                    className="w-full rounded-md border bg-background px-3 py-1.5 text-xs focus:outline-none"
-                    value={filterEmployeeId}
-                    onChange={(e) => setFilterEmployeeId(e.target.value)}
-                  >
-                    <option value="">Todos los empleados</option>
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.employeeProfile?.first_name} {emp.employeeProfile?.last_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="f-from" className="text-xs">Desde</Label>
-                  <Input
-                    id="f-from"
-                    type="date"
-                    className="h-8 text-xs"
-                    value={filterFrom}
-                    onChange={(e) => setFilterFrom(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="f-to" className="text-xs">Hasta</Label>
-                  <Input
-                    id="f-to"
-                    type="date"
-                    className="h-8 text-xs"
-                    value={filterTo}
-                    onChange={(e) => setFilterTo(e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Listado */}
             <Card>
               <CardHeader className="py-4">
-                <CardTitle className="text-base flex items-center justify-between">
-                  <span>Listado de Turnos</span>
-                  <span className="text-xs text-muted-foreground font-normal">
-                    {attendanceLogs.length} turnos encontrados
-                  </span>
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-base flex items-center gap-1.5">
+                      <Clock className="size-4 text-primary" />
+                      Listado de Turnos
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      {attendanceLogs.length} turnos encontrados
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="gap-1.5 h-8 text-xs font-semibold px-2.5 border-dashed"
+                  >
+                    <SlidersHorizontal className="size-3.5" />
+                    {showFilters ? "Ocultar Filtros" : "Filtrar"}
+                    {(filterEmployeeId || filterFrom || filterTo) && (
+                      <span className="size-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                    )}
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent className="p-0 sm:px-6 pb-6">
+
+              {/* Filtros de historial (integrado dentro de la tarjeta) */}
+              {showFilters && (
+                <div className="border-t border-b border-muted/50 bg-slate-50/30 dark:bg-slate-900/5 px-6 py-4 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-1.5 duration-200">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="f-employee" className="text-xs font-semibold">Filtrar Empleado</Label>
+                    <select
+                      id="f-employee"
+                      className="w-full rounded-md border bg-background px-3 py-1.5 text-xs focus:outline-none"
+                      value={filterEmployeeId}
+                      onChange={(e) => setFilterEmployeeId(e.target.value)}
+                    >
+                      <option value="">Todos los empleados</option>
+                      {employees.map((emp) => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.employeeProfile?.first_name} {emp.employeeProfile?.last_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="f-from" className="text-xs font-semibold">Desde</Label>
+                    <Input
+                      id="f-from"
+                      type="date"
+                      className="h-8 text-xs"
+                      value={filterFrom}
+                      onChange={(e) => setFilterFrom(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="f-to" className="text-xs font-semibold">Hasta</Label>
+                    <Input
+                      id="f-to"
+                      type="date"
+                      className="h-8 text-xs"
+                      value={filterTo}
+                      onChange={(e) => setFilterTo(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <CardContent className="p-0 sm:px-6 pb-6 pt-4">
                 {loadingLogs ? (
                   <div className="flex items-center justify-center py-16">
                     <Loader2 className="size-8 animate-spin text-muted-foreground" />

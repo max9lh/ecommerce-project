@@ -15,6 +15,7 @@ import { ProtectedRoute } from './components/protected-route';
 import DistributionSettings from './pages/admin/DistributionSettings';
 import AuditLogs from './pages/admin/AuditLogs';
 import Reports from './pages/admin/Reports';
+import ProjectionChart from './pages/admin/ProjectionChart';
 import './App.css';
 
 function App() {
@@ -127,6 +128,16 @@ function App() {
               <ProtectedRoute requiredRole="ADMIN">
                 <DashboardLayout>
                   <Reports />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/proyeccion"
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <DashboardLayout>
+                  <ProjectionChart />
                 </DashboardLayout>
               </ProtectedRoute>
             }

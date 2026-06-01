@@ -38,10 +38,10 @@ const registerSchema = z.object({
 
 const loginSchema = z.object({
     username: z.string()
-        .min(6, 'El usuario debe tener al menos 6 caracteres')
-        .max(20, 'El usuario no puede tener más de 20 caracteres'),
+        .min(6, 'Usuario o contraseña incorrectos')
+        .max(20, 'Usuario o contraseña incorrectos'),
     password: z.string()
-        .min(8, 'La contraseña debe tener al menos 8 caracteres'),
+        .min(8, 'Usuario o contraseña incorrectos'),
 });
 
 const dailyClosureSchema = z.object({
