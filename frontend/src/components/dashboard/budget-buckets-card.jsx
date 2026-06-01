@@ -158,7 +158,7 @@ export function BudgetBucketsCard({
   })
 }
 
-if (totalBalance < totalAllocatedInBudgets) {
+if (totalAllocatedInBudgets - totalBalance > 1)  {
   const realGap = totalAllocatedInBudgets - totalBalance
   recommendations.unshift({
     title: "Descalce de Caja",
