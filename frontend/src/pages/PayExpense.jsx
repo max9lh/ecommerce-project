@@ -261,7 +261,7 @@ export default function PayExpense() {
                               : diffDays === 1
                               ? "¡Mañana!"
                               : diffDays < 0
-                              ? "Vencido"
+                              ? `Venció hace ${Math.abs(diffDays)} días`
                               : `en ${diffDays} días`})
                           </span>
                         </p>

@@ -93,16 +93,15 @@ const registerAdvance = async ({ employeeUserId, amount, userId, accountId }) =>
             throw error;
         }
 
-        // Verificar bolsa de Gastos Fijos
         const budget = await tx.budgetBalance.findUnique({
             where: {
                 user_id_category: { user_id: adminCtx.adminId, category: BUDGET_CATEGORIES.FIXED_EXPENSES }
             }
         });
 
-        if (!budget || new Decimal(budget.balance.toString()).lt(advanceAmount)) {
-            const error = new Error('Saldo insuficiente en la bolsa de Gastos Fijos');
-            error.statusCode = 400;
+        if (!budget) {
+            const error = new Error('La bolsa de Gastos Fijos no existe');
+            error.statusCode = 404;
             throw error;
         }
 

@@ -8,6 +8,23 @@ const createExpense = async (userId, expenseData) => {
     return await prisma.$transaction(async (tx) => {
         const adminCtx = await getAdminContext();
 
+        const provider = await tx.provider.findUnique({
+            where: { id: parseInt(provider_id, 10) }
+        });
+        if (!provider) {
+            const error = new Error('El proveedor seleccionado no existe');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const finalStatus = status || STATUS_AMOUNT.PENDING;
+
+        if (finalStatus === STATUS_AMOUNT.PENDING && provider.payment_condition === 'Contado') {
+            const error = new Error('Este proveedor no acepta crédito. El egreso debe registrarse como Pagado.');
+            error.statusCode = 400;
+            throw error;
+        }
+
         const budget = await tx.budgetBalance.findUnique({
             where: {
                 user_id_category: { user_id: adminCtx.adminId, category: budget_category }
@@ -18,8 +35,6 @@ const createExpense = async (userId, expenseData) => {
             error.statusCode = 404;
             throw error;
         }
-
-        const finalStatus = status || STATUS_AMOUNT.PENDING;
 
         if (finalStatus === STATUS_AMOUNT.PAID) {
             const account = await tx.account.findUnique({
@@ -33,11 +48,6 @@ const createExpense = async (userId, expenseData) => {
             }
             if (Number(account.balance) < Number(amount)) {
                 const error = new Error('Saldo insuficiente en la cuenta física seleccionada');
-                error.statusCode = 400;
-                throw error;
-            }
-            if (Number(budget.balance) < Number(amount)) {
-                const error = new Error(`Saldo insuficiente en la bolsa virtual de "${budget_category}"`);
                 error.statusCode = 400;
                 throw error;
             }
@@ -125,12 +135,6 @@ const payExpense = async (userId, expenseId, overrideAccountId = null) => {
 
         if (Number(account.balance) < Number(expense.amount)) {
             const error = new Error('Saldo insuficiente en la cuenta física');
-            error.statusCode = 400;
-            throw error;
-        }
-
-        if (Number(budget.balance) < Number(expense.amount)) {
-            const error = new Error(`Saldo insuficiente en la bolsa virtual de "${expense.budget_category}"`);
             error.statusCode = 400;
             throw error;
         }
