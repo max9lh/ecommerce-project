@@ -65,24 +65,8 @@ const providerSchema = z.object({
     payment_condition: z.enum(paymentConditionValues, {
         errorMap: () => ({ message: 'Condición de pago inválida' })
     }),
-    credit_days: z.number().int().nonnegative('La cantidad de días debe ser mayor o igual a 0').default(0),
+    credit_days: z.number().int().nonnegative('La cantidad de días debe ser mayor o igual a 0').default(0).optional(),
     visible_to_employee: z.boolean().optional().default(true),
-}).refine((data) => {
-    if (data.payment_condition === STATUS_AMOUNT.PENDING || data.payment_condition === 'Credito') {
-        return data.credit_days > 0;
-    }
-    return true;
-}, {
-    message: 'Los proveedores a crédito deben tener una cantidad de días de crédito mayor a 0',
-    path: ['credit_days'],
-}).refine((data) => {
-    if (data.payment_condition === 'Contado') {
-        return data.credit_days === 0;
-    }
-    return true;
-}, {
-    message: 'Los proveedores con pago al contado deben tener 0 días de crédito',
-    path: ['credit_days'],
 });
 
 const expensesSchema = z.object({

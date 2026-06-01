@@ -93,10 +93,9 @@ const generateProjection = async ({ userId, days = 30, basePeriodDays = 14, safe
     const baseDailyIncome = totalIncome.div(periodDays);
 
     // ── 3. Recopilar gastos ──
-    // 3a. Gastos pendientes del mes actual (Expense con status: Pendiente)
+    // 3a. Gastos pendientes desde hoy hasta el límite de la proyección
     const today = toUTCMidnight(now);
-    const currentMonthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
-    const currentMonthEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0, 23, 59, 59));
+    const projectionEndDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + days));
 
     const pendingExpenses = await prisma.expense.findMany({
         where: {
@@ -104,10 +103,12 @@ const generateProjection = async ({ userId, days = 30, basePeriodDays = 14, safe
             deleted_at: null,
             due_date: {
                 gte: today,
-                lte: currentMonthEnd
+                lte: projectionEndDate
             }
         },
-        select: { amount: true, due_date: true, budget_category: true }
+        include: {
+            provider: { select: { name: true } }
+        }
     });
 
     // 3b. Gastos recurrentes activos
@@ -116,7 +117,7 @@ const generateProjection = async ({ userId, days = 30, basePeriodDays = 14, safe
             user_id: adminCtx.adminId,
             is_active: true
         },
-        select: { name: true, amount: true, due_day: true, category: true }
+        select: { name: true, amount: true, due_day: true, category: true, frequency: true }
     });
 
     // ── 4. Generar proyección día por día ──
@@ -150,40 +151,41 @@ const generateProjection = async ({ userId, days = 30, basePeriodDays = 14, safe
 
         let dayExpenses = [];
 
-        if (isCurrentMonth) {
-            // Mes actual: solo Expense pendientes reales con due_date en este día
-            dayExpenses = pendingExpenses
-                .filter(exp => {
-                    const expDate = toUTCMidnight(new Date(exp.due_date));
-                    return expDate.getTime() === date.getTime();
-                })
-                .map(exp => ({
-                    name: exp.budget_category,
-                    amount: new Decimal(exp.amount.toString()),
-                    category: exp.budget_category
-                }));
-        } else {
-            // Meses futuros: calcular desde RecurringExpense usando due_day y frequency
-            dayExpenses = recurringExpenses
-                .filter(re => {
-                    if (re.frequency === 'weekly') {
-                        // re.due_day representa el día de la semana (0 = Domingo, 1 = Lunes, etc.)
-                        const dayOfWeek = date.getUTCDay();
-                        return re.due_day === dayOfWeek;
-                    } else {
-                        // Mensual
-                        if (re.due_day === dateDay) return true;
-                        // Si due_day > último día del mes y es el último día → incluir
-                        if (re.due_day > lastDay && isLastDay) return true;
-                        return false;
-                    }
-                })
-                .map(re => ({
-                    name: re.name,
-                    amount: new Decimal(re.amount.toString()),
-                    category: re.category
-                }));
-        }
+        // Gastos pendientes reales programados para este día
+        const realExpensesForDay = pendingExpenses
+            .filter(exp => {
+                const expDate = toUTCMidnight(new Date(exp.due_date));
+                return expDate.getTime() === date.getTime();
+            })
+            .map(exp => ({
+                name: exp.provider ? `${exp.provider.name} (Pendiente)` : `${exp.budget_category} (Pendiente)`,
+                amount: new Decimal(exp.amount.toString()),
+                category: exp.budget_category
+            }));
+
+        // Gastos recurrentes simulados para este día
+        const simExpensesForDay = recurringExpenses
+            .filter(re => {
+                if (re.frequency === 'weekly') {
+                    // re.due_day representa el día de la semana (0 = Domingo, 1 = Lunes, etc.)
+                    const dayOfWeek = date.getUTCDay();
+                    return re.due_day === dayOfWeek;
+                } else {
+                    // Mensual
+                    if (re.due_day === dateDay) return true;
+                    // Si due_day > último día del mes y es el último día → incluir
+                    if (re.due_day > lastDay && isLastDay) return true;
+                    return false;
+                }
+            })
+            .map(re => ({
+                name: `${re.name} (Recurrente)`,
+                amount: new Decimal(re.amount.toString()),
+                category: re.category
+            }));
+
+        // Unimos ambos tipos de gastos para la proyección diaria
+        dayExpenses = [...realExpensesForDay, ...simExpensesForDay];
 
         expensesByDate.set(dateKey, dayExpenses);
     }

@@ -234,16 +234,24 @@ export default function NewExpense() {
                       required
                       className="w-full rounded-md border border-input bg-background px-3 py-2.5 pl-10 text-sm focus:outline-none focus:ring-1 focus:ring-ring focus:border-amber-500 dark:border-border"
                       value={formData.provider_id}
-                      onChange={(e) =>
-                        setFormData({ ...formData, provider_id: e.target.value })
-                      }
+                      onChange={(e) => {
+                        const provId = e.target.value
+                        const prov = providers.find((p) => String(p.id) === provId)
+                        const canCredit = prov ? (prov.payment_condition === "Credito" || prov.payment_condition === "Crédito") : false
+                        setFormData((prev) => ({
+                          ...prev,
+                          provider_id: provId,
+                          status: !canCredit ? "Pagado" : prev.status,
+                          due_date: !canCredit ? "" : prev.due_date,
+                        }))
+                      }}
                     >
                       {providers.length === 0 ? (
                         <option value="">No hay proveedores registrados</option>
                       ) : (
                         providers.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.name} ({p.payment_condition})
+                            {p.name} ({p.payment_condition === "Credito" || p.payment_condition === "Crédito" ? "Crédito" : "Contado"})
                           </option>
                         ))
                       )}
@@ -339,8 +347,20 @@ export default function NewExpense() {
                         })
                       }
                     >
-                      <option value="Pagado">Pagado (Débito Inmediato)</option>
-                      <option value="Pendiente">Pendiente (A pagar / Crédito)</option>
+                      {(() => {
+                        const selectedProvider = providers.find((p) => String(p.id) === formData.provider_id)
+                        const acceptsCredit = selectedProvider 
+                          ? (selectedProvider.payment_condition === "Credito" || selectedProvider.payment_condition === "Crédito")
+                          : false
+                        return (
+                          <>
+                            <option value="Pagado">Pagado (Débito Inmediato)</option>
+                            <option value="Pendiente" disabled={!acceptsCredit}>
+                              Pendiente (A pagar / Crédito) {!acceptsCredit && " - No acepta crédito"}
+                            </option>
+                          </>
+                        )
+                      })()}
                     </select>
                   </Field>
 

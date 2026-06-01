@@ -107,7 +107,7 @@ export default function ProvidersModule() {
     const payload = {
       name: formData.name,
       payment_condition: conditionClean,
-      credit_days: conditionClean === "Credito" ? Number(formData.credit_days) : 0,
+      credit_days: 0,
       visible_to_employee: formData.visible_to_employee,
     }
 
@@ -260,8 +260,8 @@ export default function ProvidersModule() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre Comercial</TableHead>
-                  <TableHead>Condición de Pago</TableHead>
-                  <TableHead>Días de Crédito</TableHead>
+                  <TableHead>¿Acepta Crédito?</TableHead>
+                  <TableHead>¿Visible para Empleados?</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -285,11 +285,6 @@ export default function ProvidersModule() {
                             <span className={isEliminated ? 'text-muted-foreground line-through' : ''}>
                               {displayName}
                             </span>
-                            {!p.visible_to_employee && !isEliminated && (
-                              <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                                Oculto para empleados
-                              </span>
-                            )}
                             {isEliminated && (
                               <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-900/50">
                                 Eliminado
@@ -299,21 +294,26 @@ export default function ProvidersModule() {
                         </TableCell>
                         <TableCell>
                           <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${p.payment_condition === "Credito"
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${p.payment_condition === "Credito" || p.payment_condition === "Crédito"
                               ? "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800"
                               : "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
                               }`}
                           >
-                            {p.payment_condition === "Credito" ? "Crédito" : "Contado"}
+                            {p.payment_condition === "Credito" || p.payment_condition === "Crédito" ? "Sí" : "No"}
                           </span>
                         </TableCell>
+
                         <TableCell>
-                          {p.payment_condition === "Credito" ? (
-                            <span className="font-mono tabular-nums">{p.credit_days} días</span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${p.payment_condition === "Credito" || p.payment_condition === "Crédito"
+                              ? "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800"
+                              : "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                              }`}
+                          >
+                            {p.visible_to_employee ? "Sí" : "No"}
+                          </span>
                         </TableCell>
+
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <Button
@@ -424,12 +424,12 @@ export default function ProvidersModule() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="p-condition">Condición de Pago</Label>
+              <Label htmlFor="p-condition">¿Acepta Crédito?</Label>
               <select
                 id="p-condition"
                 required
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none"
-                value={formData.payment_condition === "Crédito" ? "Credito" : formData.payment_condition}
+                value={formData.payment_condition === "Crédito" || formData.payment_condition === "Credito" ? "Credito" : "Contado"}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
@@ -438,27 +438,12 @@ export default function ProvidersModule() {
                   }))
                 }
               >
-                <option value="Contado">Contado</option>
-                <option value="Credito">Crédito</option>
+                <option value="Contado">No</option>
+                <option value="Credito">Sí</option>
               </select>
             </div>
 
-            {(formData.payment_condition === "Credito" || formData.payment_condition === "Crédito") && (
-              <div className="space-y-1.5">
-                <Label htmlFor="p-days">Días de Crédito</Label>
-                <Input
-                  id="p-days"
-                  type="number"
-                  required
-                  min={1}
-                  placeholder="Ej: 30"
-                  value={formData.credit_days === 0 ? "" : formData.credit_days}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, credit_days: parseInt(e.target.value) || 0 }))
-                  }
-                />
-              </div>
-            )}
+
 
             <div className="flex items-center gap-2 pt-1 bg-muted/20 border border-border/40 rounded-lg p-2.5">
               <input

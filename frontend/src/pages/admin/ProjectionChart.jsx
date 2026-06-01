@@ -13,7 +13,8 @@ import {
 } from 'recharts';
 import {
   TrendingUp, TrendingDown, DollarSign, Calendar, AlertTriangle, ShieldCheck,
-  Settings2, Plus, Trash2, Edit2, Loader2, Info, ArrowRight, Activity
+  Settings2, Plus, Trash2, Edit2, Loader2, Info, ArrowRight, Activity,
+  ShoppingCart, Wrench, PiggyBank
 } from 'lucide-react';
 
 export default function ProjectionChart() {
@@ -26,6 +27,7 @@ export default function ProjectionChart() {
 
   // Estados de datos
   const [projectionData, setProjectionData] = useState(null);
+  const [budgetBalances, setBudgetBalances] = useState([]);
   const [loadingProjection, setLoadingProjection] = useState(true);
   const [errorProjection, setErrorProjection] = useState(null);
 
@@ -107,7 +109,19 @@ export default function ProjectionChart() {
 
   useEffect(() => {
     fetchRecurringExpenses();
+    fetchBudgetBalances();
   }, []);
+
+  const fetchBudgetBalances = async () => {
+    try {
+      const res = await api.get('/accounts/budget-balances');
+      if (res.data && res.data.data) {
+        setBudgetBalances(res.data.data);
+      }
+    } catch (err) {
+      console.error('Error al obtener bolsas de presupuesto:', err);
+    }
+  };
 
   // CRUD Gastos Recurrentes
   const handleOpenCreateRecurring = () => {
@@ -541,15 +555,44 @@ export default function ProjectionChart() {
                   </div>
                 </div>
 
-                {/* Safe Spending Capacity */}
-                <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-center">
-                  <span className="text-xs font-semibold text-emerald-500 uppercase tracking-wider block">Capacidad de Compra Segura</span>
-                  <span className="text-2xl font-bold text-emerald-400 font-mono block mt-1">
-                    {formatCurrency(projectionData.safeSpendingCapacity)}
+                {/* Bolsas de Presupuesto */}
+                <div className="space-y-2.5">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block text-center mb-1">
+                    Fondos en Bolsas de Presupuesto
                   </span>
-                  <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
-                    Es el monto máximo que podés gastar hoy sin arriesgar que la proyección realistic quiebre tu safety buffer.
-                  </p>
+                  
+                  {['Mercadería', 'Gastos Fijos', 'Ahorro'].map((cat) => {
+                    const balObj = budgetBalances.find(b => b.category === cat || (cat === 'Ahorro' && b.category === 'Ahorros'));
+                    const bal = balObj ? Number(balObj.balance) : 0;
+                    
+                    let bgCol = "bg-chart-1/10 text-chart-1 border-chart-1/25";
+                    let label = "Mercadería";
+                    let Icon = ShoppingCart;
+                    
+                    if (cat === 'Gastos Fijos') {
+                      bgCol = "bg-chart-2/10 text-chart-2 border-chart-2/25";
+                      label = "Gastos Fijos";
+                      Icon = Wrench;
+                    } else if (cat === 'Ahorro') {
+                      bgCol = "bg-chart-3/10 text-chart-3 border-chart-3/25";
+                      label = "Ahorro";
+                      Icon = PiggyBank;
+                    }
+                    
+                    return (
+                      <div key={cat} className={`flex items-center justify-between p-3 rounded-xl border ${bgCol} bg-background/40 backdrop-blur-xs`}>
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex size-7 items-center justify-center rounded-lg bg-current/10">
+                            <Icon className="size-4" />
+                          </div>
+                          <span className="text-xs font-bold text-foreground">{label}</span>
+                        </div>
+                        <span className="font-mono text-sm font-bold">
+                          {formatCurrency(bal)}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Día de Colapso */}

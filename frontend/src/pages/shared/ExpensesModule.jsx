@@ -370,7 +370,7 @@ export default function ExpensesModule() {
                                                 <p className="text-xs text-muted-foreground">
                                                     {expense.budget_category} · Vence {dDate.toLocaleDateString('es-AR')}
                                                     <span className={`ml-1.5 font-semibold ${isUrgent ? 'text-red-500 animate-pulse' : 'text-amber-500'}`}>
-                                                        ({diffDays === 0 ? '¡Hoy!' : diffDays === 1 ? '¡Mañana!' : diffDays < 0 ? 'Vencido' : `en ${diffDays} días`})
+                                                        ({diffDays === 0 ? '¡Hoy!' : diffDays === 1 ? '¡Mañana!' : diffDays < 0 ? `Venció hace ${Math.abs(diffDays)} días` : `en ${diffDays} días`})
                                                     </span>
                                                 </p>
                                             </div>
@@ -718,13 +718,23 @@ export default function ExpensesModule() {
                                     required
                                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring focus:border-emerald-600 dark:border-border"
                                     value={createFormData.provider_id}
-                                    onChange={e => setCreateFormData({ ...createFormData, provider_id: e.target.value })}
+                                    onChange={e => {
+                                        const provId = e.target.value;
+                                        const prov = providers.find(p => String(p.id) === provId);
+                                        const canCredit = prov ? (prov.payment_condition === "Credito" || prov.payment_condition === "Crédito") : false;
+                                        setCreateFormData(prev => ({
+                                            ...prev,
+                                            provider_id: provId,
+                                            status: !canCredit ? 'Pagado' : prev.status,
+                                            due_date: !canCredit ? '' : prev.due_date
+                                        }));
+                                    }}
                                 >
                                     {providers.length === 0 ? (
                                         <option value="">No hay proveedores registrados</option>
                                     ) : (
                                         providers.map(p => (
-                                            <option key={p.id} value={p.id}>{p.name} ({p.payment_condition})</option>
+                                            <option key={p.id} value={p.id}>{p.name} ({p.payment_condition === "Credito" || p.payment_condition === "Crédito" ? "Crédito" : "Contado"})</option>
                                         ))
                                     )}
                                 </select>
@@ -787,8 +797,20 @@ export default function ExpensesModule() {
                                         value={createFormData.status}
                                         onChange={e => setCreateFormData({ ...createFormData, status: e.target.value, due_date: e.target.value === 'Pagado' ? '' : createFormData.due_date })}
                                     >
-                                        <option value="Pagado">Pagado</option>
-                                        <option value="Pendiente">Pendiente</option>
+                                        {(() => {
+                                            const selectedProvider = providers.find(p => String(p.id) === createFormData.provider_id);
+                                            const acceptsCredit = selectedProvider 
+                                                ? (selectedProvider.payment_condition === "Credito" || selectedProvider.payment_condition === "Crédito")
+                                                : false;
+                                            return (
+                                                <>
+                                                    <option value="Pagado">Pagado</option>
+                                                    <option value="Pendiente" disabled={!acceptsCredit}>
+                                                        Pendiente {!acceptsCredit && " (No acepta crédito)"}
+                                                    </option>
+                                                </>
+                                            );
+                                        })()}
                                     </select>
                                 </div>
 
