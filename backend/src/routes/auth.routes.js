@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { register, login, updatePercentages } = require('../controllers/auth.controller');
+const { register, login, refreshToken, updatePercentages } = require('../controllers/auth.controller');
 const { validate, registerSchema, loginSchema, updatePercentagesSchema } = require('../utils/schemas');
 const authGuard = require('../middlewares/authGuard');
 
@@ -9,6 +9,8 @@ const router = Router();
 router.post('/register', validate(registerSchema), register);
 
 router.post('/login', validate(loginSchema), login);
+
+router.post('/refresh', refreshToken);
 
 router.put('/percentages', authGuard, validate(updatePercentagesSchema), updatePercentages);
 

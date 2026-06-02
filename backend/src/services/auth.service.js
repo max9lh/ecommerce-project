@@ -118,8 +118,16 @@ const login = async ({ username, password }) => {
     }
 
     const JWT_SECRET = process.env.JWT_SECRET;
-    const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+    const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m'; // Short lived access token
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+    const REFRESH_SECRET = process.env.REFRESH_SECRET || (JWT_SECRET + "_refresh");
+    const refresh_token = jwt.sign({ id: user.id }, REFRESH_SECRET, { expiresIn: '7d' });
+
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { refresh_token }
+    });
 
     return {
         user: {
@@ -128,10 +136,84 @@ const login = async ({ username, password }) => {
             role: user.role,
         },
         token,
+        refresh_token,
+    };
+}
+
+const refreshTokens = async (refreshTokenStr) => {
+    if (!refreshTokenStr) {
+        const error = new Error('Refresh token requerido');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    const JWT_SECRET = process.env.JWT_SECRET;
+    const REFRESH_SECRET = process.env.REFRESH_SECRET || (JWT_SECRET + "_refresh");
+    let decoded;
+    try {
+        decoded = jwt.verify(refreshTokenStr, REFRESH_SECRET);
+    } catch (err) {
+        const error = new Error('Refresh token inválido o expirado');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    const user = await prisma.user.findFirst({
+        where: { id: decoded.id, refresh_token: refreshTokenStr, deleted_at: null },
+        include: { employeePermission: true }
+    });
+
+    if (!user) {
+        const error = new Error('Refresh token revocado o usuario inválido');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    const payload = {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+    };
+
+    if (user.role === 'EMPLOYEE' && user.employeePermission) {
+        payload.permissions = {
+            canRegisterClosures: user.employeePermission.canRegisterClosures,
+            canRegisterExpenses: user.employeePermission.canRegisterExpenses,
+            canPayExpenses: user.employeePermission.canPayExpenses,
+            canManageProviders: user.employeePermission.canManageProviders
+        };
+    }
+
+    const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
+    const newToken = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    const newRefreshToken = jwt.sign({ id: user.id }, REFRESH_SECRET, { expiresIn: '7d' });
+
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { refresh_token: newRefreshToken }
+    });
+
+    return {
+        token: newToken,
+        refresh_token: newRefreshToken
     };
 }
 
 const updatePercentages = async ({ userId, pct_merchandise, pct_fixed_expenses, pct_savings }) => {
+    const total = parseFloat(pct_merchandise) + parseFloat(pct_fixed_expenses) + parseFloat(pct_savings);
+
+    if (Math.abs(total - 1.0) > 0.01) { // Permite 1% de error de redondeo
+        const error = new Error(`Los porcentajes deben sumar 100% (actual: ${(total * 100).toFixed(2)}%)`);
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (pct_merchandise < 0 || pct_fixed_expenses < 0 || pct_savings < 0) {
+        const error = new Error('Los porcentajes no pueden ser negativos');
+        error.statusCode = 400;
+        throw error;
+    }
+
     const updatedUser = await prisma.user.update({
         where: { id: userId },
         data: { pct_merchandise, pct_fixed_expenses, pct_savings },
@@ -146,4 +228,4 @@ const updatePercentages = async ({ userId, pct_merchandise, pct_fixed_expenses, 
     return updatedUser;
 }
 
-module.exports = { register, login, updatePercentages };
+module.exports = { register, login, refreshTokens, updatePercentages };

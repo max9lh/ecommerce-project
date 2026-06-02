@@ -1,46 +1,61 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react"
 import { parseJwt, isTokenExpired } from "@/utils/parseJwt"
+import api from "@/api/api"
+
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react"
 
 const AuthContext = createContext(null)
 
-/**
- * AuthProvider — Contexto global de autenticación.
- *
- * Al montar, lee el token de localStorage, lo decodifica y verifica
- * que no esté expirado. Expone el usuario, su rol, permisos y
- * funciones de login/logout a toda la app.
- */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // --- Inicialización: leer token existente ---
-  useEffect(() => {
-    const token = localStorage.getItem("token")
-    if (token) {
-      const payload = parseJwt(token)
-      if (payload && !isTokenExpired(payload)) {
-        setUser(payload)
-      } else {
-        // Token inválido o expirado → limpiar
-        localStorage.removeItem("token")
-      }
-    }
-    setLoading(false)
+  // --- Logout: limpiar todo ---
+  const logout = useCallback(() => {
+    localStorage.removeItem("token")
+    localStorage.removeItem("refresh_token")
+    setUser(null)
   }, [])
 
   // --- Login: guardar token y setear usuario ---
-  const login = useCallback((token) => {
+  const login = useCallback((token, refresh_token) => {
     localStorage.setItem("token", token)
+    if (refresh_token) localStorage.setItem("refresh_token", refresh_token)
     const payload = parseJwt(token)
     setUser(payload)
   }, [])
 
-  // --- Logout: limpiar todo ---
-  const logout = useCallback(() => {
-    localStorage.removeItem("token")
-    setUser(null)
-  }, [])
+  // --- Inicialización: leer token existente y verificar expiración ---
+  useEffect(() => {
+    const initAuth = async () => {
+      let token = localStorage.getItem("token")
+      let refresh = localStorage.getItem("refresh_token")
+      
+      if (token) {
+        let payload = parseJwt(token)
+        if (payload && !isTokenExpired(payload)) {
+          setUser(payload)
+        } else if (refresh) {
+          try {
+            // Intentar refrescar proactivamente al cargar la app
+            const res = await api.post("/auth/refresh", { refresh_token: refresh })
+            token = res.data.data.token
+            refresh = res.data.data.refresh_token
+            localStorage.setItem("token", token)
+            localStorage.setItem("refresh_token", refresh)
+            setUser(parseJwt(token))
+          } catch (err) {
+            localStorage.removeItem("token")
+            localStorage.removeItem("refresh_token")
+          }
+        } else {
+          localStorage.removeItem("token")
+        }
+      }
+      setLoading(false)
+    }
+
+    initAuth();
+  }, []);
 
   // --- Helpers derivados ---
   const isAdmin = user?.role === "ADMIN"

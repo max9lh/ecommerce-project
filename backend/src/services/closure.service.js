@@ -85,26 +85,43 @@ const createClosure = async ({ total_amount, details, user_id }) => {
     return result;
 };
 
-const getClosures = async () => {
-    return prisma.dailyClosure.findMany({
-        orderBy: { date: 'desc' },
-        select: {
-            id: true,
-            total_amount: true,
-            date: true,
-            user: {
-                select: { username: true }
-            },
-            details: {
-                select: {
-                    amount: true,
-                    account: {
-                        select: { id: true, name: true }
+const getClosures = async (page = 1, limit = 20) => {
+    const skip = (Math.max(1, page) - 1) * limit;
+
+    const [total, closures] = await Promise.all([
+        prisma.dailyClosure.count(),
+        prisma.dailyClosure.findMany({
+            orderBy: { date: 'desc' },
+            skip,
+            take: limit,
+            select: {
+                id: true,
+                total_amount: true,
+                date: true,
+                user: {
+                    select: { username: true }
+                },
+                details: {
+                    select: {
+                        amount: true,
+                        account: {
+                            select: { id: true, name: true }
+                        }
                     }
                 }
             }
+        })
+    ]);
+
+    return {
+        data: closures,
+        meta: {
+            total,
+            page: Math.max(1, page),
+            limit,
+            totalPages: Math.ceil(total / limit)
         }
-    });
+    };
 };
 
 const getClosureById = async (id) => {
