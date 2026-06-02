@@ -1,4 +1,11 @@
+// backend/src/server.js
 require('dotenv').config();
+const validateEnv = require('./config/validate-env');
+const logger = require('./config/logger');
+
+// Validar variables de entorno ANTES de cargar la app
+const env = validateEnv();
+
 const app = require('./app');
 const prisma = require('./config/db');
 
@@ -6,14 +13,37 @@ const PORT = process.env.PORT || 3000;
 
 async function main() {
     try {
+        // Verificar conexión a BD
         await prisma.$connect();
-        console.log('✅ Conexión exitosa a PostgreSQL con Prisma');
+        logger.info('✅ Conexión exitosa a PostgreSQL con Prisma');
 
-        app.listen(PORT, () => {
-            console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+        // Iniciar servidor
+        const server = app.listen(PORT, () => {
+            logger.info(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+            logger.info(`📍 Entorno: ${process.env.NODE_ENV}`);
         });
+
+        // Graceful shutdown
+        process.on('SIGTERM', async () => {
+            logger.info('SIGTERM recibido, iniciando shutdown graceful...');
+            server.close(async () => {
+                await prisma.$disconnect();
+                logger.info('Servidor cerrado correctamente');
+                process.exit(0);
+            });
+        });
+
+        process.on('SIGINT', async () => {
+            logger.info('SIGINT recibido, iniciando shutdown graceful...');
+            server.close(async () => {
+                await prisma.$disconnect();
+                logger.info('Servidor cerrado correctamente');
+                process.exit(0);
+            });
+        });
+
     } catch (error) {
-        console.error('❌ Error al iniciar el sistema:', error);
+        logger.error('❌ Error al iniciar el sistema:', error);
         await prisma.$disconnect();
         process.exit(1);
     }

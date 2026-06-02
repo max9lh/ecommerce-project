@@ -9,6 +9,15 @@ const createClosure = async ({ total_amount, details, user_id }) => {
     const fixed_amount = total_amount * adminCtx.pct.fixed_expenses;
     const saving_amount = total_amount * adminCtx.pct.savings;
 
+    const adminAccountIds = adminCtx.accounts.map(a => a.id);
+    for (const d of details) {
+        if (!adminAccountIds.includes(d.account_id)) {
+            const error = new Error(`La cuenta con ID ${d.account_id} no pertenece al administrador o no existe`);
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
     const result = await prisma.$transaction(async (tx) => {
         const closure = await tx.dailyClosure.create({
             data: {
@@ -131,6 +140,15 @@ const updateClosure = async (id, { total_amount, details, user_id }) => {
     const merchandise_amount = total_amount * adminCtx.pct.merchandise;
     const fixed_amount = total_amount * adminCtx.pct.fixed_expenses;
     const saving_amount = total_amount * adminCtx.pct.savings;
+
+    const adminAccountIds = adminCtx.accounts.map(a => a.id);
+    for (const d of details) {
+        if (!adminAccountIds.includes(d.account_id)) {
+            const error = new Error(`La cuenta con ID ${d.account_id} no pertenece al administrador o no existe`);
+            error.statusCode = 400;
+            throw error;
+        }
+    }
 
     const result = await prisma.$transaction(async (tx) => {
         // 1. Obtener el cierre actual con sus detalles y asignaciones de presupuesto

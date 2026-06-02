@@ -1,8 +1,11 @@
 const prisma = require('../config/db');
 const { getAdminContext } = require('../utils/adminContext');
+const { STATUS_AMOUNT } = require('../utils/constants');
 
 const getAllProviders = async (userId, userRole = 'ADMIN', page = null, limit = null) => {
-    const whereConditions = {};
+    const whereConditions = {
+        NOT: { name: { contains: '(ELIMINADO' } }
+    };
     if (userRole === 'EMPLOYEE') {
         whereConditions.visible_to_employee = true;
     }
@@ -167,7 +170,7 @@ const deleteProvider = async (userId, id) => {
         error.statusCode = 404;
         throw error;
     }
-    if (providerToDelete.name.endsWith(' (ELIMINADO)')) {
+    if (providerToDelete.name.includes('(ELIMINADO')) {
         const error = new Error('Este proveedor ya ha sido eliminado');
         error.statusCode = 400;
         throw error;
@@ -177,7 +180,8 @@ const deleteProvider = async (userId, id) => {
     const pendingExpenses = await prisma.expense.count({
         where: {
             provider_id: providerId,
-            status: 'Pendiente'
+            status: STATUS_AMOUNT.PENDING,
+            deleted_at: null
         }
     });
 
@@ -191,14 +195,15 @@ const deleteProvider = async (userId, id) => {
     const paidExpensesCount = await prisma.expense.count({
         where: {
             provider_id: providerId,
-            status: 'Pagado'
+            status: STATUS_AMOUNT.PAID
         }
     });
 
     return await prisma.$transaction(async (tx) => {
         let isSoft = false;
         if (paidExpensesCount > 0) {
-            const newName = `${providerToDelete.name.slice(0, 85)} (ELIMINADO)`;
+            const timestamp = new Date().getTime();
+            const newName = `${providerToDelete.name.slice(0, 60)} (ELIMINADO - ${timestamp})`;
             await tx.provider.update({
                 where: { id: providerId },
                 data: { name: newName }

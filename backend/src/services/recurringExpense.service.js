@@ -46,8 +46,8 @@ const createRecurringExpense = async (userId, data) => {
                 data: {
                     user_id: adminCtx.adminId,
                     name: name,
-                    payment_condition: 'Contado',
-                    credit_days: 0,
+                    payment_condition: 'Credito',
+                    credit_days: 30,
                     visible_to_employee: true
                 }
             });

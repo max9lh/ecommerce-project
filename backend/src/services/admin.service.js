@@ -11,7 +11,8 @@ const createEmployee = async (employeeData) => {
         throw error;
     }
 
-    const password_hash = await bcrypt.hash(password, 10);
+    const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+    const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     return await prisma.$transaction(async (tx) => {
         const newUser = await tx.user.create({

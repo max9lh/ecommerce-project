@@ -141,7 +141,7 @@ export default function DistributionSettings() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              
+
               {/* Esquema Visual Segementado (Premium) */}
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-semibold px-1">
@@ -150,7 +150,7 @@ export default function DistributionSettings() {
                     Suma Total: {totalSum}%
                   </span>
                 </div>
-                
+
                 {/* Barra de progreso segmentada interactiva con transiciones suaves */}
                 <div className="h-7 w-full rounded-xl overflow-hidden flex bg-muted/30 border border-muted/50 select-none p-0.5 backdrop-blur-md">
                   {pctMerchandise > 0 && (
@@ -181,7 +181,7 @@ export default function DistributionSettings() {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Leyendas con íconos y clases del sistema */}
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-xs mt-2 gap-2 px-1 text-muted-foreground">
                   <div className="flex flex-wrap gap-4">
@@ -210,7 +210,7 @@ export default function DistributionSettings() {
 
               {/* Controles de Configuración con Sliders Interactivos */}
               <div className="space-y-6">
-                
+
                 {/* 1. Mercadería */}
                 <div className="bg-chart-1/5 border border-chart-1/10 rounded-xl p-4 space-y-4 hover:border-chart-1/25 transition-all">
                   <div className="flex items-center justify-between">

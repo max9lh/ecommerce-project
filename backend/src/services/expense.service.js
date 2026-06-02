@@ -279,6 +279,20 @@ const deleteExpense = async (userId, expenseId) => {
         throw error;
     }
     return await prisma.$transaction(async (tx) => {
+        const adminCtx = await getAdminContext();
+        
+        await tx.account.update({
+            where: { id: expense.account_id },
+            data: { balance: { increment: expense.amount } }
+        });
+
+        await tx.budgetBalance.update({
+            where: {
+                user_id_category: { user_id: adminCtx.adminId, category: expense.budget_category }
+            },
+            data: { balance: { increment: expense.amount } }
+        });
+
         const softDeleted = await tx.expense.update({ 
             where: { id: idParsed },
             data: { deleted_at: new Date() }

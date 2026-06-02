@@ -26,7 +26,7 @@ const authGuard = async (req, res, next) => {
             return next(error);
         }
 
-        req.user = decoded;
+        req.user = { ...decoded, role: user.role };
         next();
     } catch (err) {
         const error = new Error('Token invalido');
