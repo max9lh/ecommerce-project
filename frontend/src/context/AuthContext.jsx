@@ -1,7 +1,7 @@
+// frontend/src/context/AuthContext.jsx
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react"
 import { parseJwt, isTokenExpired } from "@/utils/parseJwt"
 import api from "@/api/api"
-
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react"
 
 const AuthContext = createContext(null)
 
@@ -9,66 +9,89 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // --- Logout: limpiar todo ---
-  const logout = useCallback(() => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("refresh_token")
-    setUser(null)
-  }, [])
-
-  // --- Login: guardar token y setear usuario ---
-  const login = useCallback((token, refresh_token) => {
-    localStorage.setItem("token", token)
-    if (refresh_token) localStorage.setItem("refresh_token", refresh_token)
-    const payload = parseJwt(token)
-    setUser(payload)
-  }, [])
-
-  // --- Inicialización: leer token existente y verificar expiración ---
+  // Inicialización: leer token existente
   useEffect(() => {
     const initAuth = async () => {
-      let token = localStorage.getItem("token")
-      let refresh = localStorage.getItem("refresh_token")
-      
-      if (token) {
-        let payload = parseJwt(token)
+      const accessToken = localStorage.getItem("accessToken")
+
+      if (accessToken) {
+        const payload = parseJwt(accessToken)
         if (payload && !isTokenExpired(payload)) {
           setUser(payload)
-        } else if (refresh) {
-          try {
-            // Intentar refrescar proactivamente al cargar la app
-            const res = await api.post("/auth/refresh", { refresh_token: refresh })
-            token = res.data.data.token
-            refresh = res.data.data.refresh_token
-            localStorage.setItem("token", token)
-            localStorage.setItem("refresh_token", refresh)
-            setUser(parseJwt(token))
-          } catch (err) {
-            localStorage.removeItem("token")
-            localStorage.removeItem("refresh_token")
-          }
         } else {
-          localStorage.removeItem("token")
+          // Token expirado, intentar refresh (cookie HttpOnly viaja sola)
+          try {
+            const res = await api.post("/auth/refresh")
+            const { accessToken: newAccessToken } = res.data.data
+            localStorage.setItem("accessToken", newAccessToken)
+            setUser(parseJwt(newAccessToken))
+          } catch (err) {
+            localStorage.removeItem("accessToken")
+          }
         }
       }
       setLoading(false)
     }
 
-    initAuth();
+    initAuth()
+  }, [])
+
+  // Renovar token proactivamente antes de que expire
+  useEffect(() => {
+    if (!user) return;
+
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken) return;
+
+    const payload = parseJwt(accessToken);
+    if (!payload || !payload.exp) return;
+
+    // Calcular tiempo hasta expiración
+    const expiresIn = payload.exp * 1000 - Date.now();
+
+    // Renovar cuando falten 2 minutos
+    const refreshTime = expiresIn - (2 * 60 * 1000);
+
+    if (refreshTime > 0) {
+      const timeout = setTimeout(async () => {
+        try {
+          const res = await api.post("/auth/refresh");
+          const { accessToken: newAccessToken } = res.data.data;
+          localStorage.setItem("accessToken", newAccessToken);
+          setUser(parseJwt(newAccessToken));
+        } catch (error) {
+          console.error('Error refreshing token:', error);
+          logout();
+        }
+      }, refreshTime);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [user]);
+
+  // Login: guardar accessToken (refreshToken viene como HttpOnly cookie del server)
+  const login = useCallback((accessToken) => {
+    localStorage.setItem("accessToken", accessToken);
+    const payload = parseJwt(accessToken);
+    setUser(payload);
   }, []);
 
-  // --- Helpers derivados ---
+  // Logout: limpiar todo (el server limpia la cookie)
+  const logout = useCallback(async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+
+    localStorage.removeItem("accessToken");
+    setUser(null);
+  }, []);
+
+  // Helpers derivados
   const isAdmin = user?.role === "ADMIN"
   const isEmployee = user?.role === "EMPLOYEE"
 
-  /**
-   * Verifica si el usuario tiene un permiso específico.
-   * ADMIN siempre retorna true (tiene todos los permisos).
-   * EMPLOYEE se verifica contra su objeto de permisos del JWT.
-   *
-   * @param {string} permission — Nombre del permiso (ej: "canRegisterClosures")
-   * @returns {boolean}
-   */
   const hasPermission = useCallback(
     (permission) => {
       if (!user) return false
@@ -76,7 +99,7 @@ export function AuthProvider({ children }) {
       return user.permissions?.[permission] === true
     },
     [user]
-  )
+  );
 
   const value = useMemo(
     () => ({
@@ -89,19 +112,15 @@ export function AuthProvider({ children }) {
       loading,
     }),
     [user, isAdmin, isEmployee, hasPermission, login, logout, loading]
-  )
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-/**
- * Hook para consumir el contexto de autenticación.
- * @returns {{ user, isAdmin, isEmployee, hasPermission, login, logout, loading }}
- */
 export function useAuth() {
   const context = useContext(AuthContext)
   if (!context) {
     throw new Error("useAuth debe usarse dentro de un <AuthProvider>")
   }
   return context
-}
+}

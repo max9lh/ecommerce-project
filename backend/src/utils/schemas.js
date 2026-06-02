@@ -158,6 +158,12 @@ const validate = (schema) => (req, res, next) => {
     next();
 };
 
+const refreshTokenSchema = z.object({
+    refreshToken: z.string()
+        .min(10, 'Refresh token inválido')
+        .describe('Token de renovación JWT')
+});
+
 module.exports = {
     registerSchema,
     loginSchema,
@@ -172,4 +178,5 @@ module.exports = {
     createAttendanceSchema,
     updateAttendanceSchema,
     liquidatePayrollSchema,
+    refreshTokenSchema
 };

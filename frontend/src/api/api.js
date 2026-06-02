@@ -1,56 +1,83 @@
+// frontend/src/api/api.js
 import axios from 'axios';
 
-const isLocal = typeof window !== 'undefined' && 
+const isLocal = typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || (isLocal ? 'http://localhost:3000/api' : '/_/backend/api'), 
+  baseURL: import.meta.env.VITE_API_URL || (isLocal ? 'http://localhost:3000/api' : '/_/backend/api'),
+  withCredentials: true, // Enviar cookies automáticamente (refresh token HttpOnly)
 });
 
+// Bandera para evitar refresh loops infinitos
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  isRefreshing = false;
+  failedQueue = [];
+};
+
+// Request Interceptor: Agregar access token a cada request
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('accessToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
+// Response Interceptor: Manejar token expirado
 api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
+  response => response,
+  error => {
     const originalRequest = error.config;
-    // Si da 401 No autorizado y no hemos reintentado todavía...
-    if (error.response?.status === 401 && !originalRequest._retry && originalRequest.url !== '/auth/login' && originalRequest.url !== '/auth/refresh') {
-      originalRequest._retry = true;
-      const refresh_token = localStorage.getItem('refresh_token');
-      
-      if (refresh_token) {
-        try {
-          // Llamar al endpoint de refresh
-          const res = await axios.post(`${api.defaults.baseURL}/auth/refresh`, { refresh_token });
-          const new_token = res.data.data.token;
-          const new_refresh_token = res.data.data.refresh_token;
-          
-          localStorage.setItem('token', new_token);
-          localStorage.setItem('refresh_token', new_refresh_token);
-          
-          // Actualizar la cabecera original y reintentar
-          originalRequest.headers.Authorization = `Bearer ${new_token}`;
+
+    // Si es error 401 y no hemos intentado refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Si ya estamos refrescando, encolar la request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
           return api(originalRequest);
-        } catch (refreshError) {
-          // Si falla el refresh, forzamos cierre de sesión
-          localStorage.removeItem('token');
-          localStorage.removeItem('refresh_token');
-          window.location.href = '/';
-          return Promise.reject(refreshError);
-        }
-      } else {
-        localStorage.removeItem('token');
-        window.location.href = '/';
+        });
       }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      // La cookie HttpOnly se envía automáticamente con withCredentials
+      return api.post('/auth/refresh')
+        .then(res => {
+          const { accessToken } = res.data.data;
+          localStorage.setItem('accessToken', accessToken);
+
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          processQueue(null, accessToken);
+
+          return api(originalRequest);
+        })
+        .catch(err => {
+          // Si el refresh falla, logout
+          localStorage.removeItem('accessToken');
+          processQueue(err, null);
+          window.location.href = '/login';
+          return Promise.reject(err);
+        });
     }
+
     return Promise.reject(error);
   }
 );
 
-export default api;
+export default api;

@@ -24,10 +24,9 @@ export function LoginForm({
     setError("")
     try {
       const respuesta = await api.post("/auth/login", { username, password })
-      const token = respuesta.data.data.token
-      const refresh_token = respuesta.data.data.refresh_token
+      const { accessToken } = respuesta.data.data
       
-      login(token, refresh_token)
+      login(accessToken)
       
       navigate("/dashboard")
     } catch (err) {

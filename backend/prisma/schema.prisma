@@ -16,7 +16,7 @@ model User {
   pct_savings        Decimal             @default(0.10) @db.Decimal(3, 2)
   created_at         DateTime            @default(now())
   role               Role                @default(EMPLOYEE)
-  refresh_token      String?             @db.Text
+  refresh_token_hash String?             @db.Text
   deleted_at         DateTime?
   accounts           Account[]
   attendanceLogs     AttendanceLog[]
@@ -31,6 +31,7 @@ model User {
   recurring_expenses RecurringExpense[]
 
   @@index([deleted_at])
+  @@index([refresh_token_hash])
 }
 
 model Account {

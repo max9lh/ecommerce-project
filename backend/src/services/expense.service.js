@@ -257,10 +257,9 @@ const getUpcomingExpenses = async (userId, daysWindow = 7) => {
     
     return await prisma.expense.findMany({
         where: {
-            user_id: adminCtx.adminId, // O userId según requisito
             status: STATUS_AMOUNT.PENDING,
             deleted_at: null,
-            due_date: { gte: today, lte: futureLimit }
+            due_date: { lte: futureLimit }
         },
         include: { provider: { select: { name: true } } },
         orderBy: { due_date: 'asc' }
