@@ -3,12 +3,12 @@ const winston = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const path = require('path');
 
-// Crear directorio de logs si no existe
-const logsDir = path.join(__dirname, '../../logs');
-const fs = require('fs');
-if (!fs.existsSync(logsDir)) {
-    fs.mkdirSync(logsDir, { recursive: true });
-}
+// ---- Desactivado temporalmente para Vercel ----
+// const logsDir = path.join(__dirname, '../../logs');
+// const fs = require('fs');
+// if (!fs.existsSync(logsDir)) {
+//     fs.mkdirSync(logsDir, { recursive: true });
+// }
 
 /**
  * Configuración de Winston Logger.
@@ -23,22 +23,20 @@ const logger = winston.createLogger({
     ),
     defaultMeta: { service: 'gestor-financiero' },
     transports: [
-        // ---- Logs de ERROR (solo errores) ----
-        new DailyRotateFile({
-            filename: path.join(logsDir, 'error-%DATE%.log'),
-            datePattern: 'YYYY-MM-DD',
-            maxSize: '20m',
-            maxDays: '14d',
-            level: 'error'
-        }),
-
-        // ---- Logs COMBINADOS (info, warn, error) ----
-        new DailyRotateFile({
-            filename: path.join(logsDir, 'combined-%DATE%.log'),
-            datePattern: 'YYYY-MM-DD',
-            maxSize: '20m',
-            maxDays: '30d'
-        }),
+        // ---- Logs en archivos desactivados por error 500 en Vercel ----
+        // new DailyRotateFile({
+        //     filename: path.join(logsDir, 'error-%DATE%.log'),
+        //     datePattern: 'YYYY-MM-DD',
+        //     maxSize: '20m',
+        //     maxDays: '14d',
+        //     level: 'error'
+        // }),
+        // new DailyRotateFile({
+        //     filename: path.join(logsDir, 'combined-%DATE%.log'),
+        //     datePattern: 'YYYY-MM-DD',
+        //     maxSize: '20m',
+        //     maxDays: '30d'
+        // }),
 
         // ---- Consola (siempre activa para Docker stdout/stderr) ----
         new winston.transports.Console({
