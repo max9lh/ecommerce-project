@@ -235,8 +235,11 @@ const generateProjection = async ({ userId, days = 30, basePeriodDays = 14, safe
         liquidityStatus = 'RED';
         collapseDay = collapsePt.date;
     } else {
-        // Comprobar si se acerca al safetyBuffer (dentro del 20% del buffer)
-        const bufferThreshold = safetyBuf.times(new Decimal('1.2'));
+        // Comprobar si se acerca al safetyBuffer (dentro del 20% del buffer o un 15% del balance inicial si el buffer es 0)
+        const bufferThreshold = safetyBuf.gt(0) 
+            ? safetyBuf.times(new Decimal('1.2')) 
+            : new Decimal(initialBalance).times(new Decimal('0.15'));
+
         const nearBuffer = scenarios.realistic.some(p => {
             const bal = new Decimal(p.balance);
             return bal.lte(bufferThreshold) && bal.gte(safetyBuf);

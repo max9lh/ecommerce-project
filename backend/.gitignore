@@ -4,3 +4,6 @@ package-lock.json
 reset-db.js
 seed-closures.js
 seed-full.js
+backend/todo_el_codigo.txt
+logs/
+*.log

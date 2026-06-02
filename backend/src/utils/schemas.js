@@ -149,11 +149,10 @@ const liquidatePayrollSchema = z.object({
     }).optional().default(BUDGET_CATEGORIES.FIXED_EXPENSES)
 });
 
-// Middleware factory de validación
 const validate = (schema) => (req, res, next) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
-        return res.status(400).json({ errors: result.error.issues });
+        return next(result.error);
     }
     req.body = result.data;
     next();

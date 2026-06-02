@@ -7,11 +7,12 @@ const Decimal = require('decimal.js');
  * Busca o crea un proveedor "Nómina" para registrar gastos de sueldos/adelantos.
  * Esto permite reutilizar el flujo de Expense existente sin romper la constraint NOT NULL de provider_id.
  */
-const getOrCreatePayrollProvider = async (tx, adminId) => {
+const getOrCreatePayrollProvider = async (tx, adminId, employee) => {
+    const providerName = `Nómina - ${employee.employeeProfile.first_name} ${employee.employeeProfile.last_name}`;
     let provider = await tx.provider.findFirst({
         where: {
             user_id: adminId,
-            name: 'Nómina'
+            name: providerName
         }
     });
 
@@ -19,7 +20,7 @@ const getOrCreatePayrollProvider = async (tx, adminId) => {
         provider = await tx.provider.create({
             data: {
                 user_id: adminId,
-                name: 'Nómina',
+                name: providerName,
                 payment_condition: 'Contado',
                 credit_days: 0,
                 visible_to_employee: false
@@ -67,7 +68,7 @@ const registerAdvance = async ({ employeeUserId, amount, userId, accountId }) =>
         }
 
         // Obtener o crear proveedor "Nómina"
-        const payrollProvider = await getOrCreatePayrollProvider(tx, adminCtx.adminId);
+        const payrollProvider = await getOrCreatePayrollProvider(tx, adminCtx.adminId, employee);
 
         // Determinar cuenta física a usar
         const finalAccountId = accountId
@@ -158,7 +159,6 @@ const registerAdvance = async ({ employeeUserId, amount, userId, accountId }) =>
 const processMonthlyPayroll = async ({ userId }) => {
     return await prisma.$transaction(async (tx) => {
         const adminCtx = await getAdminContext();
-        const payrollProvider = await getOrCreatePayrollProvider(tx, adminCtx.adminId);
 
         // Inicio y fin del mes actual
         const now = new Date();
@@ -180,6 +180,8 @@ const processMonthlyPayroll = async ({ userId }) => {
 
             const monthlySalary = new Decimal(emp.employeeProfile.monthly_salary?.toString() || '0');
             if (monthlySalary.lte(0)) continue;
+
+            const payrollProvider = await getOrCreatePayrollProvider(tx, adminCtx.adminId, emp);
 
             // Calcular total de adelantos del mes (pagos hechos vía Nómina provider)
             const advances = await tx.expense.findMany({

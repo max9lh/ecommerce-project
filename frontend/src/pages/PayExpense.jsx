@@ -50,8 +50,8 @@ export default function PayExpense() {
         api.get("/accounts"),
       ])
 
-      const expensesList = expRes.data ?? []
-      const accList = accRes.data.data ?? accRes.data ?? []
+      const expensesList = expRes.data?.data ?? expRes.data ?? []
+      const accList = accRes.data?.data ?? accRes.data ?? []
 
       setPendingExpenses(expensesList)
       setAccounts(accList)
@@ -105,7 +105,7 @@ export default function PayExpense() {
 
       // Recargar lista
       const expRes = await api.get("/expenses", { params: { status: "Pendiente" } })
-      setPendingExpenses(expRes.data ?? [])
+      setPendingExpenses(expRes.data?.data ?? expRes.data ?? [])
     } catch (err) {
       setError(err.response?.data?.message || "Ocurrió un error al procesar el pago.")
     } finally {

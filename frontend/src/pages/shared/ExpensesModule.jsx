@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/api';
+import { useAuth } from '../../context/AuthContext';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,25 +12,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 
-import { CreditCard, FilterX, Plus, Loader2, ShieldAlert, Clock, CircleDollarSign, Trash2, SlidersHorizontal } from "lucide-react";
-
-function getAuthContext() {
-    const token = localStorage.getItem("token");
-    if (!token) return { role: null, permissions: {} };
-    try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        return {
-            role: payload.role,
-            permissions: payload.permissions || {},
-            isAdmin: payload.role === 'ADMIN'
-        };
-    } catch {
-        return { role: null, permissions: {} };
-    }
-}
+import { CreditCard, FilterX, Plus, Loader2, ShieldAlert, Clock, CircleDollarSign, Trash2, SlidersHorizontal, Store } from "lucide-react";
 
 export default function ExpensesModule() {
-    const auth = getAuthContext();
+    const { isAdmin, hasPermission } = useAuth();
 
     const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -214,7 +200,7 @@ export default function ExpensesModule() {
     }, [statusFilter, categoryFilter, dateFilter]);
 
     useEffect(() => {
-        if (auth.isAdmin) {
+        if (isAdmin) {
             fetchExpenses();
             fetchUpcoming();
         }
@@ -275,7 +261,7 @@ export default function ExpensesModule() {
         }
     };
 
-    if (!auth.isAdmin) {
+    if (!isAdmin) {
         return (
             <div className="space-y-6">
                 <div>
@@ -306,7 +292,7 @@ export default function ExpensesModule() {
                         Monitoreá las facturas, compras y estados de pago debitados de las cuentas del administrador.
                     </p>
                 </div>
-                {(auth.isAdmin || auth.permissions.canRegisterExpenses) && (
+                {(isAdmin || hasPermission('canRegisterExpenses')) && (
                     <Button onClick={openCreateDialog} className="gap-2 w-full sm:w-auto justify-center">
                         <Plus className="size-4" />
                         Registrar Egreso
@@ -323,11 +309,11 @@ export default function ExpensesModule() {
 
 
             {!loadingUpcoming && upcomingExpenses.length > 0 && (
-                <Card className="shadow-sm border-amber-500/20">
+                <Card className="shadow-sm">
                     <CardHeader className="pb-3">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div className="flex items-center gap-3">
-                                <div className="flex size-10 items-center justify-center rounded-full bg-amber-500/15 text-amber-500">
+                                <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
                                     <Clock className="size-5" />
                                 </div>
                                 <div>
@@ -359,11 +345,8 @@ export default function ExpensesModule() {
                                 return (
                                     <div key={expense.id} className="flex items-center justify-between gap-4 px-4 py-3">
                                         <div className="flex items-center gap-3 min-w-0">
-                                            <div className={`flex size-9 shrink-0 items-center justify-center rounded-full ${isUrgent
-                                                ? 'bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400'
-                                                : 'bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400'
-                                                }`}>
-                                                <CircleDollarSign className="size-4" />
+                                            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                                <Store className="size-4" />
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="text-sm font-semibold truncate">{expense.provider?.name || 'Sin proveedor'}</p>
@@ -379,7 +362,7 @@ export default function ExpensesModule() {
                                             <span className="font-mono text-sm font-semibold">
                                                 ${parseFloat(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                                             </span>
-                                            {(auth.isAdmin || auth.permissions.canPayExpenses) && (
+                                            {(isAdmin || hasPermission('canPayExpenses')) && (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
@@ -412,8 +395,8 @@ export default function ExpensesModule() {
                                 </CardDescription>
                             </div>
                         </div>
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             size="sm"
                             className="sm:hidden flex items-center justify-center gap-2 text-xs font-semibold"
                             onClick={() => setShowFiltersMobile(!showFiltersMobile)}
@@ -424,219 +407,219 @@ export default function ExpensesModule() {
                     </div>
                 </CardHeader>
 
-                    <CardContent className="space-y-6">
-                        <div className={`${showFiltersMobile ? "grid" : "hidden sm:grid"} grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-slate-50 dark:bg-muted/20 border border-slate-200 dark:border-border rounded-lg items-end`}>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-semibold text-muted-foreground">Estado</label>
-                                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger className="bg-white dark:bg-background">
-                                        <SelectValue placeholder="Filtrar por estado" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="ALL">Todos los estados</SelectItem>
-                                        <SelectItem value="Pendiente">Pendiente</SelectItem>
-                                        <SelectItem value="Pagado">Pagado</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-semibold text-muted-foreground">Categoría</label>
-                                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                                    <SelectTrigger className="bg-white dark:bg-background">
-                                        <SelectValue placeholder="Filtrar categoría" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="ALL">Todas las categorías</SelectItem>
-                                        <SelectItem value="Mercadería">Mercadería</SelectItem>
-                                        <SelectItem value="Gastos Fijos">Gastos Fijos</SelectItem>
-                                        <SelectItem value="Ahorro">Ahorros</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-semibold text-muted-foreground">Fecha Específica</label>
-                                <div className="relative">
-                                    <Input
-                                        type="date"
-                                        className="bg-white dark:bg-background pr-8"
-                                        value={dateFilter}
-                                        onChange={(e) => setDateFilter(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-
-                            <Button variant="outline" onClick={resetFilters} className="w-full flex items-center gap-2">
-                                <FilterX className="h-4 w-4 text-muted-foreground" />
-                                Limpiar Filtros
-                            </Button>
+                <CardContent className="space-y-6">
+                    <div className={`${showFiltersMobile ? "grid" : "hidden sm:grid"} grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-slate-50 dark:bg-muted/20 border border-slate-200 dark:border-border rounded-lg items-end`}>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-muted-foreground">Estado</label>
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="bg-white dark:bg-background">
+                                    <SelectValue placeholder="Filtrar por estado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ALL">Todos los estados</SelectItem>
+                                    <SelectItem value="Pendiente">Pendiente</SelectItem>
+                                    <SelectItem value="Pagado">Pagado</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
-                        <div className="rounded-md border overflow-hidden">
-                            <Table>
-                                <TableHeader>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-muted-foreground">Categoría</label>
+                            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                                <SelectTrigger className="bg-white dark:bg-background">
+                                    <SelectValue placeholder="Filtrar categoría" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ALL">Todas las categorías</SelectItem>
+                                    <SelectItem value="Mercadería">Mercadería</SelectItem>
+                                    <SelectItem value="Gastos Fijos">Gastos Fijos</SelectItem>
+                                    <SelectItem value="Ahorro">Ahorros</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-muted-foreground">Fecha Específica</label>
+                            <div className="relative">
+                                <Input
+                                    type="date"
+                                    className="bg-white dark:bg-background pr-8"
+                                    value={dateFilter}
+                                    onChange={(e) => setDateFilter(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <Button variant="outline" onClick={resetFilters} className="w-full flex items-center gap-2">
+                            <FilterX className="h-4 w-4 text-muted-foreground" />
+                            Limpiar Filtros
+                        </Button>
+                    </div>
+
+                    <div className="rounded-md border overflow-hidden">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>F. Registro</TableHead>
+                                    <TableHead>F. Vence</TableHead>
+                                    <TableHead>Descripción / Proveedor</TableHead>
+                                    <TableHead>Categoría</TableHead>
+                                    <TableHead>Monto</TableHead>
+                                    <TableHead>Estado</TableHead>
+                                    <TableHead className="text-right">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? (
+                                    // Skeleton rows — el layout no salta
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <TableRow key={i} className="animate-pulse">
+                                            <TableCell><div className="h-3 w-20 rounded bg-muted" /></TableCell>
+                                            <TableCell><div className="h-3 w-20 rounded bg-muted" /></TableCell>
+                                            <TableCell>
+                                                <div className="h-3 w-32 rounded bg-muted mb-1" />
+                                                <div className="h-2.5 w-20 rounded bg-muted/60" />
+                                            </TableCell>
+                                            <TableCell><div className="h-5 w-20 rounded-full bg-muted" /></TableCell>
+                                            <TableCell><div className="h-3 w-16 rounded bg-muted" /></TableCell>
+                                            <TableCell><div className="h-5 w-16 rounded-full bg-muted" /></TableCell>
+                                            <TableCell className="text-right"><div className="h-7 w-7 rounded-full bg-muted ml-auto" /></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : expenses.length === 0 ? (
                                     <TableRow>
-                                        <TableHead>F. Registro</TableHead>
-                                        <TableHead>F. Vence</TableHead>
-                                        <TableHead>Descripción / Proveedor</TableHead>
-                                        <TableHead>Categoría</TableHead>
-                                        <TableHead>Monto</TableHead>
-                                        <TableHead>Estado</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
+                                        <TableCell colSpan={7} className="text-center h-40">
+                                            <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                                                <CreditCard className="size-8 opacity-30" />
+                                                <span className="text-sm font-medium">Sin egresos para los filtros seleccionados</span>
+                                            </div>
+                                        </TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {loading ? (
-                                        // Skeleton rows — el layout no salta
-                                        Array.from({ length: 5 }).map((_, i) => (
-                                            <TableRow key={i} className="animate-pulse">
-                                                <TableCell><div className="h-3 w-20 rounded bg-muted" /></TableCell>
-                                                <TableCell><div className="h-3 w-20 rounded bg-muted" /></TableCell>
-                                                <TableCell>
-                                                    <div className="h-3 w-32 rounded bg-muted mb-1" />
-                                                    <div className="h-2.5 w-20 rounded bg-muted/60" />
-                                                </TableCell>
-                                                <TableCell><div className="h-5 w-20 rounded-full bg-muted" /></TableCell>
-                                                <TableCell><div className="h-3 w-16 rounded bg-muted" /></TableCell>
-                                                <TableCell><div className="h-5 w-16 rounded-full bg-muted" /></TableCell>
-                                                <TableCell className="text-right"><div className="h-7 w-7 rounded-full bg-muted ml-auto" /></TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : expenses.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="text-center h-40">
-                                                <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                                                    <CreditCard className="size-8 opacity-30" />
-                                                    <span className="text-sm font-medium">Sin egresos para los filtros seleccionados</span>
+                                ) : (
+                                    expenses.map((expense) => (
+                                        <TableRow key={expense.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                                            <TableCell className="font-mono text-xs text-muted-foreground">
+                                                {new Date(expense.created_at).toLocaleDateString('es-AR')}
+                                            </TableCell>
+                                            <TableCell className="font-mono text-xs">
+                                                {expense.due_date ? (
+                                                    <span className={expense.status === 'Pendiente' ? 'text-amber-600 font-semibold' : 'text-muted-foreground'}>
+                                                        {new Date(expense.due_date).toLocaleDateString('es-AR')}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-muted-foreground">—</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="font-semibold text-slate-900 dark:text-slate-100">{expense.budget_category}</div>
+                                                <div className="text-xs text-muted-foreground">Prov: {expense.provider?.name || 'Particular'}</div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className="text-slate-600 dark:text-slate-300 bg-slate-100/50 dark:bg-muted/30 border border-slate-200 dark:border-border">
+                                                    {expense.budget_category}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="font-semibold text-slate-900 dark:text-slate-100 font-mono">
+                                                ${parseFloat(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge className={
+                                                    expense.status === 'Pagado'
+                                                        ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800 border hover:bg-green-100 shadow-none'
+                                                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 border hover:bg-amber-100 shadow-none'
+                                                }>
+                                                    {expense.status}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex items-center justify-end gap-1.5">
+                                                    {expense.status === 'Pendiente' && (isAdmin || hasPermission('canPayExpenses')) && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="size-8"
+                                                            title="Asentar Pago"
+                                                            onClick={() => openPayDialog(expense)}
+                                                        >
+                                                            <CreditCard className="size-3.5" />
+                                                        </Button>
+                                                    )}
+                                                    {expense.status === 'Pagado' && isAdmin && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="size-8 text-destructive hover:bg-destructive/10"
+                                                            title="Eliminar Gasto"
+                                                            onClick={() => setDeletingExpenseId(expense.id)}
+                                                        >
+                                                            <Trash2 className="size-3.5" />
+                                                        </Button>
+                                                    )}
+                                                    {!(isAdmin || hasPermission('canRegisterExpenses') || hasPermission('canPayExpenses')) && (
+                                                        <span className="text-xs text-muted-foreground font-mono">—</span>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
-                                    ) : (
-                                        expenses.map((expense) => (
-                                            <TableRow key={expense.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                                                <TableCell className="font-mono text-xs text-muted-foreground">
-                                                    {new Date(expense.created_at).toLocaleDateString('es-AR')}
-                                                </TableCell>
-                                                <TableCell className="font-mono text-xs">
-                                                    {expense.due_date ? (
-                                                        <span className={expense.status === 'Pendiente' ? 'text-amber-600 font-semibold' : 'text-muted-foreground'}>
-                                                            {new Date(expense.due_date).toLocaleDateString('es-AR')}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-muted-foreground">—</span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="font-semibold text-slate-900 dark:text-slate-100">{expense.budget_category}</div>
-                                                    <div className="text-xs text-muted-foreground">Prov: {expense.provider?.name || 'Particular'}</div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline" className="text-slate-600 dark:text-slate-300 bg-slate-100/50 dark:bg-muted/30 border border-slate-200 dark:border-border">
-                                                        {expense.budget_category}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="font-semibold text-slate-900 dark:text-slate-100 font-mono">
-                                                    ${parseFloat(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge className={
-                                                        expense.status === 'Pagado'
-                                                            ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800 border hover:bg-green-100 shadow-none'
-                                                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 border hover:bg-amber-100 shadow-none'
-                                                    }>
-                                                        {expense.status}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex items-center justify-end gap-1.5">
-                                                        {expense.status === 'Pendiente' && (auth.isAdmin || auth.permissions.canPayExpenses) && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="size-8"
-                                                                title="Asentar Pago"
-                                                                onClick={() => openPayDialog(expense)}
-                                                            >
-                                                                <CreditCard className="size-3.5" />
-                                                            </Button>
-                                                        )}
-                                                        {expense.status === 'Pagado' && auth.isAdmin && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="size-8 text-destructive hover:bg-destructive/10"
-                                                                title="Eliminar Gasto"
-                                                                onClick={() => setDeletingExpenseId(expense.id)}
-                                                            >
-                                                                <Trash2 className="size-3.5" />
-                                                            </Button>
-                                                        )}
-                                                        {!(auth.isAdmin || auth.permissions.canRegisterExpenses || auth.permissions.canPayExpenses) && (
-                                                            <span className="text-xs text-muted-foreground font-mono">—</span>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
 
-                        {/* Controles de Paginación */}
-                        {totalPages > 1 && (
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-border">
-                                <div className="text-sm text-muted-foreground font-medium">
-                                    Mostrando <span className="font-semibold text-foreground">{((page - 1) * limit) + 1}</span> a{" "}
-                                    <span className="font-semibold text-foreground">{Math.min(page * limit, total)}</span> de{" "}
-                                    <span className="font-semibold text-foreground">{total}</span> egresos
-                                </div>
-                                <div className="flex items-center gap-1.5 font-sans">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                        disabled={page === 1}
-                                    >
-                                        Anterior
-                                    </Button>
-                                    
-                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                                        const isCurrent = p === page;
-                                        // Mostrar solo primera, última, actual y adyacentes
-                                        if (p === 1 || p === totalPages || Math.abs(p - page) <= 1) {
-                                            return (
-                                                <Button
-                                                    key={p}
-                                                    variant={isCurrent ? "default" : "outline"}
-                                                    size="sm"
-                                                    className={`size-9 p-0 ${isCurrent ? 'bg-primary text-primary-foreground font-bold' : ''}`}
-                                                    onClick={() => setPage(p)}
-                                                >
-                                                    {p}
-                                                </Button>
-                                            );
-                                        }
-                                        if (p === 2 || p === totalPages - 1) {
-                                            return <span key={p} className="text-muted-foreground px-1">...</span>;
-                                        }
-                                        return null;
-                                    })}
-
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                                        disabled={page === totalPages}
-                                    >
-                                        Siguiente
-                                    </Button>
-                                </div>
+                    {/* Controles de Paginación */}
+                    {totalPages > 1 && (
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-border">
+                            <div className="text-sm text-muted-foreground font-medium">
+                                Mostrando <span className="font-semibold text-foreground">{((page - 1) * limit) + 1}</span> a{" "}
+                                <span className="font-semibold text-foreground">{Math.min(page * limit, total)}</span> de{" "}
+                                <span className="font-semibold text-foreground">{total}</span> egresos
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+                            <div className="flex items-center gap-1.5 font-sans">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                >
+                                    Anterior
+                                </Button>
+
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                                    const isCurrent = p === page;
+                                    // Mostrar solo primera, última, actual y adyacentes
+                                    if (p === 1 || p === totalPages || Math.abs(p - page) <= 1) {
+                                        return (
+                                            <Button
+                                                key={p}
+                                                variant={isCurrent ? "default" : "outline"}
+                                                size="sm"
+                                                className={`size-9 p-0 ${isCurrent ? 'bg-primary text-primary-foreground font-bold' : ''}`}
+                                                onClick={() => setPage(p)}
+                                            >
+                                                {p}
+                                            </Button>
+                                        );
+                                    }
+                                    if (p === 2 || p === totalPages - 1) {
+                                        return <span key={p} className="text-muted-foreground px-1">...</span>;
+                                    }
+                                    return null;
+                                })}
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages}
+                                >
+                                    Siguiente
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             <Dialog open={isPayDialogOpen} onOpenChange={(v) => { setIsPayDialogOpen(v); if (!v) setModalError(null); }}>
                 <DialogContent className="sm:max-w-[400px]">
@@ -799,7 +782,7 @@ export default function ExpensesModule() {
                                     >
                                         {(() => {
                                             const selectedProvider = providers.find(p => String(p.id) === createFormData.provider_id);
-                                            const acceptsCredit = selectedProvider 
+                                            const acceptsCredit = selectedProvider
                                                 ? (selectedProvider.payment_condition === "Credito" || selectedProvider.payment_condition === "Crédito")
                                                 : false;
                                             return (

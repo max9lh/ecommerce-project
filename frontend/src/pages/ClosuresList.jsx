@@ -169,7 +169,10 @@ export default function ClosuresList() {
                       {formatTime(closure.date)}
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${closure.user.role === "ADMIN"
+                          ? "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800"
+                          : "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800"
+                        }`}>
                         {closure.user.username}
                       </span>
                     </TableCell>

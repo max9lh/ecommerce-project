@@ -43,7 +43,7 @@ const createAccount = async (user_id, body) => {
 
     if (!name || typeof name !== 'string' || name.trim() === '') {
         const err = new Error('El nombre de la cuenta es obligatorio.');
-        err.status = 400;
+        err.statusCode = 400;
         throw err;
     }
 
@@ -57,7 +57,7 @@ const createAccount = async (user_id, body) => {
 
     if (existing) {
         const err = new Error(`Ya existe una cuenta con el nombre "${name.trim()}".`);
-        err.status = 409;
+        err.statusCode = 409;
         throw err;
     }
 

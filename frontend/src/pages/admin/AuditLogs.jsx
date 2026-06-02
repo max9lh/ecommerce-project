@@ -229,7 +229,7 @@ export default function AuditLogs() {
                     <TableHead className="w-[115px]">Fecha</TableHead>
                     <TableHead className="w-[90px]">Hora</TableHead>
                     <TableHead className="w-[150px]">Usuario</TableHead>
-                    <TableHead className="w-[180px]">Acción</TableHead>
+                    <TableHead className="w-[180px] text-center">Acción</TableHead>
                     <TableHead>Detalles</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -258,7 +258,7 @@ export default function AuditLogs() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <span
                           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold border ${getActionStyles(
                             log.action
