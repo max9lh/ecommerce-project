@@ -1,6 +1,3 @@
-Parece que no tengo permiso de escritura en el repositorio. Permíteme crear la documentación de otra forma. Te presento el documento completo que he preparado para tu proyecto:
-
----
 
 # 📋 **Documentación Técnica - Gestor Financiero Automatizado**
 
@@ -462,25 +459,6 @@ docker exec gestor_db pg_dump \
 docker exec -i gestor_db psql -U gestor_user -d gestor_financiero \
   < backup_20260603_140000.sql
 ```
-
----
-
-## ✅ **Checklist Pre-Producción**
-
-- [ ] `.env.production` configurado con contraseñas seguras
-- [ ] `JWT_SECRET` generado con `openssl rand -base64 64`
-- [ ] `POSTGRES_PASSWORD` generado con `openssl rand -base64 32`
-- [ ] Certificados SSL válidos
-- [ ] CORS_ORIGIN correcto
-- [ ] Backups automáticos configurados
-- [ ] Logs se guardan en volumen persistente
-- [ ] Firewall configurado
-- [ ] DNS apunta al servidor
-- [ ] Health checks funcionando
-- [ ] Rate limiter activo
-- [ ] Secrets no en código
-
----
 
 ## 📞 **Contacto**
 
