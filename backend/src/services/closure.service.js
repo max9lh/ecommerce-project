@@ -3,6 +3,36 @@ const { getAdminContext } = require('../utils/adminContext');
 const { BUDGET_CATEGORIES } = require('../utils/constants');
 
 const createClosure = async ({ total_amount, details, user_id }) => {
+
+    if (!total_amount || total_amount <= 0) {
+        const error = new Error('El total debe ser mayor a 0');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (!Array.isArray(details) || details.length === 0) {
+        const error = new Error('Debe haber al menos un detalle de cierre');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    // Validar que cada detalle sea válido
+    for (const detail of details) {
+        if (!detail.amount || detail.amount <= 0) {
+            const error = new Error(`Monto inválido en detalle: ${detail.amount}`);
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    // Validar que la suma de detalles sea consistente
+    const totalDetails = details.reduce((sum, d) => sum + Number(d.amount), 0);
+    if (Math.abs(totalDetails - total_amount) > 0.01) {  // Permitir pequeña variación por decimales
+        const error = new Error(`La suma de detalles (${totalDetails}) no coincide con el total (${total_amount})`);
+        error.statusCode = 400;
+        throw error;
+    }
+
     const adminCtx = await getAdminContext();
 
     const merchandise_amount = total_amount * adminCtx.pct.merchandise;
@@ -152,6 +182,34 @@ const getClosureById = async (id) => {
 };
 
 const updateClosure = async (id, { total_amount, details, user_id }) => {
+
+    if (!total_amount || total_amount <= 0) {
+        const error = new Error('El total debe ser mayor a 0');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (!Array.isArray(details) || details.length === 0) {
+        const error = new Error('Debe haber al menos un detalle de cierre');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    for (const detail of details) {
+        if (!detail.amount || detail.amount <= 0) {
+            const error = new Error(`Monto inválido en detalle: ${detail.amount}`);
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    const totalDetails = details.reduce((sum, d) => sum + Number(d.amount), 0);
+    if (Math.abs(totalDetails - total_amount) > 0.01) {
+        const error = new Error(`La suma de detalles (${totalDetails}) no coincide con el total (${total_amount})`);
+        error.statusCode = 400;
+        throw error;
+    }
+
     const adminCtx = await getAdminContext();
 
     const merchandise_amount = total_amount * adminCtx.pct.merchandise;

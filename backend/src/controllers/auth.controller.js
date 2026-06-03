@@ -25,18 +25,25 @@ const register = async (req, res, next) => {
 
 const login = async (req, res, next) => {
     try {
-        const { user, accessToken, refreshToken, expiresIn } = await authService.login(req.body);
+        const result = await authService.login(req.body);
 
-        // Setear refresh token en HttpOnly cookie
-        res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS);
+        // ✅ Setear refresh token como HttpOnly cookie
+        res.cookie('refreshToken', result.refreshToken, {
+            httpOnly: true,                              // ← No accesible desde JS
+            secure: process.env.NODE_ENV === 'production', // ← HTTPS en prod
+            sameSite: 'strict',                          // ← Protege CSRF
+            maxAge: 30 * 24 * 60 * 60 * 1000,           // ← 30 días en ms
+            path: '/'                                     // ← Disponible en toda la app
+        });
 
-        res.status(200).json({
+        // ✅ Solo devolver accessToken en JSON
+        return res.status(200).json({
             status: 'success',
             message: 'Login exitoso',
             data: {
-                user,
-                accessToken,
-                expiresIn
+                user: result.user,
+                accessToken: result.accessToken,
+                expiresIn: result.expiresIn
             }
         });
     } catch (error) {
@@ -49,32 +56,41 @@ const login = async (req, res, next) => {
  */
 const refreshToken = async (req, res, next) => {
     try {
-        const token = req.cookies?.refreshToken;
+        // ✅ El refresh token viene en la cookie (automático con withCredentials)
+        const refreshTokenFromCookie = req.cookies.refreshToken;
 
-        if (!token) {
-            const error = new Error('Refresh token no encontrado');
+        if (!refreshTokenFromCookie) {
+            const error = new Error('Refresh token no encontrado en cookies');
             error.statusCode = 401;
             return next(error);
         }
 
-        const { accessToken, refreshToken: newRefreshToken, expiresIn } =
-            await authService.refreshAccessToken(token);
+        // ✅ Llamar al servicio para generar nuevo access token
+        const result = await authService.refreshAccessToken(refreshTokenFromCookie);
 
-        // Rotar la cookie con el nuevo refresh token
-        res.cookie('refreshToken', newRefreshToken, COOKIE_OPTIONS);
+        // ✅ Setear NUEVA cookie con nuevo refresh token (rotation)
+        res.cookie('refreshToken', result.refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+            path: '/'
+        });
 
-        res.status(200).json({
+        // ✅ Devolver nuevo access token
+        return res.status(200).json({
             status: 'success',
-            message: 'Tokens renovados',
+            message: 'Token refrescado',
             data: {
-                accessToken,
-                expiresIn
+                accessToken: result.accessToken,
+                expiresIn: result.expiresIn
             }
         });
     } catch (error) {
         next(error);
     }
 };
+
 
 /**
  * Logout: revoca el refresh token y limpia la cookie
@@ -113,4 +129,4 @@ const updatePercentages = async (req, res, next) => {
     }
 };
 
-module.exports = { register, login, refreshToken, logout, updatePercentages };
+module.exports = { register, login, refreshToken, logout, updatePercentages };

@@ -70,14 +70,16 @@ const providerSchema = z.object({
 });
 
 const expensesSchema = z.object({
-    provider_id: z.number().int().positive('ID de proveedor inválido'),
-    account_id: z.number().int().positive('ID de cuenta física inválido'),
-    amount: z.number().positive('El monto debe ser mayor a 0'),
-    status: z.enum(statusAmountValues).default(STATUS_AMOUNT.PAID),
-    budget_category: z.enum(budgetCategoryValues, {
-        errorMap: () => ({ message: 'Categoría de presupuesto no válida' }),
-    }),
-    due_date: z.coerce.date().optional(),
+    provider_id: z.number().int().positive('ID del proveedor debe ser válido'),
+    account_id: z.number().int().positive('ID de cuenta debe ser válido'),
+    budget_category: z.string()
+        .min(1, 'Categoría de presupuesto requerida')
+        .max(50, 'Categoría muy larga'),
+    amount: z.number()
+        .positive('El monto debe ser mayor a 0')  // ✅ CRUCIAL
+        .refine(val => val >= 0.01, 'El monto mínimo es 0.01'),
+    status: z.enum(['Pendiente', 'Pagado']).optional(),
+    due_date: z.string().datetime().optional()
 }).refine((data) => {
     if (data.status === STATUS_AMOUNT.PENDING && !data.due_date) return false;
     return true;

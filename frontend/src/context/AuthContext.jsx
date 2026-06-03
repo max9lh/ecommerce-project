@@ -71,7 +71,7 @@ export function AuthProvider({ children }) {
 
   // Login: guardar accessToken (refreshToken viene como HttpOnly cookie del server)
   const login = useCallback((accessToken) => {
-    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem('accessToken', accessToken);
     const payload = parseJwt(accessToken);
     setUser(payload);
   }, []);
@@ -123,4 +123,4 @@ export function useAuth() {
     throw new Error("useAuth debe usarse dentro de un <AuthProvider>")
   }
   return context
-}
+}

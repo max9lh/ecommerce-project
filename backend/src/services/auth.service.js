@@ -141,7 +141,6 @@ const login = async ({ username, password }) => {
             role: user.role,
         },
         accessToken,      // ✅ Bearer token (corto)
-        refreshToken,     // ✅ Para renovar (largo)
         expiresIn: 900,   // 15 minutos en segundos
     };
 };

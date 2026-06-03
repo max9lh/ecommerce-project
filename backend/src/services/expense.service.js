@@ -6,6 +6,18 @@ const { Decimal } = require('decimal.js');
 const createExpense = async (userId, expenseData) => {
     const { provider_id, account_id, budget_category, amount, status, due_date } = expenseData;
 
+    if (!amount || amount <= 0) {
+        const error = new Error('El monto debe ser mayor a 0');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (!Number.isFinite(amount)) {
+        const error = new Error('El monto debe ser un número válido');
+        error.statusCode = 400;
+        throw error;
+    }
+
     return await prisma.$transaction(async (tx) => {
         const adminCtx = await getAdminContext();
 
@@ -251,10 +263,10 @@ const getUpcomingExpenses = async (userId, daysWindow = 7) => {
 
     const futureLimit = new Date();
     futureLimit.setDate(today.getDate() + daysWindow);
-    
+
     // Si userId es el ADMIN, muestra TODOS sus gastos
     // Si es employee, solo sus gastos personales (opcional según negocio)
-    
+
     return await prisma.expense.findMany({
         where: {
             status: STATUS_AMOUNT.PENDING,
