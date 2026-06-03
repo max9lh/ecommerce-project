@@ -29,6 +29,14 @@ const envSchema = z.object({
 
     // ---- LOGGING ----
     LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug']).default('info'),
+
+    // ---- SMTP (Opcional - Recuperación de Contraseñas) ----
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().optional(),
+    SMTP_SECURE: z.string().optional(),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
+    SMTP_FROM: z.string().optional(),
 });
 
 function validateEnv() {

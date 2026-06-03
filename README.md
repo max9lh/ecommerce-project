@@ -3,7 +3,12 @@
 
 **Versión:** 1.0.0  
 **Última actualización:** Junio 2026  
-**Estado:** Pronto a producción
+**Estado:** Listo para producción
+
+> [!NOTE]
+> **Guías rápidas y manuales del proyecto:**
+> * 📘 **[Manual de Despliegue y Puesta en Producción](MANUAL_DESPLIEGUE_PRODUCCION.md)**: Instrucciones paso a paso de infraestructura, configuración SSL, backups cron, Docker y despliegue en Vercel.
+> * 🎯 **[Manual Funcional y Valor de Negocio](MANUAL_FUNCIONAL.md)**: Explicación de las reglas de negocio (distribución 60/30/10), control de saldos, egresos y control de asistencia.
 
 ## 📑 Tabla de Contenidos
 
@@ -105,6 +110,9 @@ ecommerce-project/
 │   ├── Dockerfile                 # Multi-stage
 │   └── package.json
 │
+├── documents/
+│   └── MANUAL_DESPLIEGUE_PRODUCCION.md # Manual detallado de producción
+│
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/                 # Rutas
@@ -121,7 +129,9 @@ ecommerce-project/
 ├── docker-compose.yml             # Producción
 ├── docker-compose.dev.yml         # Desarrollo
 ├── .env.example
-└── DOCUMENTACION_TECNICA.md       # Este archivo
+├── MANUAL_DESPLIEGUE_PRODUCCION.md # Manual técnico y despliegue
+├── MANUAL_FUNCIONAL.md             # Explicación de negocio y funcionalidad
+└── README.md                      # Este archivo
 ```
 
 ---
@@ -323,149 +333,35 @@ GET    /api/closures               # Listar cierres
 
 ---
 
-## 🚢 **Despliegue en VPS (DigitalOcean, Linode, AWS)**
+## 🚢 **Despliegue y Puesta en Producción**
 
-### 1. Preparación del servidor
+Para garantizar un entorno seguro y automatizado, se ha redactado una guía completa paso a paso con las mejores prácticas en el archivo independiente **[Manual de Despliegue y Guía Técnica de Producción](MANUAL_DESPLIEGUE_PRODUCCION.md)**.
 
-```bash
-# Conectarse
-ssh root@tu_ip_publica
+Este manual detalla:
+- 🐳 **Estrategia Docker**: Segmentación de subredes internas (`backend_network` y `frontend_network`).
+- 🔐 **SSL Real**: Configuración automatizada y renovación con Certbot y Let's Encrypt.
+- 🛡️ **Hardening**: Cabeceras de seguridad HTTP, rate limiting en Nginx y Express, y ejecución con usuario no-root en Docker.
+- 💾 **Respaldos**: Script bash cron automatizado para `pg_dump` con rotación diaria y retención de 30 días.
+- ⚙️ **Monitoreo y Mantenimiento**: Comandos para análisis de consumo y resolución de problemas comunes.
 
-# Actualizar
-apt update && apt upgrade -y
-
-# Instalar Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-
-# Instalar Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-
-# Usuario para la aplicación
-sudo useradd -m -s /bin/bash gestor
-sudo usermod -aG docker gestor
-```
-
-### 2. Clonar y configurar
-
-```bash
-su - gestor
-cd ~
-git clone https://github.com/max9lh/ecommerce-project.git app
-cd app
-cp .env.example .env
-# Editar .env con valores de producción
-nano .env
-```
-
-### 3. Certificados SSL
-
-```bash
-# Instalar Certbot
-sudo apt install certbot python3-certbot-nginx -y
-
-# Generar certificado
-sudo certbot certonly \
-  --standalone \
-  -d tudominio.com \
-  -d www.tudominio.com \
-  --email admin@tudominio.com \
-  --agree-tos
-```
-
-### 4. Firewall
-
-```bash
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow 22/tcp
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw enable
-```
-
-### 5. Levantar aplicación
-
-```bash
-cd ~/app
-docker compose build
-docker compose up -d
-docker compose ps
-```
-
-### 6. Servicio Systemd (opcional)
-
-```bash
-sudo nano /etc/systemd/system/gestor-app.service
-```
-
-```ini
-[Unit]
-Description=Gestor Financiero
-After=docker.service
-Requires=docker.service
-
-[Service]
-User=gestor
-WorkingDirectory=/home/gestor/app
-ExecStart=/usr/local/bin/docker-compose up
-ExecStop=/usr/local/bin/docker-compose down
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable gestor-app.service
-sudo systemctl start gestor-app.service
-```
+Recomendamos revisar y seguir la guía paso a paso del manual antes de levantar el stack en su servidor VPS.
 
 ---
 
-## 📊 **Monitoreo**
+## 📊 **Monitoreo y Diagnóstico Rápido**
+
+Una vez desplegada la aplicación, puede diagnosticar el estado del servidor con los siguientes comandos:
 
 ```bash
-# Ver status
-docker compose ps
-
-# Logs en tiempo real
-docker compose logs -f api_service
-docker compose logs -f frontend_service
-
-# Estadísticas
+# Monitoreo de recursos en tiempo real
 docker stats
 
-# Entrar a contenedor
-docker exec -it gestor_api bash
+# Inspección de los logs en vivo
+docker compose logs -f --tail=100 api_service
+
+# Acceso seguro a la consola del contenedor de base de datos
 docker exec -it gestor_db psql -U gestor_user -d gestor_financiero
 ```
-
----
-
-## 💾 **Backups**
-
-```bash
-# Crear backup
-docker exec gestor_db pg_dump \
-  -U gestor_user \
-  -d gestor_financiero \
-  > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Restaurar
-docker exec -i gestor_db psql -U gestor_user -d gestor_financiero \
-  < backup_20260603_140000.sql
-```
-
-## 📞 **Contacto**
-
-**Repositorio**: https://github.com/max9lh/ecommerce-project  
-**Rama documentación**: `documentacion_tecnica`
-
----
 
 **Última actualización:** Junio 2026  
 **Versión:** 1.0.0

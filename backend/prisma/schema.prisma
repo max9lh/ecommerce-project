@@ -11,6 +11,7 @@ model User {
   id                 Int                 @id @default(autoincrement())
   username           String              @unique
   password_hash      String
+  email              String?             @unique   // Campo para recuperación de contraseña
   pct_merchandise    Decimal             @default(0.60) @db.Decimal(3, 2)
   pct_fixed_expenses Decimal             @default(0.30) @db.Decimal(3, 2)
   pct_savings        Decimal             @default(0.10) @db.Decimal(3, 2)
@@ -29,9 +30,11 @@ model User {
   expenses           Expense[]
   providers          Provider[]
   recurring_expenses RecurringExpense[]
+  password_reset_tokens PasswordResetToken[]
 
   @@index([deleted_at])
   @@index([refresh_token_hash])
+  @@index([email])
 }
 
 model Account {
@@ -188,6 +191,19 @@ model RecurringExpense {
   frequency  String   @default("monthly") @db.VarChar(20)
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  @@index([user_id])
+}
+
+model PasswordResetToken {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  token_hash String   @db.Text
+  expires_at DateTime
+  used_at    DateTime?
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([token_hash])
   @@index([user_id])
 }
 

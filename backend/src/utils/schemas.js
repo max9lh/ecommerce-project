@@ -151,6 +151,19 @@ const liquidatePayrollSchema = z.object({
     }).optional().default(BUDGET_CATEGORIES.FIXED_EXPENSES)
 });
 
+const forgotPasswordSchema = z.object({
+    email: z.string()
+        .email('Debe ingresar un email válido')
+        .max(255, 'El email no puede tener más de 255 caracteres'),
+});
+
+const resetPasswordSchema = z.object({
+    token: z.string()
+        .min(1, 'El token de recuperación es requerido'),
+    newPassword: z.string()
+        .min(8, 'La nueva contraseña debe tener al menos 8 caracteres'),
+});
+
 const validate = (schema) => (req, res, next) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
@@ -180,5 +193,7 @@ module.exports = {
     createAttendanceSchema,
     updateAttendanceSchema,
     liquidatePayrollSchema,
-    refreshTokenSchema
+    refreshTokenSchema,
+    forgotPasswordSchema,
+    resetPasswordSchema
 };
