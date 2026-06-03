@@ -113,7 +113,8 @@ const createEmployeeSchema = z.object({
         .max(50, 'El apellido no puede tener más de 50 caracteres'),
     hourly_rate: z.number().nonnegative('La tarifa por hora debe ser mayor o igual a 0'),
     salary_type: z.enum(['hourly', 'fixed'], { errorMap: () => ({ message: 'Tipo de salario inválido' }) }),
-    monthly_salary: z.number().nonnegative('El salario mensual debe ser mayor o igual a 0').nullable().optional()
+    monthly_salary: z.number().nonnegative('El salario mensual debe ser mayor o igual a 0').nullable().optional(),
+    email: z.string().email('Debe ingresar un email válido').max(255).nullable().optional()
 });
 
 const updatePermissionsSchema = z.object({

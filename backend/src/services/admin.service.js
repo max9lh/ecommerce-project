@@ -2,13 +2,22 @@ const prisma = require('../config/db');
 const bcrypt = require('bcrypt');
 
 const createEmployee = async (employeeData) => {
-    const { username, first_name, last_name, password, hourly_rate, salary_type, monthly_salary } = employeeData;
+    const { username, first_name, last_name, password, hourly_rate, salary_type, monthly_salary, email } = employeeData;
 
     const existingUser = await prisma.user.findUnique({ where: { username } });
     if (existingUser) {
         const error = new Error('El empleado ya se encuentra registrado');
         error.statusCode = 400;
         throw error;
+    }
+
+    if (email) {
+        const existingEmail = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+        if (existingEmail) {
+            const error = new Error('El correo electrónico ya está en uso');
+            error.statusCode = 400;
+            throw error;
+        }
     }
 
     const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
@@ -19,9 +28,10 @@ const createEmployee = async (employeeData) => {
             data: {
                 username,
                 password_hash,
+                email: email ? email.toLowerCase().trim() : null,
                 role: 'EMPLOYEE'
             },
-            select: { id: true, username: true, role: true, created_at: true }
+            select: { id: true, username: true, email: true, role: true, created_at: true }
         });
 
         await tx.employeeProfile.create({
@@ -57,6 +67,7 @@ const getEmployees = async () => {
         select: {
             id: true,
             username: true,
+            email: true,
             role: true,
             created_at: true,
             employeeProfile: true,

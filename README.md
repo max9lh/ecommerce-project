@@ -348,6 +348,16 @@ Recomendamos revisar y seguir la guía paso a paso del manual antes de levantar 
 
 ---
 
+## 📁 **Documentación de Entrega y Cierre de Proyecto**
+
+Para la finalización y firma del acuerdo de entrega de software con el cliente, consulte el **[Dossier de Entrega y Cierre](DOSSIER_ENTREGA_CLIENTE.md)**. Este archivo está formateado para imprimirse directamente a PDF en 4 páginas individuales:
+*   **Hoja 1:** Portada formal con logos y datos generales del proyecto.
+*   **Hoja 2:** Introducción y Anexo de Requerimientos Funcionales y No Funcionales.
+*   **Hoja 3:** Presupuesto de infraestructura (Railway, Vercel, Dominio) e Inventario de Credenciales.
+*   **Hoja 4:** Liquidación del precio final, términos de garantía y firmas de conformidad.
+
+---
+
 ## 📊 **Monitoreo y Diagnóstico Rápido**
 
 Una vez desplegada la aplicación, puede diagnosticar el estado del servidor con los siguientes comandos:
