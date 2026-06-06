@@ -15,8 +15,10 @@ const createClosure = async (req, res, next) => {
 
 const getClosures = async (req, res, next) => {
     try {
-        const closures = await closureService.getClosures();
-        res.status(200).json({ data: closures });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const closures = await closureService.getClosures(page, limit);
+        res.status(200).json(closures);
     } catch (error) {
         next(error);
     }

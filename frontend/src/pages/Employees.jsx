@@ -180,7 +180,7 @@ export default function Employees() {
                               {profile.first_name} {profile.last_name}
                             </p>
                             <p className="text-xs text-muted-foreground font-mono">
-                              @{emp.username}
+                              @{emp.username} {emp.email && `• ${emp.email}`}
                             </p>
                           </div>
                         </TableCell>

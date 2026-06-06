@@ -30,7 +30,7 @@ export function AdminDashboard() {
   const pctFixedExpenses = totalBudget > 0 ? budgetFixedExpenses / totalBudget : 0.3
   const pctSavings = totalBudget > 0 ? budgetSavings / totalBudget : 0.1
 
-  const bankBalance = getAccountBalance("bancaria") || getAccountBalance("bank")
+  const bankBalance = getAccountBalance("bancaria") || getAccountBalance("bank") || getAccountBalance("transferencia")
   const cashBalance = getAccountBalance("efectivo") || getAccountBalance("caja") || getAccountBalance("cash")
 
   return (

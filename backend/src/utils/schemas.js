@@ -70,14 +70,16 @@ const providerSchema = z.object({
 });
 
 const expensesSchema = z.object({
-    provider_id: z.number().int().positive('ID de proveedor inválido'),
-    account_id: z.number().int().positive('ID de cuenta física inválido'),
-    amount: z.number().positive('El monto debe ser mayor a 0'),
-    status: z.enum(statusAmountValues).default(STATUS_AMOUNT.PAID),
-    budget_category: z.enum(budgetCategoryValues, {
-        errorMap: () => ({ message: 'Categoría de presupuesto no válida' }),
-    }),
-    due_date: z.coerce.date().optional(),
+    provider_id: z.number().int().positive('ID del proveedor debe ser válido'),
+    account_id: z.number().int().positive('ID de cuenta debe ser válido'),
+    budget_category: z.string()
+        .min(1, 'Categoría de presupuesto requerida')
+        .max(50, 'Categoría muy larga'),
+    amount: z.number()
+        .positive('El monto debe ser mayor a 0')  // ✅ CRUCIAL
+        .refine(val => val >= 0.01, 'El monto mínimo es 0.01'),
+    status: z.enum(['Pendiente', 'Pagado']).optional(),
+    due_date: z.string().datetime().optional()
 }).refine((data) => {
     if (data.status === STATUS_AMOUNT.PENDING && !data.due_date) return false;
     return true;
@@ -111,7 +113,8 @@ const createEmployeeSchema = z.object({
         .max(50, 'El apellido no puede tener más de 50 caracteres'),
     hourly_rate: z.number().nonnegative('La tarifa por hora debe ser mayor o igual a 0'),
     salary_type: z.enum(['hourly', 'fixed'], { errorMap: () => ({ message: 'Tipo de salario inválido' }) }),
-    monthly_salary: z.number().nonnegative('El salario mensual debe ser mayor o igual a 0').nullable().optional()
+    monthly_salary: z.number().nonnegative('El salario mensual debe ser mayor o igual a 0').nullable().optional(),
+    email: z.string().email('Debe ingresar un email válido').max(255).nullable().optional()
 });
 
 const updatePermissionsSchema = z.object({
@@ -149,6 +152,19 @@ const liquidatePayrollSchema = z.object({
     }).optional().default(BUDGET_CATEGORIES.FIXED_EXPENSES)
 });
 
+const forgotPasswordSchema = z.object({
+    email: z.string()
+        .email('Debe ingresar un email válido')
+        .max(255, 'El email no puede tener más de 255 caracteres'),
+});
+
+const resetPasswordSchema = z.object({
+    token: z.string()
+        .min(1, 'El token de recuperación es requerido'),
+    newPassword: z.string()
+        .min(8, 'La nueva contraseña debe tener al menos 8 caracteres'),
+});
+
 const validate = (schema) => (req, res, next) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
@@ -157,6 +173,12 @@ const validate = (schema) => (req, res, next) => {
     req.body = result.data;
     next();
 };
+
+const refreshTokenSchema = z.object({
+    refreshToken: z.string()
+        .min(10, 'Refresh token inválido')
+        .describe('Token de renovación JWT')
+});
 
 module.exports = {
     registerSchema,
@@ -172,4 +194,7 @@ module.exports = {
     createAttendanceSchema,
     updateAttendanceSchema,
     liquidatePayrollSchema,
+    refreshTokenSchema,
+    forgotPasswordSchema,
+    resetPasswordSchema
 };

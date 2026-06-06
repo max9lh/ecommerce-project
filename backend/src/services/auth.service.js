@@ -1,6 +1,12 @@
+// backend/src/services/auth.service.js
 const bcrypt = require('bcrypt');
 const prisma = require('../config/db');
-const jwt = require('jsonwebtoken');
+const {
+    generateAccessToken,
+    generateRefreshToken,
+    hashRefreshToken,
+    verifyToken
+} = require('../utils/tokenUtils');
 
 const register = async (userData) => {
     const { username, password, role } = userData;
@@ -17,7 +23,6 @@ const register = async (userData) => {
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     return await prisma.$transaction(async (tx) => {
-
         const user = await tx.user.create({
             data: {
                 username,
@@ -53,9 +58,7 @@ const register = async (userData) => {
                     { user_id: user.id, category: 'Ahorro', balance: 0.00 }
                 ]
             });
-        }
-
-        else {
+        } else {
             await tx.employeeProfile.create({
                 data: {
                     user_id: user.id,
@@ -86,11 +89,13 @@ const login = async ({ username, password }) => {
         where: { username },
         include: { employeePermission: true }
     });
+
     if (!user || user.deleted_at !== null) {
         const error = new Error('Credenciales incorrectas');
         error.statusCode = 401;
         throw error;
     }
+
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
         const error = new Error('Credenciales incorrectas');
@@ -98,8 +103,8 @@ const login = async ({ username, password }) => {
         throw error;
     }
 
+    // Preparar payload
     const payload = {
-        id: user.id,
         username: user.username,
         role: user.role,
     };
@@ -117,9 +122,17 @@ const login = async ({ username, password }) => {
         payload.permissions = permissions;
     }
 
-    const JWT_SECRET = process.env.JWT_SECRET;
-    const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    // ✅ Generar access token (15 min)
+    const accessToken = generateAccessToken(user.id, payload);
+
+    // ✅ Generar refresh token (30 días) y HASHEAR para guardar
+    const refreshToken = generateRefreshToken(user.id);
+    const refreshTokenHash = hashRefreshToken(refreshToken);
+
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { refresh_token_hash: refreshTokenHash }
+    });
 
     return {
         user: {
@@ -127,11 +140,109 @@ const login = async ({ username, password }) => {
             username: user.username,
             role: user.role,
         },
-        token,
+        accessToken,      // ✅ Bearer token (corto)
+        expiresIn: 900,   // 15 minutos en segundos
     };
-}
+};
+
+/**
+ * Refresca el access token usando un refresh token válido
+ */
+const refreshAccessToken = async (refreshTokenStr) => {
+    if (!refreshTokenStr) {
+        const error = new Error('Refresh token no proporcionado');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    // ✅ Verificar JWT del refresh token
+    const REFRESH_SECRET = process.env.REFRESH_SECRET;
+    const decoded = verifyToken(refreshTokenStr, REFRESH_SECRET);
+
+    if (!decoded || decoded.type !== 'refresh') {
+        const error = new Error('Refresh token inválido o tipo incorrecto');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    // ✅ Buscar usuario con HASH coincidente
+    const tokenHash = hashRefreshToken(refreshTokenStr);
+    const user = await prisma.user.findFirst({
+        where: {
+            id: decoded.id,
+            refresh_token_hash: tokenHash,
+            deleted_at: null
+        },
+        include: { employeePermission: true }
+    });
+
+    if (!user) {
+        const error = new Error('Refresh token revocado o usuario inválido');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    // Preparar nuevo payload
+    const payload = {
+        username: user.username,
+        role: user.role,
+    };
+
+    if (user.role === 'EMPLOYEE' && user.employeePermission) {
+        payload.permissions = {
+            canRegisterClosures: user.employeePermission.canRegisterClosures,
+            canRegisterExpenses: user.employeePermission.canRegisterExpenses,
+            canPayExpenses: user.employeePermission.canPayExpenses,
+            canManageProviders: user.employeePermission.canManageProviders,
+        };
+    }
+
+    // ✅ Generar nuevo access token
+    const newAccessToken = generateAccessToken(user.id, payload);
+
+    // ✅ Generar nuevo refresh token también (rotation)
+    const newRefreshToken = generateRefreshToken(user.id);
+    const newRefreshTokenHash = hashRefreshToken(newRefreshToken);
+
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { refresh_token_hash: newRefreshTokenHash }
+    });
+
+    return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,  // ✅ Rotar el refresh token
+        expiresIn: 900,
+    };
+};
+
+/**
+ * Logout: revoca el refresh token
+ */
+const logout = async (userId) => {
+    await prisma.user.update({
+        where: { id: userId },
+        data: { refresh_token_hash: null }  // ✅ Invalida el token
+    }).catch(() => {
+        // Usuario no existe, ignorar
+    });
+};
 
 const updatePercentages = async ({ userId, pct_merchandise, pct_fixed_expenses, pct_savings }) => {
+    const total = parseFloat(pct_merchandise) + parseFloat(pct_fixed_expenses) + parseFloat(pct_savings);
+
+    if (Math.abs(total - 1.0) > 0.01) {
+        const error = new Error(`Los porcentajes deben sumar 100% (actual: ${(total * 100).toFixed(2)}%)`);
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (pct_merchandise < 0 || pct_fixed_expenses < 0 || pct_savings < 0) {
+        const error = new Error('Los porcentajes no pueden ser negativos');
+        error.statusCode = 400;
+        throw error;
+    }
+
     const updatedUser = await prisma.user.update({
         where: { id: userId },
         data: { pct_merchandise, pct_fixed_expenses, pct_savings },
@@ -144,6 +255,12 @@ const updatePercentages = async ({ userId, pct_merchandise, pct_fixed_expenses, 
     });
 
     return updatedUser;
-}
+};
 
-module.exports = { register, login, updatePercentages };
+module.exports = {
+    register,
+    login,
+    refreshAccessToken,
+    logout,
+    updatePercentages
+};

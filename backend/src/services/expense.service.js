@@ -1,9 +1,22 @@
 const prisma = require('../config/db');
 const { getAdminContext } = require('../utils/adminContext');
 const { STATUS_AMOUNT } = require('../utils/constants');
+const { Decimal } = require('decimal.js');
 
 const createExpense = async (userId, expenseData) => {
     const { provider_id, account_id, budget_category, amount, status, due_date } = expenseData;
+
+    if (!amount || amount <= 0) {
+        const error = new Error('El monto debe ser mayor a 0');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (!Number.isFinite(amount)) {
+        const error = new Error('El monto debe ser un número válido');
+        error.statusCode = 400;
+        throw error;
+    }
 
     return await prisma.$transaction(async (tx) => {
         const adminCtx = await getAdminContext();
@@ -46,7 +59,11 @@ const createExpense = async (userId, expenseData) => {
                 error.statusCode = 404;
                 throw error;
             }
-            if (Number(account.balance) < Number(amount)) {
+
+            const accountBalance = new Decimal(account.balance);
+            const expenseAmount = new Decimal(amount);
+
+            if (accountBalance.lt(expenseAmount)) {
                 const error = new Error('Saldo insuficiente en la cuenta física seleccionada');
                 error.statusCode = 400;
                 throw error;
@@ -239,34 +256,32 @@ const getExpenses = async (userId, filters = {}) => {
 };
 
 const getUpcomingExpenses = async (userId, daysWindow = 7) => {
+    const adminCtx = await getAdminContext();
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const futureLimit = new Date();
     futureLimit.setDate(today.getDate() + daysWindow);
 
+    // Si userId es el ADMIN, muestra TODOS sus gastos
+    // Si es employee, solo sus gastos personales (opcional según negocio)
+
     return await prisma.expense.findMany({
         where: {
             status: STATUS_AMOUNT.PENDING,
             deleted_at: null,
-            due_date: {
-                gte: today,
-                lte: futureLimit
-            }
+            due_date: { lte: futureLimit }
         },
-        include: {
-            provider: { select: { name: true } }
-        },
-        orderBy: {
-            due_date: 'asc'
-        }
+        include: { provider: { select: { name: true } } },
+        orderBy: { due_date: 'asc' }
     });
 };
 
 const deleteExpense = async (userId, expenseId) => {
     const idParsed = parseInt(expenseId, 10);
-    const expense = await prisma.expense.findFirst({ 
-        where: { id: idParsed, deleted_at: null } 
+    const expense = await prisma.expense.findFirst({
+        where: { id: idParsed, deleted_at: null }
     });
     if (!expense) {
         const error = new Error('Gasto no encontrado');
@@ -280,7 +295,7 @@ const deleteExpense = async (userId, expenseId) => {
     }
     return await prisma.$transaction(async (tx) => {
         const adminCtx = await getAdminContext();
-        
+
         await tx.account.update({
             where: { id: expense.account_id },
             data: { balance: { increment: expense.amount } }
@@ -293,7 +308,7 @@ const deleteExpense = async (userId, expenseId) => {
             data: { balance: { increment: expense.amount } }
         });
 
-        const softDeleted = await tx.expense.update({ 
+        const softDeleted = await tx.expense.update({
             where: { id: idParsed },
             data: { deleted_at: new Date() }
         });

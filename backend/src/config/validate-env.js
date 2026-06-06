@@ -1,10 +1,6 @@
 // backend/src/config/validate-env.js
 const { z } = require('zod');
 
-/**
- * Esquema de validación para variables de entorno.
- * Se ejecuta al iniciar la aplicación.
- */
 const envSchema = z.object({
     // ---- NODE ----
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -15,9 +11,13 @@ const envSchema = z.object({
 
     // ---- JWT ----
     JWT_SECRET: z.string()
-        .min(32, 'JWT_SECRET debe tener al menos 32 caracteres')
-        .describe('Generar con: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"'),
-    JWT_EXPIRES_IN: z.string().default('7d'),
+        .min(32, 'JWT_SECRET debe tener al menos 32 caracteres'),
+    JWT_EXPIRES_IN: z.string().default('15m'),
+
+    // ---- REFRESH TOKEN ---- ✅ NUEVO
+    REFRESH_SECRET: z.string()
+        .min(32, 'REFRESH_SECRET debe tener al menos 32 caracteres'),
+    REFRESH_EXPIRES_IN: z.string().default('30d'),
 
     // ---- BCRYPT ----
     BCRYPT_ROUNDS: z.coerce.number().min(10).max(14).default(12),
@@ -25,17 +25,20 @@ const envSchema = z.object({
     // ---- CORS ----
     CORS_ORIGIN: z.string()
         .url('CORS_ORIGIN debe ser una URL válida')
-        .default('http://localhost:5173')
-        .describe('En dev: http://localhost:5173, en prod: https://tu-dominio.com'),
+        .default('http://localhost:5173'),
 
     // ---- LOGGING ----
     LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug']).default('info'),
+
+    // ---- SMTP (Opcional - Recuperación de Contraseñas) ----
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().optional(),
+    SMTP_SECURE: z.string().optional(),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
+    SMTP_FROM: z.string().optional(),
 });
 
-/**
- * Valida y parsea las variables de entorno.
- * @throws {Error} Si hay variables inválidas o faltantes
- */
 function validateEnv() {
     try {
         const env = envSchema.parse(process.env);

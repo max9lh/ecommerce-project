@@ -18,6 +18,9 @@ services:
       NODE_ENV: development
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_service:5432/${POSTGRES_DB}?schema=public
       JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      REFRESH_SECRET: ${REFRESH_SECRET}
+      REFRESH_EXPIRES_IN: ${REFRESH_EXPIRES_IN:-30d}
       BCRYPT_ROUNDS: 10
       CORS_ORIGIN: http://localhost:5173
     volumes:

@@ -3,6 +3,7 @@ const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const logger = require('./config/logger');
 const errorHandler = require('./middlewares/errorHandler');
 const { apiLimiter, authLimiter, writeLimiter } = require('./middlewares/rateLimiter');
@@ -57,6 +58,7 @@ app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:htt
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(cookieParser());
 
 // ============================================================
 // HEALTH CHECK (Sin rate limiting)

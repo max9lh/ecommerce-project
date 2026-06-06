@@ -12,14 +12,23 @@ const createExpense = async (req, res, next) => {
 const payExpense = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const account_id = req.body?.account_id;
+        const { account_id } = req.body;
 
-        const updatedExpense = await expenseService.payExpense(req.user.id, parseInt(id), account_id);
+        if (!account_id) {
+            const error = new Error('account_id es requerido para pagar el gasto');
+            error.statusCode = 400;
+            return next(error);
+        }
+
+        const updatedExpense = await expenseService.payExpense(
+            req.user.id,
+            parseInt(id, 10),
+            parseInt(account_id, 10)
+        );
         return res.status(200).json({
             message: 'Gasto actualizado exitosamente',
             data: updatedExpense
         });
-
     } catch (error) {
         next(error);
     }
@@ -60,5 +69,4 @@ module.exports = {
     getExpenses,
     getUpcomingExpenses,
     deleteExpense
-}
-
+};
