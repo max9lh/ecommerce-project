@@ -11,11 +11,13 @@ model User {
   id                 Int                 @id @default(autoincrement())
   username           String              @unique
   password_hash      String
+  email              String?             @unique   // Campo para recuperación de contraseña
   pct_merchandise    Decimal             @default(0.60) @db.Decimal(3, 2)
   pct_fixed_expenses Decimal             @default(0.30) @db.Decimal(3, 2)
   pct_savings        Decimal             @default(0.10) @db.Decimal(3, 2)
   created_at         DateTime            @default(now())
   role               Role                @default(EMPLOYEE)
+  refresh_token_hash String?             @db.Text
   deleted_at         DateTime?
   accounts           Account[]
   attendanceLogs     AttendanceLog[]
@@ -28,6 +30,11 @@ model User {
   expenses           Expense[]
   providers          Provider[]
   recurring_expenses RecurringExpense[]
+  password_reset_tokens PasswordResetToken[]
+
+  @@index([deleted_at])
+  @@index([refresh_token_hash])
+  @@index([email])
 }
 
 model Account {
@@ -38,6 +45,8 @@ model Account {
   user                  User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
   daily_closure_details DailyClosureDetail[]
   expenses              Expense[]
+
+  @@index([user_id])
 }
 
 model BudgetBalance {
@@ -58,6 +67,9 @@ model DailyClosure {
   budget_allocations BudgetAllocation[]
   user               User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
   details            DailyClosureDetail[]
+
+  @@index([user_id])
+  @@index([date])
 }
 
 model DailyClosureDetail {
@@ -67,6 +79,9 @@ model DailyClosureDetail {
   amount     Decimal      @db.Decimal(15, 2)
   account    Account      @relation(fields: [account_id], references: [id])
   closure    DailyClosure @relation(fields: [closure_id], references: [id], onDelete: Cascade)
+
+  @@index([closure_id])
+  @@index([account_id])
 }
 
 model BudgetAllocation {
@@ -77,6 +92,9 @@ model BudgetAllocation {
   user_id          Int
   closure          DailyClosure @relation(fields: [closure_id], references: [id], onDelete: Cascade)
   user             User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([closure_id])
+  @@index([user_id])
 }
 
 model Provider {
@@ -88,6 +106,8 @@ model Provider {
   visible_to_employee Boolean   @default(true)
   expenses            Expense[]
   user                User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
 }
 
 model Expense {
@@ -105,6 +125,12 @@ model Expense {
   account         Account   @relation(fields: [account_id], references: [id])
   provider        Provider  @relation(fields: [provider_id], references: [id])
   user            User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([provider_id])
+  @@index([account_id])
+  @@index([status])
+  @@index([due_date])
 }
 
 model EmployeePermission {
@@ -138,6 +164,8 @@ model AttendanceLog {
   notes         String?   @db.VarChar(255)
   created_at    DateTime  @default(now())
   employee      User      @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  @@index([employee_id])
 }
 
 model AuditLog {
@@ -147,6 +175,8 @@ model AuditLog {
   details    String
   created_at DateTime @default(now())
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, created_at])
 }
 
 model RecurringExpense {
@@ -160,6 +190,21 @@ model RecurringExpense {
   created_at DateTime @default(now())
   frequency  String   @default("monthly") @db.VarChar(20)
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model PasswordResetToken {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  token_hash String   @db.Text
+  expires_at DateTime
+  used_at    DateTime?
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([token_hash])
+  @@index([user_id])
 }
 
 enum Role {

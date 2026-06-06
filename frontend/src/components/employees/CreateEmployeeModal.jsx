@@ -16,6 +16,7 @@ import { Loader2, UserCog } from "lucide-react"
 export default function CreateEmployeeModal({ open, onOpenChange, onSuccess, onError }) {
   const [form, setForm] = useState({
     username: "",
+    email: "",
     password: "",
     first_name: "",
     last_name: "",
@@ -34,6 +35,7 @@ export default function CreateEmployeeModal({ open, onOpenChange, onSuccess, onE
     const cleanUsername = form.username.trim()
     const cleanFirstName = form.first_name.trim()
     const cleanLastName = form.last_name.trim()
+    const cleanEmail = form.email.trim()
 
     if (!cleanFirstName || !cleanLastName) {
       setLocalError("El nombre y apellido son obligatorios y no pueden contener solo espacios.")
@@ -44,6 +46,14 @@ export default function CreateEmployeeModal({ open, onOpenChange, onSuccess, onE
     if (!usernameRegex.test(cleanUsername)) {
       setLocalError("El nombre de usuario solo puede contener letras, números, guiones bajos (_) o puntos (.)")
       return
+    }
+
+    if (cleanEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(cleanEmail)) {
+        setLocalError("Debe ingresar un correo electrónico válido.")
+        return
+      }
     }
 
     if (form.password.length < 6) {
@@ -68,12 +78,14 @@ export default function CreateEmployeeModal({ open, onOpenChange, onSuccess, onE
         username: cleanUsername,
         first_name: cleanFirstName,
         last_name: cleanLastName,
+        email: cleanEmail || null,
         hourly_rate: Number(form.hourly_rate),
         monthly_salary: form.salary_type === "fixed" ? Number(form.monthly_salary) : null,
       }
       await api.post("/admin/employees", payload)
       setForm({
         username: "",
+        email: "",
         password: "",
         first_name: "",
         last_name: "",
@@ -143,6 +155,17 @@ export default function CreateEmployeeModal({ open, onOpenChange, onSuccess, onE
                 placeholder="ej: juanperez"
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase() })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="c-email">Correo Electrónico (Opcional)</Label>
+              <Input
+                id="c-email"
+                type="email"
+                placeholder="ej: empleado@empresa.com"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
             </div>
 

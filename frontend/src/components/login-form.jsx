@@ -24,9 +24,9 @@ export function LoginForm({
     setError("")
     try {
       const respuesta = await api.post("/auth/login", { username, password })
-      const token = respuesta.data.data.token
+      const { accessToken } = respuesta.data.data
       
-      login(token)
+      login(accessToken)
       
       navigate("/dashboard")
     } catch (err) {
@@ -62,8 +62,14 @@ export function LoginForm({
           />
         </div>
         <div className="grid gap-2">
-          <div className="flex items-center">
+          <div className="flex items-center justify-between">
             <Label htmlFor="password">Contraseña</Label>
+            <Link
+              to="/forgot-password"
+              className="text-xs text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
           </div>
           <Input 
             id="password" 

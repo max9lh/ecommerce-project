@@ -8,6 +8,19 @@ const createRecurringExpense = async (userId, data) => {
     const { name, amount, due_day, category, frequency } = data;
     const freq = frequency || 'monthly';
 
+    // Validaciones de negocio
+    if (!amount || amount <= 0) {
+        const error = new Error('El monto debe ser mayor a 0');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (!Number.isFinite(amount)) {
+        const error = new Error('El monto debe ser un número válido');
+        error.statusCode = 400;
+        throw error;
+    }
+
     if (freq === 'weekly') {
         if (due_day < 0 || due_day > 6) {
             const error = new Error('Para gastos semanales, el día de vencimiento debe estar entre 0 (Domingo) y 6 (Sábado)');
@@ -152,7 +165,7 @@ const updateRecurringExpense = async (userId, expenseId, data) => {
     const updateData = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.amount !== undefined) updateData.amount = parseFloat(data.amount);
-    
+
     const freq = data.frequency !== undefined ? data.frequency : existing.frequency;
     if (data.frequency !== undefined) updateData.frequency = data.frequency;
 

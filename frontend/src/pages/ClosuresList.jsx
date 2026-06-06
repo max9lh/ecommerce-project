@@ -24,29 +24,38 @@ import {
 
 export default function ClosuresList() {
 
-
   const navigate = useNavigate()
   const { isAdmin } = useAuth()
   const [closures, setClosures] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    const fetchClosures = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const res = await api.get("/closures")
-        setClosures(res.data.data ?? [])
-      } catch (err) {
-        setError(err.response?.data?.message || "Error al cargar los cierres de caja")
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Paginación
+  const [page, setPage] = useState(1)
+  const [limit] = useState(10)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
 
+  const fetchClosures = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await api.get("/closures", { params: { page, limit } })
+      setClosures(res.data.data ?? [])
+      if (res.data.meta) {
+        setTotalPages(res.data.meta.totalPages)
+        setTotal(res.data.meta.total)
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Error al cargar los cierres de caja")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchClosures()
-  }, [])
+  }, [page])
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr)
@@ -138,12 +147,12 @@ export default function ClosuresList() {
               <div>
                 <CardTitle className="text-base">Registro de Cierres</CardTitle>
                 <CardDescription>
-                  {closures.length} cierre{closures.length !== 1 ? "s" : ""} registrado{closures.length !== 1 ? "s" : ""}
+                  {total} cierre{total !== 1 ? "s" : ""} registrado{total !== 1 ? "s" : ""}
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -182,7 +191,13 @@ export default function ClosuresList() {
                           return (
                             <span
                               key={idx}
-                              className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs"
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                                detail.account.name.toLowerCase().includes('efectivo') 
+                                  ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800'
+                                  : detail.account.name.toLowerCase().includes('transferencia')
+                                  ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
+                                  : 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                              }`}
                             >
                               {detail.account.name}: ${formatMoney(detail.amount)}
                             </span>
@@ -210,6 +225,58 @@ export default function ClosuresList() {
                 ))}
               </TableBody>
             </Table>
+
+            {/* Controles de Paginación */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border">
+                <div className="text-sm text-muted-foreground font-medium">
+                  Mostrando <span className="font-semibold text-foreground">{((page - 1) * limit) + 1}</span> a{" "}
+                  <span className="font-semibold text-foreground">{Math.min(page * limit, total)}</span> de{" "}
+                  <span className="font-semibold text-foreground">{total}</span> cierres
+                </div>
+                <div className="flex items-center gap-1.5 font-sans">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    Anterior
+                  </Button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                    const isCurrent = p === page
+                    // Mostrar solo primera, última, actual y adyacentes
+                    if (p === 1 || p === totalPages || Math.abs(p - page) <= 1) {
+                      return (
+                        <Button
+                          key={p}
+                          variant={isCurrent ? "default" : "outline"}
+                          size="sm"
+                          className={`size-9 p-0 ${isCurrent ? 'bg-primary text-primary-foreground font-bold' : ''}`}
+                          onClick={() => setPage(p)}
+                        >
+                          {p}
+                        </Button>
+                      )
+                    }
+                    if (p === 2 || p === totalPages - 1) {
+                      return <span key={p} className="text-muted-foreground px-1">...</span>
+                    }
+                    return null
+                  })}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
