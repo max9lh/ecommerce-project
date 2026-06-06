@@ -179,7 +179,7 @@ const getAccountHistory = async (months = 6) => {
     });
 
     // Identificar cuenta bancaria y efectivo por su nombre
-    const bankAcc = accounts.find(a => a.name.toLowerCase().includes('banc') || a.name.toLowerCase().includes('bank'));
+    const bankAcc = accounts.find(a => a.name.toLowerCase().includes('banc') || a.name.toLowerCase().includes('bank') || a.name.toLowerCase().includes('transfer') || a.name.toLowerCase().includes('transf'));
     const cashAcc = accounts.find(a => a.name.toLowerCase().includes('efec') || a.name.toLowerCase().includes('caja') || a.name.toLowerCase().includes('cash'));
 
     const bankHistory = bankAcc && accountsHistory[bankAcc.id]
