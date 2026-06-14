@@ -22,8 +22,8 @@ export default function ForgotPasswordPage() {
       const respuesta = await api.post("/auth/forgot-password", { email })
       setSuccess(respuesta.data.message || "Se ha enviado un enlace de recuperación a tu correo.")
     } catch (err) {
-      if (err.response?.data?.errors) {
-        setError(err.response.data.errors[0].message)
+      if (err.response?.data?.details) {
+        setError(err.response.data.details[0].message)
       } else {
         setError(err.response?.data?.message || "Ocurrió un error al procesar la solicitud.")
       }
