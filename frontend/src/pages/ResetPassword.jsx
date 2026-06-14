@@ -51,8 +51,8 @@ export default function ResetPasswordPage() {
         navigate("/login")
       }, 3000)
     } catch (err) {
-      if (err.response?.data?.errors) {
-        setError(err.response.data.errors[0].message)
+      if (err.response?.data?.details) {
+        setError(err.response.data.details[0].message)
       } else {
         setError(err.response?.data?.message || "Ocurrió un error al restablecer la contraseña.")
       }
