@@ -165,6 +165,16 @@ const resetPasswordSchema = z.object({
         .min(8, 'La nueva contraseña debe tener al menos 8 caracteres'),
 });
 
+const changePasswordSchema = z.object({
+    currentPassword: z.string()
+        .min(1, 'La contraseña actual es requerida'),
+    newPassword: z.string()
+        .min(8, 'La nueva contraseña debe tener al menos 8 caracteres'),
+}).refine((data) => data.newPassword !== data.currentPassword, {
+    message: 'La nueva contraseña debe ser diferente a la contraseña actual',
+    path: ['newPassword'],
+});
+
 const validate = (schema) => (req, res, next) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
@@ -196,5 +206,6 @@ module.exports = {
     liquidatePayrollSchema,
     refreshTokenSchema,
     forgotPasswordSchema,
-    resetPasswordSchema
+    resetPasswordSchema,
+    changePasswordSchema
 };

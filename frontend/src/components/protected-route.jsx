@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom"
+import { Navigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
 import { Loader2 } from "lucide-react"
 
@@ -10,7 +10,8 @@ import { Loader2 } from "lucide-react"
  * @param {string} [requiredPermission] — Permiso requerido (ej: "canRegisterClosures"). ADMIN siempre pasa.
  */
 export function ProtectedRoute({ children, requiredRole, requiredPermission }) {
-  const { user, loading, hasPermission } = useAuth()
+  const { user, loading, hasPermission, mustChangePassword } = useAuth()
+  const location = useLocation()
 
   // Mientras el contexto se inicializa, mostramos un loader sutil
   if (loading) {
@@ -24,6 +25,16 @@ export function ProtectedRoute({ children, requiredRole, requiredPermission }) {
   // Sin usuario → al login
   if (!user) {
     return <Navigate to="/login" replace />
+  }
+
+  // Si debe cambiar su contraseña y no está en la ruta de cambio
+  if (mustChangePassword && location.pathname !== "/cambiar-contrasena") {
+    return <Navigate to="/cambiar-contrasena" replace />
+  }
+
+  // Si ya cambió la contraseña y quiere ingresar manualmente a cambiar-contrasena
+  if (!mustChangePassword && location.pathname === "/cambiar-contrasena") {
+    return <Navigate to="/dashboard" replace />
   }
 
   // Si se requiere un rol específico y el usuario no lo tiene → al dashboard

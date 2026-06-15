@@ -138,6 +138,7 @@ async function resetPassword(token, newPassword) {
             data: {
                 password_hash: newPasswordHash,
                 refresh_token_hash: null, // Revocar todas las sesiones activas
+                must_change_password: false, // El usuario ya ingresó una contraseña propia
             },
         }),
         // Marcar token como usado

@@ -27,7 +27,7 @@ const errorHandler = (err, req, res, next) => {
     if (err instanceof ZodError) {
         statusCode = 400;
         message = 'Error de validación';
-        details = err.errors.map(e => ({
+        details = (err.issues || err.errors || []).map(e => ({
             field: e.path.join('.'),
             message: e.message,
             code: e.code
