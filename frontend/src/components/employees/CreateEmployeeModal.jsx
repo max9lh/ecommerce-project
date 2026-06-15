@@ -56,8 +56,8 @@ export default function CreateEmployeeModal({ open, onOpenChange, onSuccess, onE
       }
     }
 
-    if (form.password.length < 6) {
-      setLocalError("La contraseña inicial debe tener al menos 6 caracteres.")
+    if (form.password.length < 8) {
+      setLocalError("La contraseña inicial debe tener al menos 8 caracteres.")
       return
     }
 

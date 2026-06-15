@@ -8,16 +8,19 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [mustChangePassword, setMustChangePassword] = useState(false)
 
   // Inicialización: leer token existente
   useEffect(() => {
     const initAuth = async () => {
       const accessToken = localStorage.getItem("accessToken")
+      const mustChange = localStorage.getItem("mustChangePassword") === "true"
 
       if (accessToken) {
         const payload = parseJwt(accessToken)
         if (payload && !isTokenExpired(payload)) {
           setUser(payload)
+          setMustChangePassword(mustChange)
         } else {
           // Token expirado, intentar refresh (cookie HttpOnly viaja sola)
           try {
@@ -25,8 +28,11 @@ export function AuthProvider({ children }) {
             const { accessToken: newAccessToken } = res.data.data
             localStorage.setItem("accessToken", newAccessToken)
             setUser(parseJwt(newAccessToken))
+            setMustChangePassword(mustChange)
           } catch (err) {
             localStorage.removeItem("accessToken")
+            localStorage.removeItem("mustChangePassword")
+            setMustChangePassword(false)
           }
         }
       }
@@ -70,10 +76,18 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   // Login: guardar accessToken (refreshToken viene como HttpOnly cookie del server)
-  const login = useCallback((accessToken) => {
+  const login = useCallback((accessToken, mustChange = false) => {
     localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('mustChangePassword', mustChange ? 'true' : 'false');
     const payload = parseJwt(accessToken);
     setUser(payload);
+    setMustChangePassword(mustChange);
+  }, []);
+
+  // Limpiar flag de cambio obligatorio de contraseña
+  const clearMustChangePassword = useCallback(() => {
+    localStorage.setItem('mustChangePassword', 'false');
+    setMustChangePassword(false);
   }, []);
 
   // Logout: limpiar todo (el server limpia la cookie)
@@ -85,7 +99,9 @@ export function AuthProvider({ children }) {
     }
 
     localStorage.removeItem("accessToken");
+    localStorage.removeItem("mustChangePassword");
     setUser(null);
+    setMustChangePassword(false);
   }, []);
 
   // Helpers derivados
@@ -110,8 +126,10 @@ export function AuthProvider({ children }) {
       login,
       logout,
       loading,
+      mustChangePassword,
+      clearMustChangePassword,
     }),
-    [user, isAdmin, isEmployee, hasPermission, login, logout, loading]
+    [user, isAdmin, isEmployee, hasPermission, login, logout, loading, mustChangePassword, clearMustChangePassword]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

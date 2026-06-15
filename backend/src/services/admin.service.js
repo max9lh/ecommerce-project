@@ -29,7 +29,8 @@ const createEmployee = async (employeeData) => {
                 username,
                 password_hash,
                 email: email ? email.toLowerCase().trim() : null,
-                role: 'EMPLOYEE'
+                role: 'EMPLOYEE',
+                must_change_password: true
             },
             select: { id: true, username: true, email: true, role: true, created_at: true }
         });
