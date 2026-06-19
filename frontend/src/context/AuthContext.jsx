@@ -9,6 +9,8 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [mustChangePassword, setMustChangePassword] = useState(false)
+  const [attendanceStatus, setAttendanceStatus] = useState(null)
+  const [attendanceLoading, setAttendanceLoading] = useState(false)
 
   // Inicialización: leer token existente
   useEffect(() => {
@@ -41,6 +43,27 @@ export function AuthProvider({ children }) {
 
     initAuth()
   }, [])
+
+  // Cargar estado de asistencia automáticamente cuando el usuario cambia
+  useEffect(() => {
+    const fetchAttendanceStatus = async () => {
+      if (user && user.role === 'EMPLOYEE') {
+        setAttendanceLoading(true)
+        try {
+          const res = await api.get("/attendance/status")
+          setAttendanceStatus(res.data.data)
+        } catch (err) {
+          console.error("Error al obtener estado de asistencia:", err)
+        } finally {
+          setAttendanceLoading(false)
+        }
+      } else {
+        setAttendanceStatus(null)
+      }
+    }
+
+    fetchAttendanceStatus()
+  }, [user])
 
   // Renovar token proactivamente antes de que expire
   useEffect(() => {
@@ -102,7 +125,33 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("mustChangePassword");
     setUser(null);
     setMustChangePassword(false);
+    setAttendanceStatus(null);
   }, []);
+
+  // Acciones de asistencia para el empleado
+  const employeeCheckIn = useCallback(async () => {
+    try {
+      const res = await api.post("/attendance/check-in")
+      setAttendanceStatus({
+        hasActiveSession: true,
+        currentSession: res.data.data,
+        todaySessionsCount: (attendanceStatus?.todaySessionsCount || 0) + 1
+      })
+      return res.data.data
+    } catch (err) {
+      throw err;
+    }
+  }, [attendanceStatus]);
+
+  const employeeCheckOutAndLogout = useCallback(async () => {
+    try {
+      await api.post("/attendance/check-out")
+    } catch (err) {
+      console.error("Error al registrar salida durante logout:", err)
+    } finally {
+      await logout()
+    }
+  }, [logout]);
 
   // Helpers derivados
   const isAdmin = user?.role === "ADMIN"
@@ -128,8 +177,26 @@ export function AuthProvider({ children }) {
       loading,
       mustChangePassword,
       clearMustChangePassword,
+      attendanceStatus,
+      attendanceLoading,
+      employeeCheckIn,
+      employeeCheckOutAndLogout
     }),
-    [user, isAdmin, isEmployee, hasPermission, login, logout, loading, mustChangePassword, clearMustChangePassword]
+    [
+      user,
+      isAdmin,
+      isEmployee,
+      hasPermission,
+      login,
+      logout,
+      loading,
+      mustChangePassword,
+      clearMustChangePassword,
+      attendanceStatus,
+      attendanceLoading,
+      employeeCheckIn,
+      employeeCheckOutAndLogout
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

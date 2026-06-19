@@ -462,6 +462,7 @@ export default function AttendanceAdmin() {
                     <TableBody>
                       {attendanceLogs.map((log) => {
                         const isLiquidated = !!log.notes
+                        const isActiveShift = !log.check_out
                         return (
                           <TableRow key={log.id}>
                             <TableCell className="font-medium">
@@ -469,22 +470,43 @@ export default function AttendanceAdmin() {
                             </TableCell>
                             <TableCell>
                               <div className="text-xs space-y-0.5">
-                                <p><span className="text-muted-foreground">In:</span> {formatDateTime(log.check_in)}</p>
-                                <p><span className="text-muted-foreground">Out:</span> {formatDateTime(log.check_out)}</p>
+                                <p><span className="text-muted-foreground">Entrada:</span> {formatDateTime(log.check_in)}</p>
+                                <p>
+                                  <span className="text-muted-foreground">Salida:</span>{" "}
+                                  {isActiveShift ? (
+                                    <span className="inline-flex items-center gap-1 text-blue-500 font-semibold">
+                                      <span className="size-1.5 rounded-full bg-blue-500 animate-pulse" />
+                                      En turno
+                                    </span>
+                                  ) : (
+                                    formatDateTime(log.check_out)
+                                  )}
+                                </p>
                               </div>
                             </TableCell>
                             <TableCell className="font-semibold text-sm">
-                              {log.hours_worked} hs
+                              {isActiveShift ? (
+                                <span className="text-muted-foreground">-</span>
+                              ) : (
+                                `${log.hours_worked} hs`
+                              )}
                             </TableCell>
                             <TableCell className="font-semibold text-sm">
-                              {Number(log.amount_earned) > 0 ? (
+                              {isActiveShift ? (
+                                <span className="text-muted-foreground">-</span>
+                              ) : Number(log.amount_earned) > 0 ? (
                                 <span className="text-emerald-500">${formatMoney(log.amount_earned)}</span>
                               ) : (
                                 <span className="text-muted-foreground">-</span>
                               )}
                             </TableCell>
                             <TableCell>
-                              {isLiquidated ? (
+                              {isActiveShift ? (
+                                <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-500 flex items-center gap-1 w-fit">
+                                  <Clock className="size-3" />
+                                  En turno
+                                </span>
+                              ) : isLiquidated ? (
                                 <span
                                   className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-500 flex items-center gap-1 w-fit"
                                   title={log.notes}
