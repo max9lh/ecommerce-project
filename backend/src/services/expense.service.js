@@ -288,35 +288,22 @@ const deleteExpense = async (userId, expenseId) => {
         error.statusCode = 404;
         throw error;
     }
-    if (expense.status !== STATUS_AMOUNT.PAID) {
-        const error = new Error('Solo se pueden eliminar gastos que ya han sido pagados');
+    if (expense.status === STATUS_AMOUNT.PAID) {
+        const error = new Error('Los gastos pagados no pueden eliminarse por razones de consistencia de caja. Si fue un error, registre un movimiento de ajuste.');
         error.statusCode = 400;
         throw error;
     }
     return await prisma.$transaction(async (tx) => {
-        const adminCtx = await getAdminContext();
-
-        await tx.account.update({
-            where: { id: expense.account_id },
-            data: { balance: { increment: expense.amount } }
-        });
-
-        await tx.budgetBalance.update({
-            where: {
-                user_id_category: { user_id: adminCtx.adminId, category: expense.budget_category }
-            },
-            data: { balance: { increment: expense.amount } }
-        });
-
         const softDeleted = await tx.expense.update({
             where: { id: idParsed },
             data: { deleted_at: new Date() }
         });
+
         await tx.auditLog.create({
             data: {
                 user_id: parseInt(userId, 10),
                 action: 'ELIMINAR_EGRESO',
-                details: `Eliminó el egreso ID ${expenseId} (Concepto: "${expense.budget_category}") por un monto de $${parseFloat(expense.amount).toFixed(2)}`
+                details: `Eliminó el egreso pendiente ID ${expenseId} (Concepto: "${expense.budget_category}") por un monto de $${parseFloat(expense.amount).toFixed(2)}`
             }
         });
         return softDeleted;

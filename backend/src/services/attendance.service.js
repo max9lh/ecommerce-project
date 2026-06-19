@@ -273,6 +273,112 @@ const attendanceService = {
 
             return payrollExpense;
         });
+    },
+
+    async employeeCheckIn(employeeId) {
+        const activeLog = await prisma.attendanceLog.findFirst({
+            where: {
+                employee_id: employeeId,
+                check_out: null
+            }
+        });
+
+        if (activeLog) {
+            const error = new Error('Ya posee un turno activo registrado');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        return await prisma.attendanceLog.create({
+            data: {
+                employee_id: employeeId,
+                check_in: new Date(),
+                check_out: null
+            }
+        });
+    },
+
+    async employeeCheckOut(employeeId) {
+        const activeLog = await prisma.attendanceLog.findFirst({
+            where: {
+                employee_id: employeeId,
+                check_out: null
+            }
+        });
+
+        if (!activeLog) {
+            const error = new Error('No tiene ningún turno activo para registrar salida');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const checkInTime = new Date(activeLog.check_in);
+        const checkOutTime = new Date();
+
+        if (checkOutTime <= checkInTime) {
+            const error = new Error('La hora de salida debe ser posterior a la de entrada');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const employee = await prisma.user.findFirst({
+            where: { id: employeeId, role: 'EMPLOYEE' },
+            include: { employeeProfile: true }
+        });
+
+        if (!employee || !employee.employeeProfile) {
+            const error = new Error('Empleado no encontrado o perfil no configurado');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const { salary_type, hourly_rate } = employee.employeeProfile;
+        const diffMs = checkOutTime - checkInTime;
+        const hoursWorked = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+
+        let amountEarned = 0;
+        if (salary_type === 'hourly') {
+            if (!hourly_rate) {
+                const error = new Error('El empleado es de tipo "hourly" pero no tiene tarifa asignada');
+                error.statusCode = 400;
+                throw error;
+            }
+            amountEarned = parseFloat((hoursWorked * parseFloat(hourly_rate)).toFixed(2));
+        }
+
+        return await prisma.attendanceLog.update({
+            where: { id: activeLog.id },
+            data: {
+                check_out: checkOutTime,
+                hours_worked: hoursWorked,
+                amount_earned: amountEarned
+            }
+        });
+    },
+
+    async getEmployeeStatus(employeeId) {
+        const activeLog = await prisma.attendanceLog.findFirst({
+            where: {
+                employee_id: employeeId,
+                check_out: null
+            }
+        });
+
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const todayLogs = await prisma.attendanceLog.findMany({
+            where: {
+                employee_id: employeeId,
+                check_in: { gte: todayStart }
+            }
+        });
+
+        return {
+            hasActiveSession: !!activeLog,
+            currentSession: activeLog,
+            todaySessionsCount: todayLogs.length
+        };
     }
 };
 

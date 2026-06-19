@@ -87,6 +87,33 @@ const liquidatePayroll = async (req, res, next) => {
     }
 }
 
+const checkIn = async (req, res, next) => {
+    try {
+        const log = await attendanceService.employeeCheckIn(req.user.id);
+        return res.status(201).json({ success: true, message: 'Entrada registrada con éxito', data: log });
+    } catch (error) {
+        next(error);
+    }
+}
+
+const checkOut = async (req, res, next) => {
+    try {
+        const log = await attendanceService.employeeCheckOut(req.user.id);
+        return res.json({ success: true, message: 'Salida registrada con éxito', data: log });
+    } catch (error) {
+        next(error);
+    }
+}
+
+const getStatus = async (req, res, next) => {
+    try {
+        const status = await attendanceService.getEmployeeStatus(req.user.id);
+        return res.json({ success: true, data: status });
+    } catch (error) {
+        next(error);
+    }
+}
+
 module.exports = {
     createAttendance,
     getAllAttendance,
@@ -94,5 +121,8 @@ module.exports = {
     getSummary,
     updateAttendance,
     removeAttendance,
-    liquidatePayroll
+    liquidatePayroll,
+    checkIn,
+    checkOut,
+    getStatus
 };

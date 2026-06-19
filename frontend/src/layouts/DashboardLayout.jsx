@@ -2,8 +2,13 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { AppSidebar } from "@/components/app-sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Separator } from "@/components/ui/separator"
+import { useAuth } from "@/context/AuthContext"
+import { EmployeeCheckInForm } from "@/components/attendance/EmployeeCheckInForm"
+import { Loader2 } from "lucide-react"
 
 export function DashboardLayout({ children }) {
+  const { isEmployee, attendanceStatus, attendanceLoading } = useAuth()
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -23,7 +28,15 @@ export function DashboardLayout({ children }) {
         
         {/* Aquí adentro se inyectarán las pantallas (Dashboard, Cierres, etc.) */}
         <div className="flex flex-1 flex-col gap-4 p-6 bg-background">
-          {children}
+          {attendanceLoading ? (
+            <div className="flex flex-1 items-center justify-center min-h-[50vh]">
+              <Loader2 className="size-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : isEmployee && !attendanceStatus?.hasActiveSession ? (
+            <EmployeeCheckInForm />
+          ) : (
+            children
+          )}
         </div>
       </SidebarInset>
     </SidebarProvider>

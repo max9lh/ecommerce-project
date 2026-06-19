@@ -19,6 +19,18 @@ const register = async (userData) => {
     }
 
     const userRole = role === 'ADMIN' ? 'ADMIN' : 'EMPLOYEE';
+
+    if (userRole === 'ADMIN') {
+        const adminExists = await prisma.user.findFirst({
+            where: { role: 'ADMIN', deleted_at: null }
+        });
+        if (adminExists) {
+            const error = new Error('El registro de administradores adicionales está deshabilitado.');
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
     const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 

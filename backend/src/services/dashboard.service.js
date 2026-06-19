@@ -124,12 +124,14 @@ const getAccountHistory = async (months = 6) => {
         d.setHours(23, 59, 59, 999);
         historyPoints.push({
             label: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`, // Primer día del mes como key de gráfico
-            dateLimit: new Date(d),
+            dateLimitTime: d.getTime(),
         });
     }
     historyPoints.reverse();
 
-    const oldestDate = historyPoints[0].dateLimit;
+    const oldestDateTime = historyPoints[0].dateLimitTime;
+    const oldestDate = new Date(oldestDateTime);
+
     const closuresAfter = await prisma.dailyClosureDetail.findMany({
         where: {
             closure: {
@@ -148,6 +150,19 @@ const getAccountHistory = async (months = 6) => {
         }
     });
 
+    // Mapear a objetos planos con timestamps precalculados para comparaciones de números enteros ultrarrápidas
+    const closuresProcessed = closuresAfter.map(c => ({
+        account_id: c.account_id,
+        amount: Number(c.amount),
+        time: c.closure.date.getTime()
+    }));
+
+    const expensesProcessed = expensesAfter.map(e => ({
+        account_id: e.account_id,
+        amount: Number(e.amount),
+        time: e.paid_at ? e.paid_at.getTime() : 0
+    }));
+
     const accountsHistory = {};
     const totalHistory = historyPoints.map(point => ({ date: point.label, amount: 0 }));
 
@@ -155,16 +170,19 @@ const getAccountHistory = async (months = 6) => {
         accountsHistory[acc.id] = [];
         const currentBal = Number(acc.balance);
 
-        historyPoints.forEach((point, idx) => {
-            // Cierres de caja posteriores para esta cuenta
-            const subsequentClosures = closuresAfter
-                .filter(c => c.account_id === acc.id && new Date(c.closure.date) > point.dateLimit)
-                .reduce((sum, c) => sum + Number(c.amount), 0);
+        // Filtrar cierres y egresos por cuenta una sola vez fuera del bucle de meses
+        const accClosures = closuresProcessed.filter(c => c.account_id === acc.id);
+        const accExpenses = expensesProcessed.filter(e => e.account_id === acc.id);
 
-            // Egresos posteriores para esta cuenta
-            const subsequentExpenses = expensesAfter
-                .filter(e => e.account_id === acc.id && new Date(e.paid_at) > point.dateLimit)
-                .reduce((sum, e) => sum + Number(e.amount), 0);
+        historyPoints.forEach((point, idx) => {
+            // Comparar números enteros en lugar de objetos Date evita consumo de CPU ineficiente
+            const subsequentClosures = accClosures
+                .filter(c => c.time > point.dateLimitTime)
+                .reduce((sum, c) => sum + c.amount, 0);
+
+            const subsequentExpenses = accExpenses
+                .filter(e => e.time > point.dateLimitTime)
+                .reduce((sum, e) => sum + e.amount, 0);
 
             const histBalance = currentBal - subsequentClosures + subsequentExpenses;
             const finalAmount = Math.max(0, histBalance);

@@ -544,12 +544,12 @@ export default function ExpensesModule() {
                                                             <CreditCard className="size-3.5" />
                                                         </Button>
                                                     )}
-                                                    {expense.status === 'Pagado' && isAdmin && (
+                                                    {expense.status === 'Pendiente' && isAdmin && (
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
                                                             className="size-8 text-destructive hover:bg-destructive/10"
-                                                            title="Eliminar Gasto"
+                                                            title="Eliminar Gasto Pendiente"
                                                             onClick={() => setDeletingExpenseId(expense.id)}
                                                         >
                                                             <Trash2 className="size-3.5" />
