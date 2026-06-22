@@ -4,8 +4,8 @@ const authService = require('../services/auth.service');
 // Opciones de la cookie para el refresh token
 const COOKIE_OPTIONS = {
     httpOnly: true,                                        // No accesible desde JS
-    secure: process.env.NODE_ENV === 'production',         // Solo HTTPS en prod
-    sameSite: 'strict',                                    // Protege CSRF
+    secure: process.env.NODE_ENV === 'production',        // Solo HTTPS en prod
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',                                    // Protege CSRF
     path: '/',                                             // Disponible en toda la app
     maxAge: 30 * 24 * 60 * 60 * 1000,                      // 30 días en ms
 };
