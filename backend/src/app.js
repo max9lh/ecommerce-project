@@ -24,6 +24,7 @@ const payrollRouter = require('./routes/payroll.routes');
 const healthRouter = require('./routes/health.routes');
 
 const app = express();
+app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
 // ============================================================
