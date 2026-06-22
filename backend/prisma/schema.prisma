@@ -17,14 +17,9 @@ model User {
   pct_savings        Decimal             @default(0.10) @db.Decimal(3, 2)
   created_at         DateTime            @default(now())
   role               Role                @default(EMPLOYEE)
-<<<<<<< HEAD
   refresh_token_hash String?             @db.Text
   deleted_at            DateTime?
   must_change_password  Boolean             @default(true)
-=======
-  deleted_at         DateTime?
-  must_change_password Boolean            @default(false)
->>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
   accounts           Account[]
   attendanceLogs     AttendanceLog[]
   auditLogs          AuditLog[]
