@@ -171,35 +171,93 @@ const processMonthlyPayroll = async ({ userId }) => {
             include: { employeeProfile: true }
         });
 
+        // Filtrar solo empleados con salario fijo y salario positivo
+        const fixedEmployees = employees.filter(
+            emp => emp.employeeProfile && emp.employeeProfile.salary_type === 'fixed' && Number(emp.employeeProfile.monthly_salary || 0) > 0
+        );
+
+        if (fixedEmployees.length === 0) {
+            return [];
+        }
+
+        // Obtener nombres de los proveedores de nómina que necesitamos
+        const providerNameMap = new Map();
+        fixedEmployees.forEach(emp => {
+            const providerName = `Nómina - ${emp.employeeProfile.first_name} ${emp.employeeProfile.last_name}`;
+            providerNameMap.set(emp.id, providerName);
+        });
+
+        const providerNames = Array.from(providerNameMap.values());
+
+        // Cargar proveedores existentes en lote
+        const existingProviders = await tx.provider.findMany({
+            where: {
+                user_id: adminCtx.adminId,
+                name: { in: providerNames }
+            }
+        });
+
+        // Mapear por nombre para búsqueda rápida
+        const providerByName = new Map();
+        existingProviders.forEach(p => providerByName.set(p.name, p));
+
+        // Asegurar que todos los proveedores necesarios existan (crear los que falten)
+        const payrollProviders = [];
+        for (const emp of fixedEmployees) {
+            const providerName = providerNameMap.get(emp.id);
+            let provider = providerByName.get(providerName);
+
+            if (!provider) {
+                provider = await tx.provider.create({
+                    data: {
+                        user_id: adminCtx.adminId,
+                        name: providerName,
+                        payment_condition: 'Contado',
+                        credit_days: 0,
+                        visible_to_employee: false
+                    }
+                });
+                providerByName.set(providerName, provider);
+            }
+            payrollProviders.push({ employeeId: emp.id, provider });
+        }
+
+        const providerIds = payrollProviders.map(p => p.provider.id);
+
+        // Cargar todos los adelantos del mes en lote para todos los proveedores de nómina
+        const allAdvances = await tx.expense.findMany({
+            where: {
+                provider_id: { in: providerIds },
+                status: STATUS_AMOUNT.PAID,
+                deleted_at: null,
+                paid_at: {
+                    gte: monthStart,
+                    lte: monthEnd
+                }
+            }
+        });
+
+        // Agrupar adelantos por provider_id en memoria
+        const advancesByProvider = new Map();
+        providerIds.forEach(id => advancesByProvider.set(id, []));
+        allAdvances.forEach(adv => {
+            const list = advancesByProvider.get(adv.provider_id) || [];
+            list.push(adv);
+            advancesByProvider.set(adv.provider_id, list);
+        });
+
         const results = [];
 
-        for (const emp of employees) {
-            if (!emp.employeeProfile || emp.employeeProfile.salary_type !== 'fixed') {
-                continue; // Solo procesar empleados con salario fijo
-            }
+        for (const emp of fixedEmployees) {
+            const monthlySalary = new Decimal(emp.employeeProfile.monthly_salary.toString());
+            const payrollProviderItem = payrollProviders.find(p => p.employeeId === emp.id);
+            const payrollProvider = payrollProviderItem.provider;
 
-            const monthlySalary = new Decimal(emp.employeeProfile.monthly_salary?.toString() || '0');
-            if (monthlySalary.lte(0)) continue;
+            // Obtener adelantos agrupados en memoria
+            const employeeAdvances = advancesByProvider.get(payrollProvider.id) || [];
 
-            const payrollProvider = await getOrCreatePayrollProvider(tx, adminCtx.adminId, emp);
-
-            // Calcular total de adelantos del mes (pagos hechos vía Nómina provider)
-            const advances = await tx.expense.findMany({
-                where: {
-                    provider_id: payrollProvider.id,
-                    status: STATUS_AMOUNT.PAID,
-                    deleted_at: null,
-                    paid_at: {
-                        gte: monthStart,
-                        lte: monthEnd
-                    }
-                }
-            });
-
-            // Filtrar adelantos de este empleado (verificando el user que lo registró no sirve,
-            // necesitamos otra forma de vincular — usamos la auditoría como referencia de nombre)
-            // Para simplificar, sumamos todos los adelantos del proveedor Nómina del mes
-            const totalAdvances = advances.reduce(
+            // Sumar adelantos
+            const totalAdvances = employeeAdvances.reduce(
                 (sum, adv) => sum.plus(new Decimal(adv.amount.toString())),
                 new Decimal(0)
             );
@@ -225,7 +283,7 @@ const processMonthlyPayroll = async ({ userId }) => {
                 throw error;
             }
 
-            // Crear Expense pendiente por el neto — la bolsa NO se debita aún
+            // Crear Expense pendiente por el neto
             const expense = await tx.expense.create({
                 data: {
                     user_id: userId,

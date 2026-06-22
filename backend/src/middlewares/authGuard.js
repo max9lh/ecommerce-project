@@ -6,6 +6,16 @@ const prisma = require('../config/db');
 const userCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
+// Limpieza periódica cada 30 minutos para evitar fugas de memoria por usuarios inactivos
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of userCache.entries()) {
+        if (value.expiry < now) {
+            userCache.delete(key);
+        }
+    }
+}, 30 * 60 * 1000).unref();
+
 const authGuard = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
@@ -20,6 +30,13 @@ const authGuard = async (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
+
+        // Validar tipo de token para mitigar ataques de Token Confusion/Substitution
+        if (decoded.type !== 'access') {
+            const error = new Error('Acceso no autorizado: Tipo de token inválido');
+            error.statusCode = 401;
+            return next(error);
+        }
 
         // Buscar en caché primero
         const cacheKey = `user:${decoded.id}`;

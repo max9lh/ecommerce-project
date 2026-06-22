@@ -7,7 +7,6 @@ const logger = require('../config/logger');
  * Diferencia entre tipos de errores y responde apropiadamente.
  */
 const errorHandler = (err, req, res, next) => {
-    // Log del error
     logger.error({
         message: err.message,
         errorType: err.constructor.name,
@@ -23,12 +22,17 @@ const errorHandler = (err, req, res, next) => {
     let message = 'Error interno del servidor';
     let details = undefined;
 
-    // ============ ERRORES DE VALIDACIÓN (Zod) ============
     if (err instanceof ZodError) {
         statusCode = 400;
         message = 'Error de validación';
+<<<<<<< HEAD
         details = (err.issues || err.errors || []).map(e => ({
             field: e.path.join('.'),
+=======
+        const issues = err.issues || err.errors || [];
+        details = issues.map(e => ({
+            field: e.path ? e.path.join('.') : '',
+>>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
             message: e.message,
             code: e.code
         }));
@@ -48,10 +52,16 @@ const errorHandler = (err, req, res, next) => {
         };
     }
 
-    // ============ ERRORES PRISMA ============
     else if (err.code === 'P2002') {
         statusCode = 409;
-        message = `El campo ${err.meta?.target?.[0] || 'único'} ya existe`;
+        const targetField = err.meta?.target?.[0] || '';
+        if (targetField === 'email') {
+            message = 'El correo electrónico ingresado ya está registrado';
+        } else if (targetField === 'username') {
+            message = 'El nombre de usuario ingresado ya está en uso';
+        } else {
+            message = 'El registro ingresado ya existe y entra en conflicto';
+        }
     }
 
     else if (err.code === 'P2025') {
@@ -70,18 +80,16 @@ const errorHandler = (err, req, res, next) => {
         }
     }
 
-    // ============ ERRORES PERSONALIZADOS ============
     else if (err.statusCode) {
         statusCode = err.statusCode;
         message = err.message;
     }
 
-    // ============ RESPUESTA ============
     const response = {
         status: 'error',
         message,
         timestamp: new Date().toISOString(),
-        ...(details && { details }),
+        ...(details && { details, errors: details }),
         ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
     };
 

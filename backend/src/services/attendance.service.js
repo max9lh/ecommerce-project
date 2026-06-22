@@ -126,33 +126,35 @@ const attendanceService = {
             _sum: { hours_worked: true, amount_earned: true }
         });
 
-        return await Promise.all(
-            aggregations.map(async (agg) => {
-                const user = await client.user.findUnique({
-                    where: { id: agg.employee_id },
-                    include: { employeeProfile: true }
-                });
+        const employeeIds = aggregations.map(agg => agg.employee_id);
+        const users = await client.user.findMany({
+            where: { id: { in: employeeIds } },
+            include: { employeeProfile: true }
+        });
+        const userMap = new Map(users.map(u => [u.id, u]));
 
-                const totalHours = agg._sum.hours_worked ? parseFloat(agg._sum.hours_worked.toFixed(2)) : 0;
-                let totalToPay = agg._sum.amount_earned ? parseFloat(agg._sum.amount_earned.toFixed(2)) : 0;
+        return aggregations.map((agg) => {
+            const user = userMap.get(agg.employee_id);
 
-                if (user?.employeeProfile?.salary_type === 'fixed') {
-                    totalToPay = user.employeeProfile.monthly_salary ? parseFloat(user.employeeProfile.monthly_salary) : 0;
-                }
+            const totalHours = agg._sum.hours_worked ? parseFloat(agg._sum.hours_worked.toFixed(2)) : 0;
+            let totalToPay = agg._sum.amount_earned ? parseFloat(agg._sum.amount_earned.toFixed(2)) : 0;
 
-                const profile = user?.employeeProfile;
-                const fullName = profile ? `${profile.first_name} ${profile.last_name}` : `@${user?.username}`;
+            if (user?.employeeProfile?.salary_type === 'fixed') {
+                totalToPay = user.employeeProfile.monthly_salary ? parseFloat(user.employeeProfile.monthly_salary) : 0;
+            }
 
-                return {
-                    employeeId: agg.employee_id,
-                    name: fullName,
-                    username: user?.username || 'desconocido',
-                    salaryType: user?.employeeProfile?.salary_type || 'No definido',
-                    totalHours,
-                    calculatedAmount: totalToPay
-                };
-            })
-        );
+            const profile = user?.employeeProfile;
+            const fullName = profile ? `${profile.first_name} ${profile.last_name}` : `@${user?.username || 'desconocido'}`;
+
+            return {
+                employeeId: agg.employee_id,
+                name: fullName,
+                username: user?.username || 'desconocido',
+                salaryType: user?.employeeProfile?.salary_type || 'No definido',
+                totalHours,
+                calculatedAmount: totalToPay
+            };
+        });
     },
 
     async updateAttendance(id, checkIn, checkOut) {
@@ -357,22 +359,23 @@ const attendanceService = {
     },
 
     async getEmployeeStatus(employeeId) {
-        const activeLog = await prisma.attendanceLog.findFirst({
-            where: {
-                employee_id: employeeId,
-                check_out: null
-            }
-        });
-
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
 
-        const todayLogs = await prisma.attendanceLog.findMany({
-            where: {
-                employee_id: employeeId,
-                check_in: { gte: todayStart }
-            }
-        });
+        const [activeLog, todayLogs] = await Promise.all([
+            prisma.attendanceLog.findFirst({
+                where: {
+                    employee_id: employeeId,
+                    check_out: null
+                }
+            }),
+            prisma.attendanceLog.findMany({
+                where: {
+                    employee_id: employeeId,
+                    check_in: { gte: todayStart }
+                }
+            })
+        ]);
 
         return {
             hasActiveSession: !!activeLog,

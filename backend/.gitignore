@@ -1,9 +1,7 @@
 .env
 node_modules
 package-lock.json
-reset-db.js
-seed-closures.js
-seed-full.js
+prueba.js
 backend/todo_el_codigo.txt
 logs/
 *.log

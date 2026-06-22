@@ -1,5 +1,5 @@
 const prisma = require('../config/db');
-const { getAdminContext } = require('../utils/adminContext');
+const { getAdminContext, clearAdminContextCache } = require('../utils/adminContext');
 const { STATUS_AMOUNT } = require('../utils/constants');
 const { Decimal } = require('decimal.js');
 
@@ -105,6 +105,7 @@ const createExpense = async (userId, expenseData) => {
 
         return expense;
     });
+    clearAdminContextCache();
 };
 
 const payExpense = async (userId, expenseId, overrideAccountId = null) => {
@@ -187,6 +188,7 @@ const payExpense = async (userId, expenseId, overrideAccountId = null) => {
 
         return updatedExpense;
     });
+    clearAdminContextCache();
 };
 
 const getExpenses = async (userId, filters = {}) => {
@@ -288,6 +290,7 @@ const deleteExpense = async (userId, expenseId) => {
         error.statusCode = 404;
         throw error;
     }
+<<<<<<< HEAD
     if (expense.status === STATUS_AMOUNT.PAID) {
         const error = new Error('Los gastos pagados no pueden eliminarse por razones de consistencia de caja. Si fue un error, registre un movimiento de ajuste.');
         error.statusCode = 400;
@@ -295,6 +298,27 @@ const deleteExpense = async (userId, expenseId) => {
     }
     return await prisma.$transaction(async (tx) => {
         const softDeleted = await tx.expense.update({
+=======
+    return await prisma.$transaction(async (tx) => {
+        const adminCtx = await getAdminContext();
+
+        // Solo reintegramos dinero si el gasto ya había sido pagado
+        if (expense.status === STATUS_AMOUNT.PAID) {
+            await tx.account.update({
+                where: { id: expense.account_id },
+                data: { balance: { increment: expense.amount } }
+            });
+
+            await tx.budgetBalance.update({
+                where: {
+                    user_id_category: { user_id: adminCtx.adminId, category: expense.budget_category }
+                },
+                data: { balance: { increment: expense.amount } }
+            });
+        }
+
+        const softDeleted = await tx.expense.update({ 
+>>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
             where: { id: idParsed },
             data: { deleted_at: new Date() }
         });

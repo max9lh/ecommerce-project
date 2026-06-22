@@ -74,7 +74,7 @@ export default function LiquidateModal({ open, onOpenChange, summaryItem, from, 
       onOpenChange(false)
       onSuccess(res.data.message || "Liquidación procesada con éxito")
     } catch (err) {
-      onError(err.response?.data?.message || err.response?.data?.errors?.[0]?.message || "Error al procesar la liquidación")
+      onError(err.response?.data?.errors?.[0]?.message || err.response?.data?.message || "Error al procesar la liquidación")
     } finally {
       setSubmitting(false)
     }
