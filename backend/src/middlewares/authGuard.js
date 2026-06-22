@@ -45,6 +45,18 @@ const authGuard = async (req, res, next) => {
             return next(error);
         }
 
+        // Si el usuario debe cambiar su contraseña obligatoriamente, bloquear otras rutas
+        if (user.must_change_password) {
+            const requestPath = req.baseUrl + req.path;
+            const isChangePasswordRoute = requestPath === '/api/auth/change-password';
+            const isLogoutRoute = requestPath === '/api/auth/logout';
+            if (!isChangePasswordRoute && !isLogoutRoute) {
+                const error = new Error('Debe cambiar su contraseña temporal por seguridad');
+                error.statusCode = 403;
+                return next(error);
+            }
+        }
+
         req.user = { ...decoded, role: user.role };
         next();
     } catch (err) {

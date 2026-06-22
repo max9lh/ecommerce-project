@@ -1,8 +1,8 @@
 // backend/src/routes/auth.routes.js
 const { Router } = require('express');
-const { register, login, refreshToken, logout, updatePercentages } = require('../controllers/auth.controller');
+const { register, login, refreshToken, logout, updatePercentages, changePassword } = require('../controllers/auth.controller');
 const { forgotPassword, resetPassword } = require('../controllers/passwordReset.controller');
-const { validate, registerSchema, loginSchema, updatePercentagesSchema, forgotPasswordSchema, resetPasswordSchema } = require('../utils/schemas');
+const { validate, registerSchema, loginSchema, updatePercentagesSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } = require('../utils/schemas');
 const authGuard = require('../middlewares/authGuard');
 
 const router = Router();
@@ -31,5 +31,12 @@ router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
 
 // POST /api/auth/reset-password — Restablece la contraseña con token
 router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
+
+// ============================================================
+// CAMBIO DE CONTRASEÑA (Protegido — requiere authGuard)
+// ============================================================
+
+// POST /api/auth/change-password — Cambio de contraseña temporal (primer login)
+router.post('/change-password', authGuard, validate(changePasswordSchema), changePassword);
 
 module.exports = router;

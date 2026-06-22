@@ -129,4 +129,20 @@ const updatePercentages = async (req, res, next) => {
     }
 };
 
-module.exports = { register, login, refreshToken, logout, updatePercentages };
+const changePassword = async (req, res, next) => {
+    try {
+        const result = await authService.changePassword({
+            userId: req.user.id,
+            currentPassword: req.body.currentPassword,
+            newPassword: req.body.newPassword,
+        });
+        res.status(200).json({
+            status: 'success',
+            message: result.message,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { register, login, refreshToken, logout, updatePercentages, changePassword };

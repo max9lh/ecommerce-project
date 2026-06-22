@@ -24,14 +24,19 @@ export function LoginForm({
     setError("")
     try {
       const respuesta = await api.post("/auth/login", { username, password })
-      const { accessToken } = respuesta.data.data
+      const { accessToken, user: userData } = respuesta.data.data
       
-      login(accessToken)
+      login(accessToken, userData?.mustChangePassword || false)
       
-      navigate("/dashboard")
+      // Si el usuario debe cambiar su contraseña temporal, redirigir
+      if (userData?.mustChangePassword) {
+        navigate("/cambiar-contrasena")
+      } else {
+        navigate("/dashboard")
+      }
     } catch (err) {
-      if (err.response?.data?.errors) {
-        setError(err.response.data.errors[0].message);
+      if (err.response?.data?.details) {
+        setError(err.response.data.details[0]?.message || "Error de validación");
       } else {
         setError(err.response?.data?.message || "Usuario o contraseña incorrectos");
       }

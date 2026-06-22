@@ -18,7 +18,8 @@ model User {
   created_at         DateTime            @default(now())
   role               Role                @default(EMPLOYEE)
   refresh_token_hash String?             @db.Text
-  deleted_at         DateTime?
+  deleted_at            DateTime?
+  must_change_password  Boolean             @default(true)
   accounts           Account[]
   attendanceLogs     AttendanceLog[]
   auditLogs          AuditLog[]

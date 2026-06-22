@@ -19,6 +19,18 @@ const register = async (userData) => {
     }
 
     const userRole = role === 'ADMIN' ? 'ADMIN' : 'EMPLOYEE';
+
+    if (userRole === 'ADMIN') {
+        const adminExists = await prisma.user.findFirst({
+            where: { role: 'ADMIN', deleted_at: null }
+        });
+        if (adminExists) {
+            const error = new Error('El registro de administradores adicionales está deshabilitado.');
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
     const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
@@ -28,6 +40,7 @@ const register = async (userData) => {
                 username,
                 password_hash,
                 role: userRole,
+                must_change_password: userRole !== 'ADMIN',
                 pct_merchandise: userRole === 'ADMIN' ? (userData.pct_merchandise || 0.60) : 0.00,
                 pct_fixed_expenses: userRole === 'ADMIN' ? (userData.pct_fixed_expenses || 0.30) : 0.00,
                 pct_savings: userRole === 'ADMIN' ? (userData.pct_savings || 0.10) : 0.00,
@@ -139,6 +152,7 @@ const login = async ({ username, password }) => {
             id: user.id,
             username: user.username,
             role: user.role,
+            mustChangePassword: user.must_change_password,
         },
         accessToken,      // ✅ Bearer token (corto)
         expiresIn: 900,   // 15 minutos en segundos
@@ -257,10 +271,45 @@ const updatePercentages = async ({ userId, pct_merchandise, pct_fixed_expenses, 
     return updatedUser;
 };
 
+/**
+ * Cambiar contraseña (primer inicio de sesión con contraseña temporal).
+ * Valida la contraseña actual, hashea la nueva y desactiva el flag must_change_password.
+ */
+const changePassword = async ({ userId, currentPassword, newPassword }) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user || user.deleted_at !== null) {
+        const error = new Error('Usuario no encontrado');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isPasswordValid) {
+        const error = new Error('La contraseña actual es incorrecta');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+    const newPasswordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
+    await prisma.user.update({
+        where: { id: userId },
+        data: {
+            password_hash: newPasswordHash,
+            must_change_password: false,
+        },
+    });
+
+    return { message: 'Contraseña actualizada correctamente' };
+};
+
 module.exports = {
     register,
     login,
     refreshAccessToken,
     logout,
-    updatePercentages
+    updatePercentages,
+    changePassword
 };

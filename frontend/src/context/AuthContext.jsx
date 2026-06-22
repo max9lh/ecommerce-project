@@ -8,16 +8,21 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [mustChangePassword, setMustChangePassword] = useState(false)
+  const [attendanceStatus, setAttendanceStatus] = useState(null)
+  const [attendanceLoading, setAttendanceLoading] = useState(false)
 
   // Inicialización: leer token existente
   useEffect(() => {
     const initAuth = async () => {
       const accessToken = localStorage.getItem("accessToken")
+      const mustChange = localStorage.getItem("mustChangePassword") === "true"
 
       if (accessToken) {
         const payload = parseJwt(accessToken)
         if (payload && !isTokenExpired(payload)) {
           setUser(payload)
+          setMustChangePassword(mustChange)
         } else {
           // Token expirado, intentar refresh (cookie HttpOnly viaja sola)
           try {
@@ -25,8 +30,11 @@ export function AuthProvider({ children }) {
             const { accessToken: newAccessToken } = res.data.data
             localStorage.setItem("accessToken", newAccessToken)
             setUser(parseJwt(newAccessToken))
+            setMustChangePassword(mustChange)
           } catch (err) {
             localStorage.removeItem("accessToken")
+            localStorage.removeItem("mustChangePassword")
+            setMustChangePassword(false)
           }
         }
       }
@@ -35,6 +43,27 @@ export function AuthProvider({ children }) {
 
     initAuth()
   }, [])
+
+  // Cargar estado de asistencia automáticamente cuando el usuario cambia
+  useEffect(() => {
+    const fetchAttendanceStatus = async () => {
+      if (user && user.role === 'EMPLOYEE') {
+        setAttendanceLoading(true)
+        try {
+          const res = await api.get("/attendance/status")
+          setAttendanceStatus(res.data.data)
+        } catch (err) {
+          console.error("Error al obtener estado de asistencia:", err)
+        } finally {
+          setAttendanceLoading(false)
+        }
+      } else {
+        setAttendanceStatus(null)
+      }
+    }
+
+    fetchAttendanceStatus()
+  }, [user])
 
   // Renovar token proactivamente antes de que expire
   useEffect(() => {
@@ -70,10 +99,18 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   // Login: guardar accessToken (refreshToken viene como HttpOnly cookie del server)
-  const login = useCallback((accessToken) => {
+  const login = useCallback((accessToken, mustChange = false) => {
     localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('mustChangePassword', mustChange ? 'true' : 'false');
     const payload = parseJwt(accessToken);
     setUser(payload);
+    setMustChangePassword(mustChange);
+  }, []);
+
+  // Limpiar flag de cambio obligatorio de contraseña
+  const clearMustChangePassword = useCallback(() => {
+    localStorage.setItem('mustChangePassword', 'false');
+    setMustChangePassword(false);
   }, []);
 
   // Logout: limpiar todo (el server limpia la cookie)
@@ -85,8 +122,36 @@ export function AuthProvider({ children }) {
     }
 
     localStorage.removeItem("accessToken");
+    localStorage.removeItem("mustChangePassword");
     setUser(null);
+    setMustChangePassword(false);
+    setAttendanceStatus(null);
   }, []);
+
+  // Acciones de asistencia para el empleado
+  const employeeCheckIn = useCallback(async () => {
+    try {
+      const res = await api.post("/attendance/check-in")
+      setAttendanceStatus({
+        hasActiveSession: true,
+        currentSession: res.data.data,
+        todaySessionsCount: (attendanceStatus?.todaySessionsCount || 0) + 1
+      })
+      return res.data.data
+    } catch (err) {
+      throw err;
+    }
+  }, [attendanceStatus]);
+
+  const employeeCheckOutAndLogout = useCallback(async () => {
+    try {
+      await api.post("/attendance/check-out")
+    } catch (err) {
+      console.error("Error al registrar salida durante logout:", err)
+    } finally {
+      await logout()
+    }
+  }, [logout]);
 
   // Helpers derivados
   const isAdmin = user?.role === "ADMIN"
@@ -110,8 +175,28 @@ export function AuthProvider({ children }) {
       login,
       logout,
       loading,
+      mustChangePassword,
+      clearMustChangePassword,
+      attendanceStatus,
+      attendanceLoading,
+      employeeCheckIn,
+      employeeCheckOutAndLogout
     }),
-    [user, isAdmin, isEmployee, hasPermission, login, logout, loading]
+    [
+      user,
+      isAdmin,
+      isEmployee,
+      hasPermission,
+      login,
+      logout,
+      loading,
+      mustChangePassword,
+      clearMustChangePassword,
+      attendanceStatus,
+      attendanceLoading,
+      employeeCheckIn,
+      employeeCheckOutAndLogout
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -30,7 +30,7 @@ import {
 
 export function NavUser({ user }) {
   const { isMobile } = useSidebar()
-  const { logout } = useAuth()
+  const { logout, employeeCheckOutAndLogout, attendanceStatus } = useAuth()
   const navigate = useNavigate()
 
   // Generar iniciales del nombre de usuario (máx 2 letras)
@@ -45,6 +45,11 @@ export function NavUser({ user }) {
 
   const handleLogout = () => {
     logout()
+    navigate("/login")
+  }
+
+  const handleCheckOutAndLogout = async () => {
+    await employeeCheckOutAndLogout()
     navigate("/login")
   }
 
@@ -94,8 +99,17 @@ export function NavUser({ user }) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
-              <LogOut />
+            {user.role === "EMPLOYEE" && attendanceStatus?.hasActiveSession && (
+              <>
+                <DropdownMenuItem onClick={handleCheckOutAndLogout} className="text-amber-500 focus:text-amber-500 gap-2">
+                  <LogOut className="size-4 text-amber-500" />
+                  Registrar Salida y Salir
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive gap-2">
+              <LogOut className="size-4" />
               Cerrar sesión
             </DropdownMenuItem>
           </DropdownMenuContent>
