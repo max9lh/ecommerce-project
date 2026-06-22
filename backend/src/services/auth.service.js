@@ -41,11 +41,7 @@ const register = async (userData) => {
                 username,
                 password_hash,
                 role: userRole,
-<<<<<<< HEAD
                 must_change_password: userRole !== 'ADMIN',
-=======
-                must_change_password: userRole === 'EMPLOYEE',
->>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
                 pct_merchandise: userRole === 'ADMIN' ? (userData.pct_merchandise || 0.60) : 0.00,
                 pct_fixed_expenses: userRole === 'ADMIN' ? (userData.pct_fixed_expenses || 0.30) : 0.00,
                 pct_savings: userRole === 'ADMIN' ? (userData.pct_savings || 0.10) : 0.00,
@@ -202,10 +198,6 @@ const refreshAccessToken = async (refreshTokenStr) => {
     const payload = {
         username: user.username,
         role: user.role,
-<<<<<<< HEAD
-=======
-        mustChangePassword: user.must_change_password,
->>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
     };
 
     if (user.role === 'EMPLOYEE' && user.employeePermission) {
@@ -279,92 +271,37 @@ const updatePercentages = async ({ userId, pct_merchandise, pct_fixed_expenses, 
 };
 
 /**
-<<<<<<< HEAD
  * Cambiar contraseña (primer inicio de sesión con contraseña temporal).
  * Valida la contraseña actual, hashea la nueva y desactiva el flag must_change_password.
  */
 const changePassword = async ({ userId, currentPassword, newPassword }) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
-=======
- * Cambio forzado de contraseña (primer login del empleado)
- */
-const forceChangePassword = async (userId, newPassword) => {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
->>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
     if (!user || user.deleted_at !== null) {
         const error = new Error('Usuario no encontrado');
         error.statusCode = 404;
         throw error;
     }
 
-<<<<<<< HEAD
     const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
     if (!isPasswordValid) {
         const error = new Error('La contraseña actual es incorrecta');
         error.statusCode = 401;
-=======
-    if (!user.must_change_password) {
-        const error = new Error('No se requiere cambio de contraseña');
-        error.statusCode = 400;
->>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
         throw error;
     }
 
     const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
-<<<<<<< HEAD
     const newPasswordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
-=======
-    const password_hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
->>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
 
     await prisma.user.update({
         where: { id: userId },
         data: {
-<<<<<<< HEAD
             password_hash: newPasswordHash,
             must_change_password: false,
         },
     });
 
     return { message: 'Contraseña actualizada correctamente' };
-=======
-            password_hash,
-            must_change_password: false
-        }
-    });
-
-    // Generar nuevos tokens con mustChangePassword: false
-    const payload = {
-        username: user.username,
-        role: user.role,
-        mustChangePassword: false,
-    };
-
-    if (user.role === 'EMPLOYEE') {
-        const permissions = await prisma.employeePermission.findUnique({
-            where: { user_id: user.id },
-            select: {
-                canRegisterClosures: true,
-                canRegisterExpenses: true,
-                canPayExpenses: true,
-                canManageProviders: true
-            }
-        });
-        payload.permissions = permissions;
-    }
-
-    const accessToken = generateAccessToken(userId, payload);
-    const refreshToken = generateRefreshToken(userId);
-    const refreshTokenHash = hashRefreshToken(refreshToken);
-
-    await prisma.user.update({
-        where: { id: userId },
-        data: { refresh_token_hash: refreshTokenHash }
-    });
-
-    return { accessToken, refreshToken, expiresIn: 900 };
->>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
 };
 
 module.exports = {
@@ -373,10 +310,5 @@ module.exports = {
     refreshAccessToken,
     logout,
     updatePercentages,
-<<<<<<< HEAD
     changePassword
 };
-=======
-    forceChangePassword
-};
->>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1

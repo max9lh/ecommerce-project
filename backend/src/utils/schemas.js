@@ -166,7 +166,6 @@ const resetPasswordSchema = z.object({
 });
 
 const changePasswordSchema = z.object({
-<<<<<<< HEAD
     currentPassword: z.string()
         .min(1, 'La contraseña actual es requerida'),
     newPassword: z.string()
@@ -174,10 +173,6 @@ const changePasswordSchema = z.object({
 }).refine((data) => data.newPassword !== data.currentPassword, {
     message: 'La nueva contraseña debe ser diferente a la contraseña actual',
     path: ['newPassword'],
-=======
-    newPassword: z.string()
-        .min(8, 'La nueva contraseña debe tener al menos 8 caracteres'),
->>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
 });
 
 const validate = (schema) => (req, res, next) => {

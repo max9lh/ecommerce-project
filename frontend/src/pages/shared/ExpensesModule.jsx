@@ -551,11 +551,7 @@ export default function ExpensesModule() {
                                                             <CreditCard className="size-3.5" />
                                                         </Button>
                                                     )}
-<<<<<<< HEAD
                                                     {expense.status === 'Pendiente' && isAdmin && (
-=======
-                                                    {isAdmin && (
->>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"

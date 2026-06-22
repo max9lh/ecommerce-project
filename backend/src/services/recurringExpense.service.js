@@ -8,10 +8,7 @@ const createRecurringExpense = async (userId, data) => {
     const { name, amount, due_day, category, frequency } = data;
     const freq = frequency || 'monthly';
 
-<<<<<<< HEAD
     // Validaciones de negocio
-=======
->>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
     if (!amount || amount <= 0) {
         const error = new Error('El monto debe ser mayor a 0');
         error.statusCode = 400;
