@@ -1,35 +1,16 @@
 // backend/src/config/mailer.js
 // ============================================================
-// Servicio de envío de correos electrónicos (Nodemailer)
+// Servicio de envío de correos electrónicos (Brevo HTTP API)
 // ============================================================
-// Se autodetecta la configuración SMTP en variables de entorno.
-// Si no están configuradas, hace un fallback seguro imprimiendo
-// los enlaces de restablecimiento en la consola del servidor.
+// Usa la API REST de Brevo (ex Sendinblue) via fetch nativo.
+// No requiere dependencias adicionales (Node 20+ tiene fetch).
+// Si BREVO_API_KEY no está configurada, imprime los enlaces
+// de restablecimiento en la consola del servidor.
 // ============================================================
 
-const nodemailer = require('nodemailer');
 const logger = require('./logger');
 
-let transporter = null;
-
-// Inicializa el transportador solo si las variables SMTP requeridas están configuradas
-if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-    transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT, 10) || 465,
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-        },
-    });
-
-    transporter.verify()
-        .then(() => logger.info('✅ Conexión SMTP configurada y verificada correctamente'))
-        .catch((err) => logger.error('❌ Error al conectar con el servidor SMTP:', err.message));
-} else {
-    logger.warn('⚠️ Servidor SMTP no configurado. Los correos de recuperación se imprimirán en consola.');
-}
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
 /**
  * Envía un correo de recuperación de contraseña.
@@ -96,20 +77,43 @@ async function sendPasswordResetEmail(to, resetUrl) {
         </html>
     `;
 
-    if (transporter) {
-        // Envío real por SMTP
-        await transporter.sendMail({
-            from: `"Gestor Financiero" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-            to,
-            subject,
-            html,
-        });
-        logger.info(`📧 Correo de recuperación enviado con éxito a: ${to}`);
-    } else {
-        // Caída de seguridad en desarrollo: Imprime en consola
+    // Si no hay API Key de Brevo, imprimir en consola (fallback dev)
+    if (!process.env.BREVO_API_KEY) {
         logger.info(`📧 [DEV] Email de recuperación para ${to}:`);
         logger.info(`📧 [DEV] URL de reset: ${resetUrl}`);
-        logger.info(`📧 [DEV] (SMTP no configurado en variables de entorno)`);
+        logger.info(`📧 [DEV] (BREVO_API_KEY no configurado en variables de entorno)`);
+        return;
+    }
+
+    // Obtener el remitente desde variables de entorno
+    const senderEmail = process.env.EMAIL_FROM || 'noreply@gestorfinanciero.com';
+    const senderName = process.env.EMAIL_FROM_NAME || 'Gestor Financiero';
+
+    try {
+        const response = await fetch(BREVO_API_URL, {
+            method: 'POST',
+            headers: {
+                'accept': 'application/json',
+                'api-key': process.env.BREVO_API_KEY,
+                'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+                sender: { name: senderName, email: senderEmail },
+                to: [{ email: to }],
+                subject,
+                htmlContent: html,
+            }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            logger.error(`❌ Error al enviar email con Brevo (${response.status}):`, result.message || JSON.stringify(result));
+        } else {
+            logger.info(`📧 Correo de recuperación enviado con éxito a: ${to} (ID: ${result.messageId})`);
+        }
+    } catch (err) {
+        logger.error('❌ Excepción al enviar email con Brevo:', err.message);
     }
 }
 
