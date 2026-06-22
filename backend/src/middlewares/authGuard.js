@@ -83,4 +83,8 @@ const authGuard = async (req, res, next) => {
     }
 };
 
+authGuard.invalidateUserCache = (userId) => {
+    userCache.delete(`user:${userId}`);
+};
+
 module.exports = authGuard;
