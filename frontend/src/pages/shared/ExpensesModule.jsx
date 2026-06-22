@@ -202,9 +202,14 @@ export default function ExpensesModule() {
     useEffect(() => {
         if (isAdmin) {
             fetchExpenses();
-            fetchUpcoming();
         }
     }, [statusFilter, categoryFilter, dateFilter, page]);
+
+    useEffect(() => {
+        if (isAdmin) {
+            fetchUpcoming();
+        }
+    }, [isAdmin]);
 
     const handleConfirmPayment = async () => {
         if (!selectedExpense) return;

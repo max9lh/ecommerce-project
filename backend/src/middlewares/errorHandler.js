@@ -51,7 +51,14 @@ const errorHandler = (err, req, res, next) => {
     // ============ ERRORES PRISMA ============
     else if (err.code === 'P2002') {
         statusCode = 409;
-        message = `El campo ${err.meta?.target?.[0] || 'único'} ya existe`;
+        const targetField = err.meta?.target?.[0] || '';
+        if (targetField === 'email') {
+            message = 'El correo electrónico ingresado ya está registrado';
+        } else if (targetField === 'username') {
+            message = 'El nombre de usuario ingresado ya está en uso';
+        } else {
+            message = 'El registro ingresado ya existe y entra en conflicto';
+        }
     }
 
     else if (err.code === 'P2025') {

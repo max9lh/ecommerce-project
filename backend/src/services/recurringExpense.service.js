@@ -149,9 +149,6 @@ const getRecurringExpenses = async () => {
     });
 };
 
-/**
- * Actualiza un gasto recurrente existente.
- */
 const updateRecurringExpense = async (userId, expenseId, data) => {
     const id = parseInt(expenseId, 10);
     const existing = await prisma.recurringExpense.findUnique({ where: { id } });
@@ -188,20 +185,22 @@ const updateRecurringExpense = async (userId, expenseId, data) => {
     if (data.category !== undefined) updateData.category = data.category;
     if (data.is_active !== undefined) updateData.is_active = data.is_active;
 
-    const updated = await prisma.recurringExpense.update({
-        where: { id },
-        data: updateData
-    });
+    return await prisma.$transaction(async (tx) => {
+        const updated = await tx.recurringExpense.update({
+            where: { id },
+            data: updateData
+        });
 
-    await prisma.auditLog.create({
-        data: {
-            user_id: userId,
-            action: 'EDITAR_GASTO_RECURRENTE',
-            details: `Editó gasto recurrente "${updated.name}" (ID ${id})`
-        }
-    });
+        await tx.auditLog.create({
+            data: {
+                user_id: userId,
+                action: 'EDITAR_GASTO_RECURRENTE',
+                details: `Editó gasto recurrente "${updated.name}" (ID ${id})`
+            }
+        });
 
-    return updated;
+        return updated;
+    });
 };
 
 /**
@@ -217,19 +216,21 @@ const deleteRecurringExpense = async (userId, expenseId) => {
         throw error;
     }
 
-    const deleted = await prisma.recurringExpense.delete({
-        where: { id }
-    });
+    return await prisma.$transaction(async (tx) => {
+        const deleted = await tx.recurringExpense.delete({
+            where: { id }
+        });
 
-    await prisma.auditLog.create({
-        data: {
-            user_id: userId,
-            action: 'ELIMINAR_GASTO_RECURRENTE',
-            details: `Eliminó físicamente el gasto recurrente "${existing.name}" (ID ${id})`
-        }
-    });
+        await tx.auditLog.create({
+            data: {
+                user_id: userId,
+                action: 'ELIMINAR_GASTO_RECURRENTE',
+                details: `Eliminó físicamente el gasto recurrente "${existing.name}" (ID ${id})`
+            }
+        });
 
-    return deleted;
+        return deleted;
+    });
 };
 
 module.exports = {

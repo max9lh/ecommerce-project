@@ -7,6 +7,7 @@ const {
     hashRefreshToken,
     verifyToken
 } = require('../utils/tokenUtils');
+const { clearAdminContextCache } = require('../utils/adminContext');
 
 const register = async (userData) => {
     const { username, password, role } = userData;
@@ -122,17 +123,13 @@ const login = async ({ username, password }) => {
         role: user.role,
     };
 
-    if (user.role === 'EMPLOYEE') {
-        const permissions = await prisma.employeePermission.findUnique({
-            where: { user_id: user.id },
-            select: {
-                canRegisterClosures: true,
-                canRegisterExpenses: true,
-                canPayExpenses: true,
-                canManageProviders: true
-            }
-        });
-        payload.permissions = permissions;
+    if (user.role === 'EMPLOYEE' && user.employeePermission) {
+        payload.permissions = {
+            canRegisterClosures: user.employeePermission.canRegisterClosures,
+            canRegisterExpenses: user.employeePermission.canRegisterExpenses,
+            canPayExpenses: user.employeePermission.canPayExpenses,
+            canManageProviders: user.employeePermission.canManageProviders
+        };
     }
 
     // ✅ Generar access token (15 min)
@@ -268,6 +265,7 @@ const updatePercentages = async ({ userId, pct_merchandise, pct_fixed_expenses, 
         },
     });
 
+    clearAdminContextCache();
     return updatedUser;
 };
 

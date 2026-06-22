@@ -1,5 +1,5 @@
 const prisma = require('../config/db');
-const { getAdminContext } = require('../utils/adminContext');
+const { getAdminContext, clearAdminContextCache } = require('../utils/adminContext');
 const { STATUS_AMOUNT } = require('../utils/constants');
 const { Decimal } = require('decimal.js');
 
@@ -105,6 +105,7 @@ const createExpense = async (userId, expenseData) => {
 
         return expense;
     });
+    clearAdminContextCache();
 };
 
 const payExpense = async (userId, expenseId, overrideAccountId = null) => {
@@ -187,6 +188,7 @@ const payExpense = async (userId, expenseId, overrideAccountId = null) => {
 
         return updatedExpense;
     });
+    clearAdminContextCache();
 };
 
 const getExpenses = async (userId, filters = {}) => {

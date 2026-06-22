@@ -5,8 +5,8 @@ const authService = require('../services/auth.service');
 const COOKIE_OPTIONS = {
     httpOnly: true,                                        // No accesible desde JS
     secure: process.env.NODE_ENV === 'production',         // Solo HTTPS en prod
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-    path: '/api/auth',                                     // Solo se envía a rutas de auth
+    sameSite: 'strict',                                    // Protege CSRF
+    path: '/',                                             // Disponible en toda la app
     maxAge: 30 * 24 * 60 * 60 * 1000,                      // 30 días en ms
 };
 
@@ -27,14 +27,8 @@ const login = async (req, res, next) => {
     try {
         const result = await authService.login(req.body);
 
-        // ✅ Setear refresh token como HttpOnly cookie
-        res.cookie('refreshToken', result.refreshToken, {
-            httpOnly: true,                              // ← No accesible desde JS
-            secure: process.env.NODE_ENV === 'production', // ← HTTPS en prod
-            sameSite: 'strict',                          // ← Protege CSRF
-            maxAge: 30 * 24 * 60 * 60 * 1000,           // ← 30 días en ms
-            path: '/'                                     // ← Disponible en toda la app
-        });
+        // ✅ Setear refresh token como HttpOnly cookie usando opciones unificadas
+        res.cookie('refreshToken', result.refreshToken, COOKIE_OPTIONS);
 
         // ✅ Solo devolver accessToken en JSON
         return res.status(200).json({
@@ -68,14 +62,8 @@ const refreshToken = async (req, res, next) => {
         // ✅ Llamar al servicio para generar nuevo access token
         const result = await authService.refreshAccessToken(refreshTokenFromCookie);
 
-        // ✅ Setear NUEVA cookie con nuevo refresh token (rotation)
-        res.cookie('refreshToken', result.refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 30 * 24 * 60 * 60 * 1000,
-            path: '/'
-        });
+        // ✅ Setear NUEVA cookie con nuevo refresh token (rotation) usando opciones unificadas
+        res.cookie('refreshToken', result.refreshToken, COOKIE_OPTIONS);
 
         // ✅ Devolver nuevo access token
         return res.status(200).json({
@@ -99,13 +87,8 @@ const logout = async (req, res, next) => {
     try {
         await authService.logout(req.user.id);
 
-        // Limpiar la cookie
-        res.clearCookie('refreshToken', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-            path: '/api/auth',
-        });
+        // Limpiar la cookie usando las opciones unificadas
+        res.clearCookie('refreshToken', COOKIE_OPTIONS);
 
         res.status(200).json({
             status: 'success',

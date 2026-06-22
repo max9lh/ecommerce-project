@@ -73,7 +73,7 @@ app.use('/api/', apiLimiter);
 // ============================================================
 // RUTAS PROTEGIDAS
 // ============================================================
-app.use('/api/auth', authLimiter, authRouter);
+app.use('/api/auth', authRouter);
 app.use('/api/closures', writeLimiter, closureRouter);
 app.use('/api/providers', writeLimiter, providerRouter);
 app.use('/api/expenses', writeLimiter, expenseRouter);

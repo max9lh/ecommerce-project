@@ -48,19 +48,11 @@ const toUTCMidnight = (date) => {
  * @returns {Object} Resultado de la proyección
  */
 const generateProjection = async ({ userId, days = 30, basePeriodDays = 14, safetyBuffer = 0 }) => {
-    const adminCtx = await getAdminContext();
     const safetyBuf = new Decimal(safetyBuffer);
-
-    // ── 1. Saldo inicial: suma de todas las cuentas del ADMIN ──
-    const initialBalance = adminCtx.accounts.reduce(
-        (sum, acc) => sum.plus(new Decimal(acc.balance.toString())),
-        new Decimal(0)
-    );
-
-    // ── 2. Período base para calcular ingreso promedio diario ──
-    let periodFrom, periodTo;
     const now = new Date();
 
+    // ── Calcular rangos de fechas de antemano para paralelizar ──
+    let periodFrom, periodTo;
     if (typeof basePeriodDays === 'object' && basePeriodDays.from && basePeriodDays.to) {
         periodFrom = new Date(basePeriodDays.from);
         periodTo = new Date(basePeriodDays.to);
@@ -74,16 +66,43 @@ const generateProjection = async ({ userId, days = 30, basePeriodDays = 14, safe
         ));
     }
 
-    const closures = await prisma.dailyClosure.findMany({
-        where: {
-            date: {
-                gte: periodFrom,
-                lte: periodTo
-            }
-        },
-        select: { total_amount: true, date: true }
-    });
+    const today = toUTCMidnight(now);
+    const projectionEndDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + days));
 
+    // ── Ejecutar consultas base en paralelo ──
+    const [adminCtx, closures, pendingExpenses] = await Promise.all([
+        getAdminContext(),
+        prisma.dailyClosure.findMany({
+            where: {
+                date: {
+                    gte: periodFrom,
+                    lte: periodTo
+                }
+            },
+            select: { total_amount: true, date: true }
+        }),
+        prisma.expense.findMany({
+            where: {
+                status: STATUS_AMOUNT.PENDING,
+                deleted_at: null,
+                due_date: {
+                    gte: today,
+                    lte: projectionEndDate
+                }
+            },
+            include: {
+                provider: { select: { name: true } }
+            }
+        })
+    ]);
+
+    // ── 1. Saldo inicial: suma de todas las cuentas del ADMIN ──
+    const initialBalance = adminCtx.accounts.reduce(
+        (sum, acc) => sum.plus(new Decimal(acc.balance.toString())),
+        new Decimal(0)
+    );
+
+    // ── 2. Calcular ingreso promedio diario ──
     const totalIncome = closures.reduce(
         (sum, c) => sum.plus(new Decimal(c.total_amount.toString())),
         new Decimal(0)
@@ -93,25 +112,7 @@ const generateProjection = async ({ userId, days = 30, basePeriodDays = 14, safe
     const baseDailyIncome = totalIncome.div(periodDays);
 
     // ── 3. Recopilar gastos ──
-    // 3a. Gastos pendientes desde hoy hasta el límite de la proyección
-    const today = toUTCMidnight(now);
-    const projectionEndDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + days));
-
-    const pendingExpenses = await prisma.expense.findMany({
-        where: {
-            status: STATUS_AMOUNT.PENDING,
-            deleted_at: null,
-            due_date: {
-                gte: today,
-                lte: projectionEndDate
-            }
-        },
-        include: {
-            provider: { select: { name: true } }
-        }
-    });
-
-    // 3b. Gastos recurrentes activos
+    // 3b. Gastos recurrentes activos (requiere adminCtx.adminId)
     const recurringExpenses = await prisma.recurringExpense.findMany({
         where: {
             user_id: adminCtx.adminId,
