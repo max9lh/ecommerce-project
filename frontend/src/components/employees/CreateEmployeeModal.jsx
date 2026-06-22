@@ -96,8 +96,8 @@ export default function CreateEmployeeModal({ open, onOpenChange, onSuccess, onE
       onOpenChange(false)
       onSuccess()
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.response?.data?.errors?.[0]?.message || "Error al registrar el empleado"
-      setLocalError(errMsg)
+      const errMsg = err.response?.data?.errors?.[0]?.message || err.response?.data?.message || "Error al registrar el empleado";
+      setLocalError(errMsg);
     } finally {
       setLoading(false)
     }
@@ -221,13 +221,13 @@ export default function CreateEmployeeModal({ open, onOpenChange, onSuccess, onE
             )}
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
+          <DialogFooter className="gap-3 sm:gap-2">
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="size-4 animate-spin mr-2" />}
               Registrar Empleado
+            </Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
             </Button>
           </DialogFooter>
         </form>

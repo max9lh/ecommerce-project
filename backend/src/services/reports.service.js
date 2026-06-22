@@ -16,44 +16,39 @@ const getPeriodSummary = async (from, to) => {
     const prevFrom = new Date(dateFrom.getTime() - diffMs);
     const prevTo = new Date(dateFrom);
 
-    // Ingresos actuales (cierres de caja)
-    const incomeAgg = await prisma.dailyClosure.aggregate({
-        where: { date: { gte: dateFrom, lte: dateTo } },
-        _sum: { total_amount: true },
-        _count: { id: true }
-    });
-
-    // Egresos pagados actuales
-    const expenseAgg = await prisma.expense.aggregate({
-        where: {
-            status: STATUS_AMOUNT.PAID,
-            paid_at: { gte: dateFrom, lte: dateTo },
-            deleted_at: null
-        },
-        _sum: { amount: true },
-        _count: { id: true }
-    });
-
-    // Nómina del período (horas con amount_earned)
-    const payrollAgg = await prisma.attendanceLog.aggregate({
-        where: { check_in: { gte: dateFrom, lte: dateTo } },
-        _sum: { amount_earned: true, hours_worked: true }
-    });
-
-    // Período anterior — mismos cálculos
-    const prevIncomeAgg = await prisma.dailyClosure.aggregate({
-        where: { date: { gte: prevFrom, lte: prevTo } },
-        _sum: { total_amount: true }
-    });
-
-    const prevExpenseAgg = await prisma.expense.aggregate({
-        where: {
-            status: STATUS_AMOUNT.PAID,
-            paid_at: { gte: prevFrom, lte: prevTo },
-            deleted_at: null
-        },
-        _sum: { amount: true }
-    });
+    // Ejecutar consultas en paralelo
+    const [incomeAgg, expenseAgg, payrollAgg, prevIncomeAgg, prevExpenseAgg] = await Promise.all([
+        prisma.dailyClosure.aggregate({
+            where: { date: { gte: dateFrom, lte: dateTo } },
+            _sum: { total_amount: true },
+            _count: { id: true }
+        }),
+        prisma.expense.aggregate({
+            where: {
+                status: STATUS_AMOUNT.PAID,
+                paid_at: { gte: dateFrom, lte: dateTo },
+                deleted_at: null
+            },
+            _sum: { amount: true },
+            _count: { id: true }
+        }),
+        prisma.attendanceLog.aggregate({
+            where: { check_in: { gte: dateFrom, lte: dateTo } },
+            _sum: { amount_earned: true, hours_worked: true }
+        }),
+        prisma.dailyClosure.aggregate({
+            where: { date: { gte: prevFrom, lte: prevTo } },
+            _sum: { total_amount: true }
+        }),
+        prisma.expense.aggregate({
+            where: {
+                status: STATUS_AMOUNT.PAID,
+                paid_at: { gte: prevFrom, lte: prevTo },
+                deleted_at: null
+            },
+            _sum: { amount: true }
+        })
+    ]);
 
     const totalIncome = Number(incomeAgg._sum.total_amount || 0);
     const totalExpenses = Number(expenseAgg._sum.amount || 0);
@@ -234,19 +229,20 @@ const getExpensesByProvider = async (from, to, limit = 10) => {
 
     const total = groups.reduce((sum, g) => sum + Number(g._sum.amount || 0), 0);
 
-    // Enriquecer con nombre del proveedor
-    const enriched = await Promise.all(groups.map(async (g) => {
-        const provider = await prisma.provider.findUnique({
-            where: { id: g.provider_id },
-            select: { name: true }
-        });
-        return {
-            providerId: g.provider_id,
-            providerName: provider?.name || 'Desconocido',
-            amount: Number(g._sum.amount || 0),
-            count: g._count.id,
-            percentage: total > 0 ? parseFloat(((Number(g._sum.amount || 0) / total) * 100).toFixed(1)) : 0
-        };
+    // Enriquecer con nombre del proveedor en lote
+    const providerIds = groups.map(g => g.provider_id);
+    const providers = await prisma.provider.findMany({
+        where: { id: { in: providerIds } },
+        select: { id: true, name: true }
+    });
+    const providerMap = new Map(providers.map(p => [p.id, p.name]));
+
+    const enriched = groups.map((g) => ({
+        providerId: g.provider_id,
+        providerName: providerMap.get(g.provider_id) || 'Desconocido',
+        amount: Number(g._sum.amount || 0),
+        count: g._count.id,
+        percentage: total > 0 ? parseFloat(((Number(g._sum.amount || 0) / total) * 100).toFixed(1)) : 0
     }));
 
     return enriched;
@@ -268,14 +264,18 @@ const getPayrollSummary = async (from, to) => {
         _count: { id: true }
     });
 
-    const employees = await Promise.all(aggregations.map(async (agg) => {
-        const user = await prisma.user.findUnique({
-            where: { id: agg.employee_id },
-            include: { employeeProfile: true }
-        });
+    // Obtener todos los usuarios y perfiles de empleados en lote
+    const employeeIds = aggregations.map(agg => agg.employee_id);
+    const users = await prisma.user.findMany({
+        where: { id: { in: employeeIds } },
+        include: { employeeProfile: true }
+    });
+    const userMap = new Map(users.map(u => [u.id, u]));
 
+    const employees = aggregations.map((agg) => {
+        const user = userMap.get(agg.employee_id);
         const profile = user?.employeeProfile;
-        const fullName = profile ? `${profile.first_name} ${profile.last_name}` : `@${user?.username}`;
+        const fullName = profile ? `${profile.first_name} ${profile.last_name}` : `@${user?.username || 'Desconocido'}`;
         const totalHours = agg._sum.hours_worked ? parseFloat(Number(agg._sum.hours_worked).toFixed(2)) : 0;
 
         let totalToPay = agg._sum.amount_earned ? parseFloat(Number(agg._sum.amount_earned).toFixed(2)) : 0;
@@ -292,7 +292,7 @@ const getPayrollSummary = async (from, to) => {
             shifts: agg._count.id,
             totalToPay
         };
-    }));
+    });
 
     const grandTotal = employees.reduce((sum, e) => sum + e.totalToPay, 0);
     const totalHours = employees.reduce((sum, e) => sum + e.totalHours, 0);
@@ -311,24 +311,22 @@ const getPayrollSummary = async (from, to) => {
 const getBudgetHealth = async () => {
     const adminCtx = await getAdminContext();
 
-    // Saldos actuales
-    const balances = await prisma.budgetBalance.findMany({
-        where: { user_id: adminCtx.adminId }
-    });
-
-    // Totales históricos asignados por categoría
-    const allocations = await prisma.budgetAllocation.groupBy({
-        by: ['category'],
-        where: { user_id: adminCtx.adminId },
-        _sum: { amount_allocated: true }
-    });
-
-    // Total egresos pagados por categoría
-    const expenses = await prisma.expense.groupBy({
-        by: ['budget_category'],
-        where: { status: STATUS_AMOUNT.PAID, deleted_at: null },
-        _sum: { amount: true }
-    });
+    // Consultas en paralelo
+    const [balances, allocations, expenses] = await Promise.all([
+        prisma.budgetBalance.findMany({
+            where: { user_id: adminCtx.adminId }
+        }),
+        prisma.budgetAllocation.groupBy({
+            by: ['category'],
+            where: { user_id: adminCtx.adminId },
+            _sum: { amount_allocated: true }
+        }),
+        prisma.expense.groupBy({
+            by: ['budget_category'],
+            where: { status: STATUS_AMOUNT.PAID, deleted_at: null },
+            _sum: { amount: true }
+        })
+    ]);
 
     const allocationMap = {};
     allocations.forEach(a => {

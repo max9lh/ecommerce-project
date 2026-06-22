@@ -1,4 +1,3 @@
-const prisma = require('../config/db');
 const { ROLES } = require('../utils/constants');
 
 /**
@@ -14,7 +13,7 @@ const { ROLES } = require('../utils/constants');
  * @param {...string} permissions - Uno o más campos de EmployeePermission
  */
 const requirePermission = (...permissions) => {
-    return async (req, res, next) => {
+    return (req, res, next) => {
         if (!req.user) {
             const error = new Error('No autorizado');
             error.statusCode = 401;
@@ -26,34 +25,28 @@ const requirePermission = (...permissions) => {
             return next();
         }
 
-        try {
-            const permissionsRecord = await prisma.employeePermission.findUnique({
-                where: { user_id: req.user.id }
-            });
+        const userPermissions = req.user.permissions;
 
-            if (!permissionsRecord) {
-                const error = new Error('Permisos de empleado no encontrados');
-                error.statusCode = 403;
-                return next(error);
-            }
-
-            // Verificamos si al menos uno de los permisos requeridos está en true
-            const hasRequiredPermission = permissions.some(
-                (perm) => permissionsRecord[perm] === true
-            );
-
-            if (!hasRequiredPermission) {
-                const listPerms = permissions.join(' o ');
-                const error = new Error(`Acceso denegado: requieres el permiso de "${listPerms}"`);
-                error.statusCode = 403;
-                return next(error);
-            }
-
-            // Autorización concedida
-            next();
-        } catch (error) {
-            next(error);
+        if (!userPermissions) {
+            const error = new Error('Permisos de empleado no encontrados');
+            error.statusCode = 403;
+            return next(error);
         }
+
+        // Verificamos si al menos uno de los permisos requeridos está en true
+        const hasRequiredPermission = permissions.some(
+            (perm) => userPermissions[perm] === true
+        );
+
+        if (!hasRequiredPermission) {
+            const listPerms = permissions.join(' o ');
+            const error = new Error(`Acceso denegado: requieres el permiso de "${listPerms}"`);
+            error.statusCode = 403;
+            return next(error);
+        }
+
+        // Autorización concedida
+        next();
     };
 };
 

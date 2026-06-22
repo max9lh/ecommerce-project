@@ -1,6 +1,10 @@
 const prisma = require('../config/db');
 const { ROLES } = require('./constants');
 
+let cachedAdminContext = null;
+let cacheTimestamp = 0;
+const CACHE_TTL_MS = 30 * 1000; // 30 segundos de TTL
+
 /**
  * getAdminContext — Obtiene el contexto del Administrador principal
  * * En un esquema de negocio local, todas las cuentas físicas y bolsas virtuales
@@ -8,6 +12,11 @@ const { ROLES } = require('./constants');
  * para que tanto administradores como empleados operen sobre las mismas entidades.
  */
 const getAdminContext = async () => {
+    const now = Date.now();
+    if (cachedAdminContext && (now - cacheTimestamp < CACHE_TTL_MS)) {
+        return cachedAdminContext;
+    }
+
     const admin = await prisma.user.findFirst({
         where: { role: ROLES.ADMIN },
         include: {
@@ -22,7 +31,7 @@ const getAdminContext = async () => {
         throw error;
     }
 
-    return {
+    cachedAdminContext = {
         adminId: admin.id,
         pct: {
             merchandise: Number(admin.pct_merchandise),
@@ -32,6 +41,18 @@ const getAdminContext = async () => {
         accounts: admin.accounts,
         budgets: admin.budget_balances
     };
+    cacheTimestamp = now;
+
+    return cachedAdminContext;
 };
 
-module.exports = { getAdminContext };
+/**
+ * Invalida la caché del contexto del administrador.
+ * Debe llamarse al actualizar cuentas físicas, balances o porcentajes.
+ */
+const clearAdminContextCache = () => {
+    cachedAdminContext = null;
+    cacheTimestamp = 0;
+};
+
+module.exports = { getAdminContext, clearAdminContextCache };

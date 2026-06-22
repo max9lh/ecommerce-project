@@ -59,7 +59,7 @@ export default function EditProfileModal({ open, onOpenChange, employee, onSucce
       onOpenChange(false)
       onSuccess()
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.response?.data?.errors?.[0]?.message || "Error al actualizar perfil"
+      const errMsg = err.response?.data?.errors?.[0]?.message || err.response?.data?.message || "Error al actualizar perfil"
       setLocalError(errMsg)
     } finally {
       setLoading(false)

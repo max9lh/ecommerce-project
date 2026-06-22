@@ -60,7 +60,7 @@ export default function EditAttendanceModal({ open, onOpenChange, log, onSuccess
       onOpenChange(false)
       onSuccess()
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.response?.data?.errors?.[0]?.message || "Error al actualizar el turno"
+      const errMsg = err.response?.data?.errors?.[0]?.message || err.response?.data?.message || "Error al actualizar el turno"
       setLocalError(errMsg)
     } finally {
       setLoading(false)

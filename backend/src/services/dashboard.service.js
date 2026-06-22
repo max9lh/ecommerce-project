@@ -135,18 +135,31 @@ const getAccountHistory = async (months = 6) => {
     const closuresAfter = await prisma.dailyClosureDetail.findMany({
         where: {
             closure: {
+                user_id: adminId,
                 date: { gt: oldestDate }
             }
         },
-        include: {
-            closure: true
+        select: {
+            account_id: true,
+            amount: true,
+            closure: {
+                select: {
+                    date: true
+                }
+            }
         }
     });
 
     const expensesAfter = await prisma.expense.findMany({
         where: {
+            user_id: adminId,
             status: 'Pagado',
             paid_at: { gt: oldestDate }
+        },
+        select: {
+            account_id: true,
+            amount: true,
+            paid_at: true
         }
     });
 

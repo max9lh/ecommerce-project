@@ -112,11 +112,10 @@ export default function Reports() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl flex items-center gap-2.5">
-            <LineChart className="size-7 text-primary" />
+          <h1 className="text-2xl font-bold tracking-tight flex items-center">
             Reportes Financieros
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             Análisis financiero integral — <span className="font-medium text-foreground">{periodLabel}</span>
           </p>
         </div>

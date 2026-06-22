@@ -1,5 +1,5 @@
 const prisma = require('../config/db');
-const { getAdminContext } = require('../utils/adminContext');
+const { getAdminContext, clearAdminContextCache } = require('../utils/adminContext');
 const { BUDGET_CATEGORIES } = require('../utils/constants');
 
 const createClosure = async ({ total_amount, details, user_id }) => {
@@ -112,6 +112,7 @@ const createClosure = async ({ total_amount, details, user_id }) => {
 
         return closure;
     });
+    clearAdminContextCache();
     return result;
 };
 
@@ -335,6 +336,7 @@ const updateClosure = async (id, { total_amount, details, user_id }) => {
         return updatedClosure;
     });
 
+    clearAdminContextCache();
     return result;
 };
 

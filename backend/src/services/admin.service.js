@@ -179,25 +179,9 @@ const updateDistributionSettings = async (adminId, { pct_merchandise, pct_fixed_
 };
 
 const getAuditLogs = async (page = null, limit = null) => {
-    if (!page && !limit) {
-        const logs = await prisma.auditLog.findMany({
-            include: {
-                user: {
-                    select: {
-                        username: true,
-                        role: true
-                    }
-                }
-            },
-            orderBy: {
-                created_at: 'desc'
-            }
-        });
-        return { success: true, data: logs };
-    }
-
+    // Si no se especifican, se fuerza un límite saludable por defecto (50 logs)
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 50);
     const skip = (pageNum - 1) * limitNum;
 
     const [total, logs] = await Promise.all([

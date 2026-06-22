@@ -24,6 +24,7 @@ const payrollRouter = require('./routes/payroll.routes');
 const healthRouter = require('./routes/health.routes');
 
 const app = express();
+app.disable('x-powered-by');
 
 // ============================================================
 // MIDDLEWARES DE SEGURIDAD
@@ -56,8 +57,13 @@ app.use(cors(corsOptions));
 
 app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"'));
 
+<<<<<<< HEAD
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+=======
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ limit: '1mb', extended: true }));
+>>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
 app.use(cookieParser());
 
 // ============================================================
@@ -73,7 +79,7 @@ app.use('/api/', apiLimiter);
 // ============================================================
 // RUTAS PROTEGIDAS
 // ============================================================
-app.use('/api/auth', authLimiter, authRouter);
+app.use('/api/auth', authRouter);
 app.use('/api/closures', writeLimiter, closureRouter);
 app.use('/api/providers', writeLimiter, providerRouter);
 app.use('/api/expenses', writeLimiter, expenseRouter);
