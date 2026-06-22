@@ -8,7 +8,10 @@ const createRecurringExpense = async (userId, data) => {
     const { name, amount, due_day, category, frequency } = data;
     const freq = frequency || 'monthly';
 
+<<<<<<< HEAD
     // Validaciones de negocio
+=======
+>>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
     if (!amount || amount <= 0) {
         const error = new Error('El monto debe ser mayor a 0');
         error.statusCode = 400;
@@ -38,7 +41,6 @@ const createRecurringExpense = async (userId, data) => {
     return await prisma.$transaction(async (tx) => {
         const adminCtx = await getAdminContext();
 
-        // 1. Crear el gasto recurrente mensual/semanal
         const recurring = await tx.recurringExpense.create({
             data: {
                 user_id: adminCtx.adminId,
@@ -50,7 +52,6 @@ const createRecurringExpense = async (userId, data) => {
             }
         });
 
-        // 2. Obtener o crear proveedor del gasto recurrente para el Expense
         let provider = await tx.provider.findFirst({
             where: { user_id: adminCtx.adminId, name: name }
         });
@@ -66,7 +67,6 @@ const createRecurringExpense = async (userId, data) => {
             });
         }
 
-        // 3. Obtener la primera cuenta física del ADMIN
         const account = adminCtx.accounts[0];
         if (!account) {
             const error = new Error('No hay cuentas físicas registradas para el administrador.');
@@ -107,9 +107,22 @@ const createRecurringExpense = async (userId, data) => {
             }
         } else {
             // Mensual
-            const lastDay = new Date(currentYear, currentMonth + 1, 0).getDate();
-            const finalDueDay = Math.min(parseInt(due_day, 10), lastDay);
-            const dueDate = new Date(Date.UTC(currentYear, currentMonth, finalDueDay, 12, 0, 0));
+            const finalDueDay = Math.min(parseInt(due_day, 10), new Date(currentYear, currentMonth + 1, 0).getDate());
+            
+            // Si el día de vencimiento de este mes ya pasó, se programa para el mes siguiente
+            let targetMonth = currentMonth;
+            let targetYear = currentYear;
+            if (finalDueDay < now.getDate()) {
+                targetMonth += 1;
+                if (targetMonth > 11) {
+                    targetMonth = 0;
+                    targetYear += 1;
+                }
+            }
+            
+            const lastDayOfTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+            const finalDueDayTarget = Math.min(parseInt(due_day, 10), lastDayOfTargetMonth);
+            const dueDate = new Date(Date.UTC(targetYear, targetMonth, finalDueDayTarget, 12, 0, 0));
 
             await tx.expense.create({
                 data: {
@@ -124,7 +137,6 @@ const createRecurringExpense = async (userId, data) => {
             });
         }
 
-        // 5. Registrar en auditoría
         await tx.auditLog.create({
             data: {
                 user_id: userId,

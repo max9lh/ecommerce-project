@@ -138,7 +138,7 @@ export default function ExpensesModule() {
             fetchExpenses();
             fetchUpcoming();
         } catch (err) {
-            setModalError(err.response?.data?.message || err.response?.data?.errors?.[0]?.message || 'Error al registrar el egreso.');
+            setModalError(err.response?.data?.errors?.[0]?.message || err.response?.data?.message || 'Error al registrar el egreso.');
         } finally {
             setSubmittingCreate(false);
         }
@@ -318,7 +318,7 @@ export default function ExpensesModule() {
                     <CardHeader className="pb-3">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div className="flex items-center gap-3">
-                                <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                                <div className="hidden sm:flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
                                     <Clock className="size-5" />
                                 </div>
                                 <div>
@@ -348,22 +348,24 @@ export default function ExpensesModule() {
                                 const isUrgent = diffDays <= 3;
 
                                 return (
-                                    <div key={expense.id} className="flex items-center justify-between gap-4 px-4 py-3">
+                                    <div key={expense.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4 px-4 py-3">
                                         <div className="flex items-center gap-3 min-w-0">
-                                            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                            <div className="hidden sm:flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                                                 <Store className="size-4" />
                                             </div>
                                             <div className="min-w-0">
-                                                <p className="text-sm font-semibold truncate">{expense.provider?.name || 'Sin proveedor'}</p>
+                                                <p className="text-sm font-semibold break-words">{expense.provider?.name || 'Sin proveedor'}</p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {expense.budget_category} · Vence {dDate.toLocaleDateString('es-AR')}
+                                                    <span>{expense.budget_category}</span>
+                                                    <span className="mx-1">·</span>
+                                                    <span>Vence {dDate.toLocaleDateString('es-AR')}</span>
                                                     <span className={`ml-1.5 font-semibold ${isUrgent ? 'text-red-500 animate-pulse' : 'text-amber-500'}`}>
                                                         ({diffDays === 0 ? '¡Hoy!' : diffDays === 1 ? '¡Mañana!' : diffDays < 0 ? `Venció hace ${Math.abs(diffDays)} días` : `en ${diffDays} días`})
                                                     </span>
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3 shrink-0">
+                                        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
                                             <span className="font-mono text-sm font-semibold">
                                                 ${parseFloat(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                                             </span>
@@ -549,7 +551,11 @@ export default function ExpensesModule() {
                                                             <CreditCard className="size-3.5" />
                                                         </Button>
                                                     )}
+<<<<<<< HEAD
                                                     {expense.status === 'Pendiente' && isAdmin && (
+=======
+                                                    {isAdmin && (
+>>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
@@ -836,15 +842,25 @@ export default function ExpensesModule() {
                 </DialogContent>
             </Dialog>
 
-            <ConfirmDialog
-                open={!!deletingExpenseId}
-                onOpenChange={(open) => { if (!open) setDeletingExpenseId(null) }}
-                title="Eliminar Egreso"
-                description="¿Estás seguro de que deseas eliminar este egreso? Esta acción es irreversible y no afectará el saldo de tus cuentas ni presupuestos."
-                confirmLabel="Eliminar Egreso"
-                loading={isDeleteLoading}
-                onConfirm={handleDeleteExpense}
-            />
+            {(() => {
+                const deletingExpense = expenses.find(e => e.id === deletingExpenseId);
+                const isPaid = deletingExpense?.status === 'Pagado';
+                const descriptionText = isPaid
+                    ? "¿Estás seguro de que deseas eliminar este egreso? Al estar Pagado, se reintegrará el dinero a la cuenta y presupuesto correspondientes."
+                    : "¿Estás seguro de que deseas eliminar este egreso? Al estar Pendiente, se cancelará y no afectará tus saldos actuales.";
+
+                return (
+                    <ConfirmDialog
+                        open={!!deletingExpenseId}
+                        onOpenChange={(open) => { if (!open) setDeletingExpenseId(null) }}
+                        title="Eliminar Egreso"
+                        description={descriptionText}
+                        confirmLabel="Eliminar Egreso"
+                        loading={isDeleteLoading}
+                        onConfirm={handleDeleteExpense}
+                    />
+                );
+            })()}
         </div>
     );
 }

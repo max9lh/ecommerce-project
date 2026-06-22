@@ -41,9 +41,19 @@ api.interceptors.response.use(
   error => {
     const originalRequest = error.config;
 
+<<<<<<< HEAD
     // Si es error 401, no es la ruta de refresh/login y no hemos intentado refresh todavía
     const isAuthRoute = originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/login');
     if (error.response?.status === 401 && !isAuthRoute && !originalRequest._retry) {
+=======
+    // Si es error 401 y no hemos intentado refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Evitar interceptar el 401 si viene del endpoint de login o refresh
+      if (originalRequest.url.includes('/auth/login') || originalRequest.url.includes('/auth/refresh')) {
+        return Promise.reject(error);
+      }
+
+>>>>>>> bbcfe4a019fae731e2f373f096b84a2a6bc213a1
       if (isRefreshing) {
         // Si ya estamos refrescando, encolar la request
         return new Promise((resolve, reject) => {

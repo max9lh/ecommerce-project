@@ -311,10 +311,10 @@ export default function ProjectionChart() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight flex items-center">
             Proyección y Planificación de Caja
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             Analizá la liquidez futura de tu local evaluando cierres anteriores combinados con tus egresos planificados y fijos.
           </p>
         </div>
@@ -410,7 +410,7 @@ export default function ProjectionChart() {
           <div className="flex items-center gap-2">
             <Info className="size-4 shrink-0" />
             <span>
-              <strong>Promedio calculado:</strong> {formatCurrency(projectionData.baseDailyIncome)}/día basado en {projectionData.periodUsed.days} días (del {new Date(projectionData.periodUsed.from).toLocaleDateString('es-AR')} al {new Date(projectionData.periodUsed.to).toLocaleDateString('es-AR')}).
+              <strong>Promedio calculado:</strong> {formatCurrency(projectionData.baseDailyIncome)}/día basado en {projectionData.periodUsed.days} días (del {new Date(projectionData.periodUsed.from).toLocaleDateString('es-CL')} al {new Date(projectionData.periodUsed.to).toLocaleDateString('es-CL')}).
             </span>
           </div>
           <Badge variant="outline" className="text-blue-400 border-blue-500/20 shrink-0">

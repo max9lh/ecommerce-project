@@ -42,7 +42,7 @@ export default function EditPermissionsModal({ open, onOpenChange, employee, onS
       onOpenChange(false)
       onSuccess()
     } catch (err) {
-      onError(err.response?.data?.message || err.response?.data?.errors?.[0]?.message || "Error al actualizar permisos")
+      onError(err.response?.data?.errors?.[0]?.message || err.response?.data?.message || "Error al actualizar permisos")
     } finally {
       setLoading(false)
     }

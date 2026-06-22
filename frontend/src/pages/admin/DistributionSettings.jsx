@@ -86,11 +86,10 @@ export default function DistributionSettings() {
       {/* Header */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Sliders className="size-6 text-amber-500" />
+          <h1 className="text-2xl font-bold tracking-tight flex items-center">
             Distribución de Ingresos
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             Definí en qué porcentaje se divide automáticamente cada cierre de caja en las bolsas virtuales.
           </p>
         </div>

@@ -153,16 +153,17 @@ const generateProjection = async ({ userId, days = 30, basePeriodDays = 14, safe
         let dayExpenses = [];
 
         // Gastos pendientes reales programados para este día
-        const realExpensesForDay = pendingExpenses
+        const realExpensesRaw = pendingExpenses
             .filter(exp => {
                 const expDate = toUTCMidnight(new Date(exp.due_date));
                 return expDate.getTime() === date.getTime();
-            })
-            .map(exp => ({
-                name: exp.provider ? `${exp.provider.name} (Pendiente)` : `${exp.budget_category} (Pendiente)`,
-                amount: new Decimal(exp.amount.toString()),
-                category: exp.budget_category
-            }));
+            });
+
+        const realExpensesForDay = realExpensesRaw.map(exp => ({
+            name: exp.provider ? `${exp.provider.name} (Pendiente)` : `${exp.budget_category} (Pendiente)`,
+            amount: new Decimal(exp.amount.toString()),
+            category: exp.budget_category
+        }));
 
         // Gastos recurrentes simulados para este día
         const simExpensesForDay = recurringExpenses
@@ -178,6 +179,11 @@ const generateProjection = async ({ userId, days = 30, basePeriodDays = 14, safe
                     if (re.due_day > lastDay && isLastDay) return true;
                     return false;
                 }
+            })
+            // Evitar duplicar el egreso si ya existe un egreso pendiente real para este gasto recurrente hoy
+            .filter(re => {
+                const hasReal = realExpensesRaw.some(exp => exp.provider && exp.provider.name === re.name);
+                return !hasReal;
             })
             .map(re => ({
                 name: `${re.name} (Recurrente)`,

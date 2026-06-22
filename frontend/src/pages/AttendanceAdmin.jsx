@@ -214,7 +214,7 @@ export default function AttendanceAdmin() {
       })
       await fetchAttendanceLogs()
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.errors?.[0]?.message || "Error al registrar asistencia")
+      setError(err.response?.data?.errors?.[0]?.message || err.response?.data?.message || "Error al registrar asistencia")
     } finally {
       setActionLoading(false)
     }

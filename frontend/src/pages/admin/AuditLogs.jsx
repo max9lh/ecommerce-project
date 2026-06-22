@@ -138,7 +138,7 @@ export default function AuditLogs() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Auditoría del Sistema</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Auditoría del Sistema</h1>
           <p className="text-sm text-muted-foreground">
             Monitoreá y auditá todas las acciones realizadas por los empleados.
           </p>
