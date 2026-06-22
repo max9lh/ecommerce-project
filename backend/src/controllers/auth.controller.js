@@ -1,11 +1,12 @@
 // backend/src/controllers/auth.controller.js
 const authService = require('../services/auth.service');
+const authGuard = require('../middlewares/authGuard');
 
 // Opciones de la cookie para el refresh token
 const COOKIE_OPTIONS = {
     httpOnly: true,                                        // No accesible desde JS
     secure: process.env.NODE_ENV === 'production',         // Solo HTTPS en prod
-    sameSite: 'strict',                                    // Protege CSRF
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' para cross-domain en prod, 'lax' en dev
     path: '/',                                             // Disponible en toda la app
     maxAge: 30 * 24 * 60 * 60 * 1000,                      // 30 días en ms
 };
@@ -119,6 +120,11 @@ const changePassword = async (req, res, next) => {
             currentPassword: req.body.currentPassword,
             newPassword: req.body.newPassword,
         });
+
+        // ✅ Invalida la caché en memoria para que el authGuard vuelva a leer de la DB
+        // y detecte que must_change_password ahora es false.
+        authGuard.invalidateUserCache(req.user.id);
+
         res.status(200).json({
             status: 'success',
             message: result.message,
