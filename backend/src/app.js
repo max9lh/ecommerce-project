@@ -49,30 +49,46 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:5174',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://localhost',
+    'https://localhost'
 ];
 
-// Agregar el origen de producción si está definido en las variables de entorno
+// Procesamos la variable de entorno de forma segura para producción
 if (process.env.CORS_ORIGIN) {
-    allowedOrigins.push(process.env.CORS_ORIGIN);
+    // Soportamos que pongas una o más URLs separadas por comas, limpiando espacios y barras '/' al final
+    const origins = process.env.CORS_ORIGIN.split(',')
+        .map(url => url.trim().replace(/\/$/, ''))
+        .filter(Boolean); // Elimina elementos vacíos si quedó una coma colgada
+    allowedOrigins.push(...origins);
 }
 
 const corsOptions = {
     origin: function (origin, callback) {
-        // En desarrollo o si es uno de los orígenes permitidos explícitamente, o si no hay origen (postman, etc)
-        if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
+        // 1. Si no hay origen (peticiones Server-to-Server, Postman, Curl, o Health Checks), se permite.
+        if (!origin) {
+            return callback(null, true);
         }
+
+        // 2. Limpiamos el origen que manda el navegador (quitando barras finales por seguridad)
+        const cleanOrigin = origin.trim().replace(/\/$/, '');
+
+        // 3. Validación estricta contra la lista blanca
+        if (allowedOrigins.includes(cleanOrigin)) {
+            return callback(null, true);
+        }
+        
+        // 4. Si es rechazado, guardamos un log detallado en producción para saber QUÉ falló exactamente
+        console.error(`[CORS DETECTED] Origen rechazado: "${origin}". El servidor solo acepta:`, allowedOrigins);
+        return callback(new Error('Not allowed by CORS'));
     },
-    credentials: true,
+    credentials: true, // Requerido para el manejo seguro de cookies y sesiones
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    maxAge: 86400
+    maxAge: 86400 // Cachea el resultado exitoso por 24 horas en el navegador para optimizar la velocidad
 };
-app.use(cors(corsOptions));
 
+app.use(cors(corsOptions));
 app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"'));
 
 app.use(express.json({ limit: '100kb' }));
