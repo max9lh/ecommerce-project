@@ -35,8 +35,8 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'"],
             imgSrc: ["'self'", "data:", "https:"],
         },
     },
@@ -58,8 +58,8 @@ app.use(cors(corsOptions));
 
 app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"'));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ limit: '100kb', extended: true }));
 app.use(cookieParser());
 
 // ============================================================

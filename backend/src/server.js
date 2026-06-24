@@ -2,6 +2,7 @@
 require('dotenv').config();
 const validateEnv = require('./config/validate-env');
 const logger = require('./config/logger');
+const { scheduleAuditCleanup } = require('./utils/auditCleanup');
 
 // Validar variables de entorno ANTES de cargar la app
 const env = validateEnv();
@@ -22,6 +23,9 @@ async function main() {
             logger.info(`🚀 Servidor corriendo en http://localhost:${PORT}`);
             logger.info(`📍 Entorno: ${process.env.NODE_ENV}`);
         });
+
+        // Programar limpieza periódica de AuditLog (cada 7 días, retención 90 días)
+        scheduleAuditCleanup();
 
         // Graceful shutdown
         process.on('SIGTERM', async () => {

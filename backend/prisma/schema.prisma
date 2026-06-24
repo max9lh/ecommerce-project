@@ -118,7 +118,7 @@ model Expense {
   account_id      Int
   budget_category String    @db.VarChar(50)
   amount          Decimal   @db.Decimal(15, 2)
-  status          String    @default("Pagado")
+  status          ExpenseStatus @default(PENDING)
   due_date        DateTime?
   created_at      DateTime  @default(now())
   paid_at         DateTime?
@@ -132,6 +132,7 @@ model Expense {
   @@index([account_id])
   @@index([status])
   @@index([due_date])
+  @@index([deleted_at])
 }
 
 model EmployeePermission {
@@ -164,6 +165,7 @@ model AttendanceLog {
   amount_earned Decimal?  @db.Decimal(15, 2)
   notes         String?   @db.VarChar(255)
   created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
   employee      User      @relation(fields: [employee_id], references: [id], onDelete: Cascade)
 
   @@index([employee_id])
@@ -211,4 +213,9 @@ model PasswordResetToken {
 enum Role {
   ADMIN
   EMPLOYEE
+}
+
+enum ExpenseStatus {
+  PENDING  @map("Pendiente")
+  PAID     @map("Pagado")
 }
