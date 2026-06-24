@@ -5,28 +5,7 @@
 
 const passwordResetService = require('../services/passwordReset.service');
 
-/**
- * POST /api/auth/forgot-password
- * Solicita un email de recuperación de contraseña.
- */
-const forgotPassword = async (req, res, next) => {
-    try {
-        const { email } = req.body;
 
-        // Construir la URL base del frontend desde CORS_ORIGIN
-        const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
-
-        await passwordResetService.requestPasswordReset(email, frontendUrl);
-
-        // Respuesta genérica para no revelar si el email existe
-        return res.status(200).json({
-            status: 'success',
-            message: 'Si el email está registrado, recibirás un enlace de recuperación en los próximos minutos.',
-        });
-    } catch (error) {
-        next(error);
-    }
-};
 
 /**
  * POST /api/auth/reset-password
@@ -50,4 +29,4 @@ const resetPassword = async (req, res, next) => {
     }
 };
 
-module.exports = { forgotPassword, resetPassword };
+module.exports = { resetPassword };

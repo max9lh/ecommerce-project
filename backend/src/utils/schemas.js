@@ -152,12 +152,6 @@ const liquidatePayrollSchema = z.object({
     }).optional().default(BUDGET_CATEGORIES.FIXED_EXPENSES)
 });
 
-const forgotPasswordSchema = z.object({
-    email: z.string()
-        .email('Debe ingresar un email válido')
-        .max(255, 'El email no puede tener más de 255 caracteres'),
-});
-
 const resetPasswordSchema = z.object({
     token: z.string()
         .min(1, 'El token de recuperación es requerido'),
@@ -205,7 +199,7 @@ module.exports = {
     updateAttendanceSchema,
     liquidatePayrollSchema,
     refreshTokenSchema,
-    forgotPasswordSchema,
+
     resetPasswordSchema,
     changePasswordSchema
 };

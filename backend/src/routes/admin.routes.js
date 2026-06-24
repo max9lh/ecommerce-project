@@ -7,7 +7,8 @@ const {
     deleteEmployee,
     getDistribution,
     updateDistribution,
-    getAuditLogs
+    getAuditLogs,
+    generateEmployeeResetLink
 } = require('../controllers/admin.controller.js');
 const authGuard = require('../middlewares/authGuard.js');
 const requireAdmin = require('../middlewares/requireAdmin.js');
@@ -27,6 +28,7 @@ router.get('/employees', getEmployees);
 router.put('/employees/:id/permissions', validate(updatePermissionsSchema), updateEmployeePermissions);
 router.put('/employees/:id/profile', validate(updateProfileSchema), updateEmployeeProfile);
 router.delete('/employees/:id', deleteEmployee);
+router.post('/employees/:id/reset-link', generateEmployeeResetLink);
 
 router.get('/distribution', requireAdmin, getDistribution);
 router.put('/distribution', requireAdmin, updateDistribution);

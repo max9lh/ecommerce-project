@@ -21,6 +21,7 @@ import {
   DollarSign,
   Key,
   MoreVertical,
+  Link as LinkIcon,
 } from "lucide-react"
 
 // Componentes modulares
@@ -28,6 +29,7 @@ import CreateEmployeeModal from "@/components/employees/CreateEmployeeModal"
 import EditProfileModal from "@/components/employees/EditProfileModal"
 import EditPermissionsModal from "@/components/employees/EditPermissionsModal"
 import DeleteEmployeeModal from "@/components/employees/DeleteEmployeeModal"
+import ResetPasswordModal from "@/components/employees/ResetPasswordModal"
 import { SearchBar } from "@/components/ui/search-bar"
 
 export default function Employees() {
@@ -41,6 +43,7 @@ export default function Employees() {
   const [editProfileOpen, setEditProfileOpen] = useState(false)
   const [editPermissionsOpen, setEditPermissionsOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
 
   // --- Seleccionado State ---
   const [selectedEmp, setSelectedEmp] = useState(null)
@@ -258,6 +261,18 @@ export default function Employees() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              title="Generar Enlace de Clave"
+                              onClick={() => {
+                                setSelectedEmp(emp)
+                                setResetOpen(true)
+                              }}
+                            >
+                              <LinkIcon className="size-4" />
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               title="Eliminar Empleado"
                               className="text-destructive hover:bg-destructive/10"
                               onClick={() => {
@@ -296,6 +311,15 @@ export default function Employees() {
                                 >
                                   <Key className="size-4 mr-2" />
                                   Modificar Permisos
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedEmp(emp)
+                                    setResetOpen(true)
+                                  }}
+                                >
+                                  <LinkIcon className="size-4 mr-2" />
+                                  Generar Enlace de Clave
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
@@ -351,6 +375,12 @@ export default function Employees() {
         employee={selectedEmp}
         onSuccess={fetchEmployees}
         onError={setError}
+      />
+
+      <ResetPasswordModal
+        open={resetOpen}
+        onOpenChange={setResetOpen}
+        employee={selectedEmp}
       />
     </div>
   )
