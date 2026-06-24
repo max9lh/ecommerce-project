@@ -27,7 +27,7 @@ export default function AuditLogs() {
   const [filteredLogs, setFilteredLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  
+
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedAction, setSelectedAction] = useState("")
 
@@ -89,7 +89,7 @@ export default function AuditLogs() {
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr)
-    return date.toLocaleDateString("es-AR", {
+    return date.toLocaleDateString("es-CL", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -98,7 +98,7 @@ export default function AuditLogs() {
 
   const formatTime = (dateStr) => {
     const date = new Date(dateStr)
-    return date.toLocaleTimeString("es-AR", {
+    return date.toLocaleTimeString("es-CL", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
@@ -296,7 +296,7 @@ export default function AuditLogs() {
                   >
                     Anterior
                   </Button>
-                  
+
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
                     const isCurrent = p === page;
                     // Mostrar solo primera, última, actual y adyacentes

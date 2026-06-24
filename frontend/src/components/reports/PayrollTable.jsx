@@ -17,9 +17,9 @@ import { Badge } from "@/components/ui/badge"
 import { Users, Clock, DollarSign } from "lucide-react"
 
 const formatCurrency = (value) =>
-  new Intl.NumberFormat("es-AR", {
+  new Intl.NumberFormat("es-CL", {
     style: "currency",
-    currency: "ARS",
+    currency: "CLP",
     minimumFractionDigits: 0,
   }).format(value)
 
@@ -104,11 +104,10 @@ export function PayrollTable({ data, loading }) {
                     <TableCell className="text-center">
                       <Badge
                         variant="outline"
-                        className={`text-xs font-semibold ${
-                          emp.salaryType === "hourly"
-                            ? "border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-500/8"
-                            : "border-purple-500/40 text-purple-600 dark:text-purple-400 bg-purple-500/8"
-                        }`}
+                        className={`text-xs font-semibold ${emp.salaryType === "hourly"
+                          ? "border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-500/8"
+                          : "border-purple-500/40 text-purple-600 dark:text-purple-400 bg-purple-500/8"
+                          }`}
                       >
                         {emp.salaryType === "hourly" ? "Por hora" : "Fijo"}
                       </Badge>

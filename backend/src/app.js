@@ -1,4 +1,3 @@
-// backend/src/app.js
 const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -8,7 +7,6 @@ const logger = require('./config/logger');
 const errorHandler = require('./middlewares/errorHandler');
 const { apiLimiter, authLimiter, writeLimiter } = require('./middlewares/rateLimiter');
 
-// Rutas
 const authRouter = require('./routes/auth.routes');
 const closureRouter = require('./routes/closure.routes');
 const providerRouter = require('./routes/providers.routes');
@@ -47,11 +45,30 @@ app.use(helmet({
     }
 }));
 
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:5174',
+    'http://localhost:3000'
+];
+
+// Agregar el origen de producción si está definido en las variables de entorno
+if (process.env.CORS_ORIGIN) {
+    allowedOrigins.push(process.env.CORS_ORIGIN);
+}
+
 const corsOptions = {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: function (origin, callback) {
+        // En desarrollo o si es uno de los orígenes permitidos explícitamente, o si no hay origen (postman, etc)
+        if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     maxAge: 86400
 };
 app.use(cors(corsOptions));

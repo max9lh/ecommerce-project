@@ -19,9 +19,9 @@ const registerSchema = z.object({
         .max(20, 'El usuario no puede tener más de 20 caracteres'),
     password: z.string()
         .min(8, 'La contraseña debe tener al menos 8 caracteres'),
-    pct_merchandise: pctField('Mercadería'),
-    pct_fixed_expenses: pctField('Gastos Fijos'),
-    pct_savings: pctField('Ahorros'),
+    pct_merchandise: pctField('Mercadería').optional(),
+    pct_fixed_expenses: pctField('Gastos Fijos').optional(),
+    pct_savings: pctField('Ahorros').optional(),
     role: z.enum(['ADMIN', 'EMPLOYEE']).optional(),
     first_name: z.string().optional(),
     last_name: z.string().optional(),
@@ -29,7 +29,15 @@ const registerSchema = z.object({
     hourly_rate: z.number().optional(),
     monthly_salary: z.number().optional()
 }).refine(
-    (data) => Math.abs(data.pct_merchandise + data.pct_fixed_expenses + data.pct_savings - 1) < 0.001,
+    (data) => {
+        if (data.pct_merchandise !== undefined || data.pct_fixed_expenses !== undefined || data.pct_savings !== undefined) {
+            const m = data.pct_merchandise || 0;
+            const f = data.pct_fixed_expenses || 0;
+            const s = data.pct_savings || 0;
+            return Math.abs(m + f + s - 1) < 0.001;
+        }
+        return true;
+    },
     {
         message: 'Los porcentajes de distribución deben sumar exactamente el 100% (1.00)',
         path: ['pct_merchandise'],

@@ -75,10 +75,10 @@ export function CashFlowChart({ data, loading }) {
 
     if (isDailyView) {
       // Formato: "22 may"
-      return date.toLocaleDateString("es-AR", { day: "numeric", month: "short" })
+      return date.toLocaleDateString("es-CL", { day: "numeric", month: "short" })
     } else {
       // Formato: "may 26"
-      return date.toLocaleDateString("es-AR", { month: "short", year: "2-digit" })
+      return date.toLocaleDateString("es-CL", { month: "short", year: "2-digit" })
     }
   }, [isDailyView])
 
@@ -182,11 +182,10 @@ export function CashFlowChart({ data, loading }) {
                   {formatCurrency(totalExpenses)}
                 </p>
               </div>
-              <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 ${
-                isProfit
+              <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 ${isProfit
                   ? "bg-emerald-500/10 text-emerald-500"
                   : "bg-rose-500/10 text-rose-500"
-              }`}>
+                }`}>
                 {isProfit ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
                 <div className="text-right">
                   <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
@@ -254,7 +253,7 @@ export function CashFlowChart({ data, loading }) {
                   }
                 />
                 <ChartLegend content={<ChartLegendContent />} />
-                
+
                 {/* Áreas de Ingresos y Egresos */}
                 <Area
                   type="monotone"
@@ -272,7 +271,7 @@ export function CashFlowChart({ data, loading }) {
                   strokeWidth={2}
                   activeDot={{ r: 6 }}
                 />
-                
+
                 {/* Línea destacada del Resultado Neto */}
                 <Line
                   type="monotone"
@@ -286,11 +285,10 @@ export function CashFlowChart({ data, loading }) {
             </ChartContainer>
 
             {/* Mensaje de alerta / éxito de Utilidad Neta del Período */}
-            <div className={`mt-4 flex items-start gap-3 rounded-lg border px-4 py-3 ${
-              isProfit
+            <div className={`mt-4 flex items-start gap-3 rounded-lg border px-4 py-3 ${isProfit
                 ? "border-emerald-500/30 bg-emerald-500/8 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400"
                 : "border-rose-500/30 bg-rose-500/8 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400"
-            }`}>
+              }`}>
               {isProfit ? (
                 <CheckCircle2 className="size-5 shrink-0 mt-0.5 text-emerald-500" />
               ) : (
