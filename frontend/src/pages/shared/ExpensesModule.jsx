@@ -331,7 +331,7 @@ export default function ExpensesModule() {
                             <div className="flex flex-col sm:items-end">
                                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total a Liquidar</span>
                                 <span className="text-xl font-bold text-white dark:text-white font-mono">
-                                    ${upcomingExpenses.reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                                    ${upcomingExpenses.reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0).toLocaleString('es-CL', { minimumFractionDigits: 2 })}
                                 </span>
                             </div>
                         </div>
@@ -358,7 +358,7 @@ export default function ExpensesModule() {
                                                 <p className="text-xs text-muted-foreground">
                                                     <span>{expense.budget_category}</span>
                                                     <span className="mx-1">·</span>
-                                                    <span>Vence {dDate.toLocaleDateString('es-AR')}</span>
+                                                    <span>Vence {dDate.toLocaleDateString('es-CL')}</span>
                                                     <span className={`ml-1.5 font-semibold ${isUrgent ? 'text-red-500 animate-pulse' : 'text-amber-500'}`}>
                                                         ({diffDays === 0 ? '¡Hoy!' : diffDays === 1 ? '¡Mañana!' : diffDays < 0 ? `Venció hace ${Math.abs(diffDays)} días` : `en ${diffDays} días`})
                                                     </span>
@@ -367,7 +367,7 @@ export default function ExpensesModule() {
                                         </div>
                                         <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
                                             <span className="font-mono text-sm font-semibold">
-                                                ${parseFloat(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                                                ${parseFloat(expense.amount).toLocaleString('es-CL', { minimumFractionDigits: 2 })}
                                             </span>
                                             {(isAdmin || hasPermission('canPayExpenses')) && (
                                                 <Button
@@ -506,12 +506,12 @@ export default function ExpensesModule() {
                                     expenses.map((expense) => (
                                         <TableRow key={expense.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                                             <TableCell className="font-mono text-xs text-muted-foreground">
-                                                {new Date(expense.created_at).toLocaleDateString('es-AR')}
+                                                {new Date(expense.created_at).toLocaleDateString('es-CL')}
                                             </TableCell>
                                             <TableCell className="font-mono text-xs">
                                                 {expense.due_date ? (
                                                     <span className={expense.status === 'Pendiente' ? 'text-amber-600 font-semibold' : 'text-muted-foreground'}>
-                                                        {new Date(expense.due_date).toLocaleDateString('es-AR')}
+                                                        {new Date(expense.due_date).toLocaleDateString('es-CL')}
                                                     </span>
                                                 ) : (
                                                     <span className="text-muted-foreground">—</span>
@@ -527,7 +527,7 @@ export default function ExpensesModule() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="font-semibold text-slate-900 dark:text-slate-100 font-mono">
-                                                ${parseFloat(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                                                ${parseFloat(expense.amount).toLocaleString('es-CL', { minimumFractionDigits: 2 })}
                                             </TableCell>
                                             <TableCell>
                                                 <Badge className={
@@ -660,7 +660,7 @@ export default function ExpensesModule() {
                                         <option value="">No hay cuentas registradas</option>
                                     ) : (
                                         accounts.map(a => (
-                                            <option key={a.id} value={a.id}>{a.name} (Saldo: ${parseFloat(a.balance).toLocaleString('es-AR', { minimumFractionDigits: 2 })})</option>
+                                            <option key={a.id} value={a.id}>{a.name}{isAdmin ? ` (Saldo: $${parseFloat(a.balance).toLocaleString('es-CL', { minimumFractionDigits: 2 })})` : ''}</option>
                                         ))
                                     )}
                                 </select>
@@ -743,7 +743,7 @@ export default function ExpensesModule() {
                                             <option value="">No hay cuentas registradas</option>
                                         ) : (
                                             accounts.map(a => (
-                                                <option key={a.id} value={a.id}>{a.name} (Saldo: ${parseFloat(a.balance).toLocaleString('es-AR', { minimumFractionDigits: 2 })})</option>
+                                                <option key={a.id} value={a.id}>{a.name}{isAdmin ? ` (Saldo: $${parseFloat(a.balance).toLocaleString('es-CL', { minimumFractionDigits: 2 })})` : ''}</option>
                                             ))
                                         )}
                                     </select>

@@ -13,15 +13,15 @@ import {
 } from "@/components/ui/chart"
 
 const formatCurrency = (value) =>
-  new Intl.NumberFormat("es-AR", {
+  new Intl.NumberFormat("es-CL", {
     style: "currency",
-    currency: "ARS",
+    currency: "CLP",
     minimumFractionDigits: 0,
   }).format(value)
 
 const formatMonth = (dateStr) => {
   const date = new Date(dateStr)
-  return date.toLocaleDateString("es-AR", { month: "short", year: "2-digit", timeZone: "UTC" })
+  return date.toLocaleDateString("es-CL", { month: "short", year: "2-digit", timeZone: "UTC" })
 }
 
 /**

@@ -76,7 +76,7 @@ export default function Employees() {
   }, [])
 
   const formatMoney = (value) => {
-    return Number(value).toLocaleString("es-AR", {
+    return Number(value).toLocaleString("es-CL", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })

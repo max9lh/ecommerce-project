@@ -74,7 +74,11 @@ const attendanceService = {
         if (from || to) {
             where.check_in = {};
             if (from) where.check_in.gte = new Date(from);
-            if (to) where.check_in.lte = new Date(to);
+            if (to) {
+                const toDate = new Date(to);
+                toDate.setUTCHours(23, 59, 59, 999);
+                where.check_in.lte = toDate;
+            }
         }
 
         const MAX_RESULTS = 5000;
@@ -119,7 +123,11 @@ const attendanceService = {
         if (from || to) {
             where.check_in = {};
             if (from) where.check_in.gte = new Date(from);
-            if (to) where.check_in.lte = new Date(to);
+            if (to) {
+                const toDate = new Date(to);
+                toDate.setUTCHours(23, 59, 59, 999);
+                where.check_in.lte = toDate;
+            }
         }
 
         const aggregations = await client.attendanceLog.groupBy({

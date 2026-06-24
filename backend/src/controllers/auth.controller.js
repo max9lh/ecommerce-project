@@ -3,10 +3,12 @@ const authService = require('../services/auth.service');
 const authGuard = require('../middlewares/authGuard');
 
 // Opciones de la cookie para el refresh token
+const isProduction = process.env.NODE_ENV === 'production';
 const COOKIE_OPTIONS = {
     httpOnly: true,                                        // No accesible desde JS
-    secure: process.env.NODE_ENV === 'production',         // Solo HTTPS en prod
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' para cross-domain en prod, 'lax' en dev
+    secure: isProduction,                                  // Solo HTTPS en prod
+    sameSite: isProduction ? 'none' : 'lax',               // 'none' para cross-domain en prod, 'lax' en dev
+    ...(isProduction && { partitioned: true }),            // Requerido si sameSite='none' y secure=true
     path: '/',                                             // Disponible en toda la app
     maxAge: 30 * 24 * 60 * 60 * 1000,                      // 30 días en ms
 };

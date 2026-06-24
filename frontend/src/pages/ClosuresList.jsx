@@ -59,7 +59,7 @@ export default function ClosuresList() {
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr)
-    return date.toLocaleDateString("es-AR", {
+    return date.toLocaleDateString("es-CL", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -68,14 +68,14 @@ export default function ClosuresList() {
 
   const formatTime = (dateStr) => {
     const date = new Date(dateStr)
-    return date.toLocaleTimeString("es-AR", {
+    return date.toLocaleTimeString("es-CL", {
       hour: "2-digit",
       minute: "2-digit",
     })
   }
 
   const formatMoney = (value) => {
-    return Number(value).toLocaleString("es-AR", {
+    return Number(value).toLocaleString("es-CL", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })
@@ -179,8 +179,8 @@ export default function ClosuresList() {
                     </TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${closure.user.role === "ADMIN"
-                          ? "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800"
-                          : "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800"
+                        ? "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800"
+                        : "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800"
                         }`}>
                         {closure.user.username}
                       </span>
@@ -191,13 +191,12 @@ export default function ClosuresList() {
                           return (
                             <span
                               key={idx}
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-                                detail.account.name.toLowerCase().includes('efectivo') 
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${detail.account.name.toLowerCase().includes('efectivo')
                                   ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800'
                                   : detail.account.name.toLowerCase().includes('transferencia')
-                                  ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
-                                  : 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-                              }`}
+                                    ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
+                                    : 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                                }`}
                             >
                               {detail.account.name}: ${formatMoney(detail.amount)}
                             </span>

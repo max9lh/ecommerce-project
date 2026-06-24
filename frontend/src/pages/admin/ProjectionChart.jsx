@@ -244,7 +244,7 @@ export default function ProjectionChart() {
     const dateObj = new Date(point.date);
 
     return {
-      date: dateObj.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }),
+      date: dateObj.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }),
       rawDate: point.date,
       Pesimista: pessPoint ? pessPoint.balance : null,
       Realista: point.balance,
@@ -560,15 +560,15 @@ export default function ProjectionChart() {
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block text-center mb-1">
                     Fondos en Bolsas de Presupuesto
                   </span>
-                  
+
                   {['Mercadería', 'Gastos Fijos', 'Ahorro'].map((cat) => {
                     const balObj = budgetBalances.find(b => b.category === cat || (cat === 'Ahorro' && b.category === 'Ahorros'));
                     const bal = balObj ? Number(balObj.balance) : 0;
-                    
+
                     let bgCol = "bg-chart-1/10 text-chart-1 border-chart-1/25";
                     let label = "Mercadería";
                     let Icon = ShoppingCart;
-                    
+
                     if (cat === 'Gastos Fijos') {
                       bgCol = "bg-chart-2/10 text-chart-2 border-chart-2/25";
                       label = "Gastos Fijos";
@@ -578,7 +578,7 @@ export default function ProjectionChart() {
                       label = "Ahorro";
                       Icon = PiggyBank;
                     }
-                    
+
                     return (
                       <div key={cat} className={`flex items-center justify-between p-3 rounded-xl border ${bgCol} bg-background/40 backdrop-blur-xs`}>
                         <div className="flex items-center gap-2.5">
@@ -601,7 +601,7 @@ export default function ProjectionChart() {
                     <span className="text-xs font-semibold text-rose-500 uppercase tracking-wider block">Día de Colapso Proyectado</span>
                     <span className="text-lg font-bold text-rose-400 block mt-1 flex items-center justify-center gap-1.5">
                       <Calendar className="size-4 shrink-0" />
-                      {new Date(projectionData.collapseDay).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {new Date(projectionData.collapseDay).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </span>
                     <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
                       El flujo realista cruza el cero en esta fecha exacta. Se requiere reprogramar gastos inmediatos.

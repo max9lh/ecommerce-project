@@ -14,13 +14,13 @@ import {
 import { PieChart as PieIcon } from "lucide-react"
 
 const formatCurrency = (value) =>
-  new Intl.NumberFormat("es-AR", {
+  new Intl.NumberFormat("es-CL", {
     style: "currency",
-    currency: "ARS",
+    currency: "CLP",
     minimumFractionDigits: 0,
   }).format(value)
 
-// Colores HEX seguros para SVG (oklch no funciona en SVG fill/stroke)
+
 const CATEGORY_COLORS = {
   "Mercadería": "#4d8ef7",
   "Gastos Fijos": "#ef6461",
@@ -52,9 +52,9 @@ export function ExpensesByCategoryChart({ data, loading }) {
   // Preparar datos con colores
   const chartData = hasData
     ? data.map((item, idx) => ({
-        ...item,
-        fill: CATEGORY_COLORS[item.category] || FALLBACK_COLORS[idx % FALLBACK_COLORS.length],
-      }))
+      ...item,
+      fill: CATEGORY_COLORS[item.category] || FALLBACK_COLORS[idx % FALLBACK_COLORS.length],
+    }))
     : []
 
   // Config para ChartContainer

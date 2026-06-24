@@ -109,7 +109,7 @@ export default function AttendanceAdmin() {
     try {
       const params = {}
       if (filterEmployeeId) params.employeeId = filterEmployeeId
-      
+
       if (filterFrom) {
         const fromMs = Date.parse(filterFrom)
         if (!isNaN(fromMs)) params.from = new Date(fromMs).toISOString()
@@ -135,7 +135,7 @@ export default function AttendanceAdmin() {
       setError("Por favor, selecciona un rango de fechas para liquidar.")
       return
     }
-    
+
     const fromMs = Date.parse(liqFrom)
     const toMs = Date.parse(liqTo)
 
@@ -221,14 +221,14 @@ export default function AttendanceAdmin() {
   }
 
   const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString("es-AR", {
+    return new Date(dateString).toLocaleString("es-CL", {
       dateStyle: "short",
       timeStyle: "short",
     })
   }
 
   const formatMoney = (val) => {
-    return Number(val).toLocaleString("es-AR", {
+    return Number(val).toLocaleString("es-CL", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })
@@ -267,11 +267,10 @@ export default function AttendanceAdmin() {
             setError(null)
             setSuccess(null)
           }}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all ${
-            activeTab === "turnos"
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all ${activeTab === "turnos"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
+            }`}
         >
           <Clock className="size-4" />
           Historial y Carga de Turnos
@@ -282,11 +281,10 @@ export default function AttendanceAdmin() {
             setError(null)
             setSuccess(null)
           }}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all ${
-            activeTab === "liquidaciones"
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all ${activeTab === "liquidaciones"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
+            }`}
         >
           <DollarSign className="size-4" />
           Liquidación de Sueldos

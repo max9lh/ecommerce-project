@@ -18,7 +18,7 @@ export default function LiquidateModal({ open, onOpenChange, summaryItem, from, 
   const [selectedProvider, setSelectedProvider] = useState("")
   const [selectedAccount, setSelectedAccount] = useState("")
   const [budgetCategory, setBudgetCategory] = useState("Gastos Fijos")
-  
+
   const [loadingLists, setLoadingLists] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -32,18 +32,18 @@ export default function LiquidateModal({ open, onOpenChange, summaryItem, from, 
             api.get("/providers"),
             api.get("/accounts"),
           ])
-          
+
           const provs = Array.isArray(provRes.data)
             ? provRes.data
             : provRes.data?.data ?? []
-            
+
           const accs = Array.isArray(accRes.data)
             ? accRes.data
             : accRes.data?.data ?? []
-          
+
           setProviders(provs)
           setAccounts(accs)
-          
+
           if (provs.length > 0) setSelectedProvider(String(provs[0].id))
           if (accs.length > 0) setSelectedAccount(String(accs[0].id))
         } catch (err) {
@@ -69,7 +69,7 @@ export default function LiquidateModal({ open, onOpenChange, summaryItem, from, 
         accountId: Number(selectedAccount),
         budgetCategory,
       }
-      
+
       const res = await api.post("/attendance/liquidate", payload)
       onOpenChange(false)
       onSuccess(res.data.message || "Liquidación procesada con éxito")
@@ -81,9 +81,9 @@ export default function LiquidateModal({ open, onOpenChange, summaryItem, from, 
   }
 
   const formatMoney = (val) => {
-    return Number(val).toLocaleString("es-AR", {
+    return Number(val).toLocaleString("es-CL", {
       style: "currency",
-      currency: "ARS",
+      currency: "CLP",
     })
   }
 

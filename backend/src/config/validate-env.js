@@ -14,7 +14,7 @@ const envSchema = z.object({
         .min(32, 'JWT_SECRET debe tener al menos 32 caracteres'),
     JWT_EXPIRES_IN: z.string().default('15m'),
 
-    // ---- REFRESH TOKEN ---- ✅ NUEVO
+    // ---- REFRESH TOKEN ----
     REFRESH_SECRET: z.string()
         .min(32, 'REFRESH_SECRET debe tener al menos 32 caracteres'),
     REFRESH_EXPIRES_IN: z.string().default('30d'),
@@ -29,11 +29,6 @@ const envSchema = z.object({
 
     // ---- LOGGING ----
     LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug']).default('info'),
-
-    // ---- BREVO (Recuperación de Contraseñas) ----
-    BREVO_API_KEY: z.string().optional(),
-    EMAIL_FROM: z.string().email().optional(),
-    EMAIL_FROM_NAME: z.string().optional(),
 });
 
 function validateEnv() {

@@ -20,8 +20,6 @@ import {
   ClipboardList,
   Landmark,
   Loader2,
-  PiggyBank,
-  ShoppingCart,
   Wallet,
 } from "lucide-react"
 
@@ -60,11 +58,6 @@ export default function Closures() {
     reset,
   } = useClosure(id)
 
-  // Porcentajes hardcodeados para preview (el backend hace la distribución real)
-  const pctMerchandise = 0.6
-  const pctFixed = 0.3
-  const pctSavings = 0.1
-
   const handleSubmit = (e) => {
     e.preventDefault()
     submit()
@@ -81,8 +74,7 @@ export default function Closures() {
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-bold">{id ? "¡Cierre modificado!" : "¡Cierre registrado!"}</h2>
               <p className="text-sm text-muted-foreground max-w-xs">
-                Se {id ? "modificaron" : "registraron"} <span className="font-semibold text-foreground">${totalAmount.toLocaleString("es-AR")}</span> y
-                la distribución automática se aplicó correctamente.
+                Se {id ? "modificaron" : "registraron"} <span className="font-semibold text-foreground">${totalAmount.toLocaleString("es-CL")}</span> correctamente.
               </p>
             </div>
             <div className="flex gap-3 w-full max-w-xs">
@@ -217,7 +209,7 @@ export default function Closures() {
                           />
                         </div>
                         <FieldDescription>
-                          Saldo actual: ${Number(account.balance).toLocaleString("es-AR")}
+                          Saldo actual: ${Number(account.balance).toLocaleString("es-CL")}
                         </FieldDescription>
                       </Field>
                     )
@@ -228,22 +220,22 @@ export default function Closures() {
                 {totalAmount > 0 && (
                   <div
                     className={`flex items-center justify-between rounded-lg border px-4 py-3 text-sm transition-colors ${isValid
-                        ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
-                        : "border-amber-500/30 bg-amber-500/5 text-amber-600 dark:text-amber-400"
+                      ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
+                      : "border-amber-500/30 bg-amber-500/5 text-amber-600 dark:text-amber-400"
                       }`}
                   >
                     <span>
-                      Suma del desglose: <span className="font-semibold">${detailsSum.toLocaleString("es-AR")}</span>
+                      Suma del desglose: <span className="font-semibold">${detailsSum.toLocaleString("es-CL")}</span>
                     </span>
                     <span className="font-medium">
-                      {isValid ? "Coincide" : `Faltan $${(totalAmount - detailsSum).toLocaleString("es-AR")}`}
+                      {isValid ? "Coincide" : `Faltan $${(totalAmount - detailsSum).toLocaleString("es-CL")}`}
                     </span>
                   </div>
                 )}
 
                 {!isValid && totalAmount > 0 && detailsSum > totalAmount && (
                   <FieldError>
-                    El desglose supera al monto total en ${(detailsSum - totalAmount).toLocaleString("es-AR")}
+                    El desglose supera al monto total en ${(detailsSum - totalAmount).toLocaleString("es-CL")}
                   </FieldError>
                 )}
               </FieldGroup>
@@ -271,54 +263,7 @@ export default function Closures() {
         </Card>
       </form>
 
-      {/* Preview de distribución automática */}
-      {totalAmount > 0 && (
-        <Card className="border-dashed">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Distribución Automática</CardTitle>
-            <CardDescription>
-              Al registrar, el sistema distribuirá el ingreso en tus bolsas de presupuesto.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="flex items-center gap-3 rounded-lg border p-3">
-                <div className="flex size-9 items-center justify-center rounded-full bg-blue-500/10">
-                  <ShoppingCart className="size-4 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Mercadería (60%)</p>
-                  <p className="font-semibold text-sm">
-                    ${(totalAmount * pctMerchandise).toLocaleString("es-AR")}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-lg border p-3">
-                <div className="flex size-9 items-center justify-center rounded-full bg-amber-500/10">
-                  <Banknote className="size-4 text-amber-500" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Gastos Fijos (30%)</p>
-                  <p className="font-semibold text-sm">
-                    ${(totalAmount * pctFixed).toLocaleString("es-AR")}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-lg border p-3">
-                <div className="flex size-9 items-center justify-center rounded-full bg-emerald-500/10">
-                  <PiggyBank className="size-4 text-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Ahorro (10%)</p>
-                  <p className="font-semibold text-sm">
-                    ${(totalAmount * pctSavings).toLocaleString("es-AR")}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
     </div>
   )
 }

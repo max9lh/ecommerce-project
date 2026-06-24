@@ -31,7 +31,7 @@ export function EmployeeCheckInForm() {
   }
 
   const formatTime = (date) => {
-    return date.toLocaleTimeString("es-AR", {
+    return date.toLocaleTimeString("es-CL", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
@@ -40,7 +40,7 @@ export function EmployeeCheckInForm() {
   }
 
   const formatDate = (date) => {
-    return date.toLocaleDateString("es-AR", {
+    return date.toLocaleDateString("es-CL", {
       weekday: "long",
       year: "numeric",
       month: "long",

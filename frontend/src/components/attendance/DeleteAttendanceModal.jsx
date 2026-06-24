@@ -30,7 +30,7 @@ export default function DeleteAttendanceModal({ open, onOpenChange, log, onSucce
 
   const formatDateTime = (dateString) => {
     if (!dateString) return ""
-    return new Date(dateString).toLocaleString("es-AR", {
+    return new Date(dateString).toLocaleString("es-CL", {
       dateStyle: "short",
       timeStyle: "short",
     })

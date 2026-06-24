@@ -16,15 +16,15 @@ import {
 import { TrendingUp, TrendingDown } from "lucide-react"
 
 const formatCurrency = (value) =>
-  new Intl.NumberFormat("es-AR", {
+  new Intl.NumberFormat("es-CL", {
     style: "currency",
-    currency: "ARS",
+    currency: "CLP",
     minimumFractionDigits: 0,
   }).format(value)
 
 const formatMonth = (dateStr) => {
   const date = new Date(dateStr)
-  return date.toLocaleDateString("es-AR", { month: "short", year: "2-digit", timeZone: "UTC" })
+  return date.toLocaleDateString("es-CL", { month: "short", year: "2-digit", timeZone: "UTC" })
 }
 
 export function IncomeExpensesChartCard({ chartData, loading }) {
@@ -53,9 +53,8 @@ export function IncomeExpensesChartCard({ chartData, loading }) {
             <CardTitle className="text-base font-semibold">Ingresos vs Egresos</CardTitle>
             <CardDescription>Ganancias y pérdidas operativas acumuladas</CardDescription>
           </div>
-          <div className={`flex size-10 items-center justify-center rounded-full ${
-            isProfit ? "bg-green-500/10 text-green-500" : "bg-rose-500/10 text-rose-500"
-          }`}>
+          <div className={`flex size-10 items-center justify-center rounded-full ${isProfit ? "bg-green-500/10 text-green-500" : "bg-rose-500/10 text-rose-500"
+            }`}>
             {isProfit ? <TrendingUp className="size-5" /> : <TrendingDown className="size-5" />}
           </div>
         </div>
@@ -120,11 +119,10 @@ export function IncomeExpensesChartCard({ chartData, loading }) {
         )}
 
         {/* Bloque de balance neto */}
-        <div className={`mt-4 flex items-center gap-3 rounded-lg border px-4 py-3 ${
-          isProfit 
-            ? "border-green-500/30 bg-green-500/8 dark:bg-green-950/20 text-green-600 dark:text-green-400" 
-            : "border-rose-500/30 bg-rose-500/8 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400"
-        }`}>
+        <div className={`mt-4 flex items-center gap-3 rounded-lg border px-4 py-3 ${isProfit
+          ? "border-green-500/30 bg-green-500/8 dark:bg-green-950/20 text-green-600 dark:text-green-400"
+          : "border-rose-500/30 bg-rose-500/8 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400"
+          }`}>
           <div className="flex flex-col">
             <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">
               Resultado Neto del Periodo
@@ -133,7 +131,7 @@ export function IncomeExpensesChartCard({ chartData, loading }) {
               {isProfit ? "+" : ""}{formatCurrency(netResult)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {isProfit 
+              {isProfit
                 ? "¡Superávit operativo! Tu negocio está generando ganancias netas en este rango de tiempo."
                 : "Déficit operativo temporal. Vigila tus deudas a proveedores y optimiza gastos fijos."}
             </p>
