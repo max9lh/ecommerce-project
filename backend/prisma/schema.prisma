@@ -118,7 +118,7 @@ model Expense {
   account_id      Int
   budget_category String    @db.VarChar(50)
   amount          Decimal   @db.Decimal(15, 2)
-  status          ExpenseStatus @default(PENDING)
+  status          ExpenseStatus @default(Pendiente)
   due_date        DateTime?
   created_at      DateTime  @default(now())
   paid_at         DateTime?
@@ -216,6 +216,6 @@ enum Role {
 }
 
 enum ExpenseStatus {
-  PENDING  @map("Pendiente")
-  PAID     @map("Pagado")
+  Pendiente
+  Pagado
 }
