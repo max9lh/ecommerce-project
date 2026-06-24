@@ -1,8 +1,8 @@
 // backend/src/routes/auth.routes.js
 const { Router } = require('express');
 const { register, login, refreshToken, logout, updatePercentages, changePassword } = require('../controllers/auth.controller');
-const { forgotPassword, resetPassword } = require('../controllers/passwordReset.controller');
-const { validate, registerSchema, loginSchema, updatePercentagesSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } = require('../utils/schemas');
+const { resetPassword } = require('../controllers/passwordReset.controller');
+const { validate, registerSchema, loginSchema, updatePercentagesSchema, resetPasswordSchema, changePasswordSchema } = require('../utils/schemas');
 const authGuard = require('../middlewares/authGuard');
 const { authLimiter } = require('../middlewares/rateLimiter');
 
@@ -26,9 +26,6 @@ router.put('/percentages', authGuard, validate(updatePercentagesSchema), updateP
 // ============================================================
 // RECUPERACIÓN DE CONTRASEÑA (Público — sin authGuard)
 // ============================================================
-
-// POST /api/auth/forgot-password — Solicita email de recuperación
-router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), forgotPassword);
 
 // POST /api/auth/reset-password — Restablece la contraseña con token
 router.post('/reset-password', authLimiter, validate(resetPasswordSchema), resetPassword);

@@ -210,8 +210,10 @@ const getExpenses = async (userId, filters = {}) => {
     }
 
     if (!page && !limit) {
+        const MAX_EXPORT = 5000;
         const expenses = await prisma.expense.findMany({
             where: whereConditions,
+            take: MAX_EXPORT,
             include: {
                 provider: { select: { name: true } },
                 account: { select: { name: true } },
@@ -221,7 +223,7 @@ const getExpenses = async (userId, filters = {}) => {
                 created_at: 'desc'
             }
         });
-        return { success: true, data: expenses };
+        return { success: true, data: expenses, truncated: expenses.length === MAX_EXPORT };
     }
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);

@@ -1,4 +1,5 @@
 const adminService = require('../services/admin.service');
+const passwordResetService = require('../services/passwordReset.service');
 
 const createEmployee = async (req, res, next) => {
     try {
@@ -78,6 +79,23 @@ const getAuditLogs = async (req, res, next) => {
     }
 };
 
+const generateEmployeeResetLink = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
+        
+        const resetUrl = await passwordResetService.generateAdminResetLink(Number(id), frontendUrl);
+        
+        res.status(200).json({
+            success: true,
+            message: 'Enlace de recuperación generado correctamente',
+            data: { resetUrl }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createEmployee,
     getEmployees,
@@ -86,5 +104,6 @@ module.exports = {
     deleteEmployee,
     getDistribution,
     updateDistribution,
-    getAuditLogs
+    getAuditLogs,
+    generateEmployeeResetLink
 };

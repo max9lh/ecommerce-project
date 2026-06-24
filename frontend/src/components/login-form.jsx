@@ -67,15 +67,7 @@ export function LoginForm({
           />
         </div>
         <div className="grid gap-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Contraseña</Label>
-            <Link
-              to="/forgot-password"
-              className="text-xs text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
-            >
-              ¿Olvidaste tu contraseña?
-            </Link>
-          </div>
+          <Label htmlFor="password">Contraseña</Label>
           <Input 
             id="password" 
             type="password" 
@@ -83,6 +75,9 @@ export function LoginForm({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          <p className="text-[11px] text-muted-foreground text-center mt-1">
+            ¿Olvidaste tu clave? Contacta a tu administrador.
+          </p>
         </div>
         <Button type="submit" className="w-full">
           Login

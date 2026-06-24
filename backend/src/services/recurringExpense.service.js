@@ -1,5 +1,6 @@
 const prisma = require('../config/db');
 const { getAdminContext } = require('../utils/adminContext');
+const { STATUS_AMOUNT } = require('../utils/constants');
 
 /**
  * Crea un nuevo gasto recurrente vinculado al ADMIN.
@@ -97,7 +98,7 @@ const createRecurringExpense = async (userId, data) => {
                         account_id: account.id,
                         budget_category: category || 'Gastos Fijos',
                         amount: parseFloat(amount),
-                        status: 'Pendiente',
+                        status: STATUS_AMOUNT.PENDING,
                         due_date: dDate
                     }
                 });
@@ -128,7 +129,7 @@ const createRecurringExpense = async (userId, data) => {
                     account_id: account.id,
                     budget_category: category || 'Gastos Fijos',
                     amount: parseFloat(amount),
-                    status: 'Pendiente',
+                    status: STATUS_AMOUNT.PENDING,
                     due_date: dueDate
                 }
             });

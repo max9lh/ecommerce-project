@@ -10,7 +10,6 @@
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const prisma = require('../config/db');
-const { sendPasswordResetEmail } = require('../config/mailer');
 const logger = require('../config/logger');
 
 /**
@@ -28,60 +27,45 @@ function generateResetToken() {
 }
 
 /**
- * Solicita el restablecimiento de contraseña.
- * Busca al usuario por email, genera un token y envía el correo.
+ * ADMIN: Genera un enlace de restablecimiento manual para un empleado.
+ * No envía correos. Retorna la URL para ser copiada manualmente.
  * 
- * NOTA DE SEGURIDAD: Siempre responde con éxito aunque el email
- * no exista, para no revelar qué cuentas están registradas.
- * 
- * @param {string} email - Email del usuario
- * @param {string} frontendUrl - URL base del frontend para construir el link
+ * @param {number} userId - ID del empleado
+ * @param {string} frontendUrl - URL base del frontend
+ * @returns {Promise<string>} La URL completa de recuperación
  */
-async function requestPasswordReset(email, frontendUrl) {
-    // Buscar usuario por email
+async function generateAdminResetLink(userId, frontendUrl) {
     const user = await prisma.user.findFirst({
-        where: {
-            email: email.toLowerCase().trim(),
-            deleted_at: null,
-        },
+        where: { id: parseInt(userId), deleted_at: null }
     });
 
-    // Si no existe, no revelar — solo loguear y salir silenciosamente
     if (!user) {
-        logger.warn(`🔑 Intento de reset para email no registrado: ${email}`);
-        return; // No lanzar error — respuesta genérica en el controller
+        const error = new Error('Usuario no encontrado o desactivado.');
+        error.statusCode = 404;
+        throw error;
     }
 
-    // Invalidar tokens anteriores no usados de este usuario
+    // Invalidar tokens anteriores no usados
     await prisma.passwordResetToken.updateMany({
-        where: {
-            user_id: user.id,
-            used_at: null,
-        },
-        data: {
-            used_at: new Date(), // Marcar como "consumidos"
-        },
+        where: { user_id: user.id, used_at: null },
+        data: { used_at: new Date() }
     });
 
-    // Generar nuevo token
     const { plainToken, tokenHash } = generateResetToken();
 
-    // Guardar token hasheado con expiración de 1 hora
+    // Guardar token hasheado (expira en 1 hora)
     await prisma.passwordResetToken.create({
         data: {
             user_id: user.id,
             token_hash: tokenHash,
-            expires_at: new Date(Date.now() + 60 * 60 * 1000), // 1 hora
-        },
+            expires_at: new Date(Date.now() + 60 * 60 * 1000)
+        }
     });
 
-    // Construir URL de restablecimiento
-    const resetUrl = `${frontendUrl}/reset-password?token=${plainToken}`;
+    logger.info(`🔑 Token MANUAL generado por ADMIN para usuario ID: ${user.id}`);
 
-    // Enviar email (en dev se loguea en consola)
-    await sendPasswordResetEmail(user.email, resetUrl);
-
-    logger.info(`🔑 Token de reset generado para usuario ID: ${user.id}`);
+    // Retornar URL
+    return `${frontendUrl}/reset-password?token=${plainToken}`;
 }
 
 /**
@@ -163,6 +147,6 @@ async function resetPassword(token, newPassword) {
 }
 
 module.exports = {
-    requestPasswordReset,
+    generateAdminResetLink,
     resetPassword,
 };

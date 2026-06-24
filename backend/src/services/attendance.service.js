@@ -77,8 +77,10 @@ const attendanceService = {
             if (to) where.check_in.lte = new Date(to);
         }
 
+        const MAX_RESULTS = 5000;
         const logs = await prisma.attendanceLog.findMany({
             where,
+            take: MAX_RESULTS,
             include: {
                 employee: {
                     select: {

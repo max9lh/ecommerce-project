@@ -19,7 +19,7 @@ const rateLimitHandler = (msg) => (req, res) => {
  */
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 1000,
+    max: 300,
     handler: rateLimitHandler('Demasiadas solicitudes desde esta IP, intenta más tarde'),
     standardHeaders: true, // Retorna info en `RateLimit-*` headers
     legacyHeaders: false,  // Desactiva `X-RateLimit-*` headers
@@ -33,7 +33,7 @@ const apiLimiter = rateLimit({
  */
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 30,
+    max: 15,
     handler: rateLimitHandler('Demasiados intentos de login, intenta más tarde'),
     standardHeaders: true,
     legacyHeaders: false,
@@ -47,7 +47,7 @@ const authLimiter = rateLimit({
  */
 const writeLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 300,
+    max: 100,
     handler: rateLimitHandler('Demasiadas solicitudes de escritura, intenta más tarde'),
     standardHeaders: true,
     legacyHeaders: false,
