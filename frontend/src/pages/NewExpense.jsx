@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "@/context/AuthContext"
 import api from "@/api/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -24,6 +25,7 @@ import {
 
 export default function NewExpense() {
   const navigate = useNavigate()
+  const { isAdmin } = useAuth()
 
   const [providers, setProviders] = useState([])
   const [accounts, setAccounts] = useState([])
@@ -278,7 +280,10 @@ export default function NewExpense() {
                       ) : (
                         accounts.map((a) => (
                           <option key={a.id} value={a.id}>
-                            {a.name} (Saldo: ${Number(a.balance).toLocaleString("es-CL")})
+                            {a.name}
+                            {isAdmin
+                              ? ` (Saldo: $${Number(a.balance).toLocaleString("es-CL")})`
+                              : ""}
                           </option>
                         ))
                       )}
