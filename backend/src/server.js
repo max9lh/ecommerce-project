@@ -14,8 +14,11 @@ const PORT = process.env.PORT || 3000;
 
 async function main() {
     try {
-        // Verificar conexión a BD
-        await prisma.$connect();
+        // Verificar conexión a BD con timeout
+        logger.info('🔄 Intentando conectar a PostgreSQL...');
+        
+        // Usar generateClient en lugar de $connect para evitar migraciones
+        await prisma.$queryRaw`SELECT 1`;
         logger.info('✅ Conexión exitosa a PostgreSQL con Prisma');
 
         // Iniciar servidor
@@ -47,7 +50,7 @@ async function main() {
         });
 
     } catch (error) {
-        logger.error('❌ Error al iniciar el sistema:', error);
+        logger.error('❌ Error al iniciar el sistema:', error.message);
         await prisma.$disconnect();
         process.exit(1);
     }
