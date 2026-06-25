@@ -152,8 +152,9 @@ const login = async ({ username, password }) => {
             role: user.role,
             mustChangePassword: user.must_change_password,
         },
-        accessToken,      // ✅ Bearer token (corto)
-        expiresIn: 900,   // 15 minutos en segundos
+        accessToken,
+        refreshToken,
+        expiresIn: 900,
     };
 };
 
@@ -223,7 +224,7 @@ const refreshAccessToken = async (refreshTokenStr) => {
 
     return {
         accessToken: newAccessToken,
-        refreshToken: newRefreshToken,  // ✅ Rotar el refresh token
+        refreshToken: newRefreshToken,
         expiresIn: 900,
     };
 };
@@ -234,9 +235,9 @@ const refreshAccessToken = async (refreshTokenStr) => {
 const logout = async (userId) => {
     await prisma.user.update({
         where: { id: userId },
-        data: { refresh_token_hash: null }  // ✅ Invalida el token
+        data: { refresh_token_hash: null }
     }).catch(() => {
-        // Usuario no existe, ignorar
+        
     });
 };
 
