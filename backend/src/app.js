@@ -63,6 +63,10 @@ if (process.env.CORS_ORIGIN) {
     allowedOrigins.push(...origins);
 }
 
+// Variable para evitar spam de logs
+let corsRejectionCount = 0;
+let lastCorsLogTime = Date.now();
+
 const corsOptions = {
     origin: function (origin, callback) {
         // 1. Si no hay origen (peticiones Server-to-Server, Postman, Curl, o Health Checks), se permite.
@@ -78,8 +82,16 @@ const corsOptions = {
             return callback(null, true);
         }
         
-        // 4. Si es rechazado, guardamos un log detallado en producción para saber QUÉ falló exactamente
-        console.error(`[CORS DETECTED] Origen rechazado: "${origin}". El servidor solo acepta:`, allowedOrigins);
+        // 4. Log moderado para no saturar los logs en producción (máximo 1 log cada 5 minutos)
+        const now = Date.now();
+        if (now - lastCorsLogTime > 300000) { // 5 minutos
+            logger.warn(`[CORS] ${corsRejectionCount} solicitudes rechazadas en los últimos 5 minutos. Último origen rechazado: "${origin}"`);
+            corsRejectionCount = 0;
+            lastCorsLogTime = now;
+        } else {
+            corsRejectionCount++;
+        }
+        
         return callback(new Error('Not allowed by CORS'));
     },
     credentials: true, // Requerido para el manejo seguro de cookies y sesiones
