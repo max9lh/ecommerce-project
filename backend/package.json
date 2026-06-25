@@ -8,8 +8,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "build": "prisma generate",
-    "postinstall": "prisma generate",
-    "seed": "node prisma/seed.js"
+    "postinstall": "prisma generate || true"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
