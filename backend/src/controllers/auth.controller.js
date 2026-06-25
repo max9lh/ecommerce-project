@@ -4,13 +4,14 @@ const authGuard = require('../middlewares/authGuard');
 
 // Opciones de la cookie para el refresh token
 const isProduction = process.env.NODE_ENV === 'production';
+const REFRESH_DAYS = parseInt(process.env.REFRESH_EXPIRES_IN_DAYS) || 7;
 const COOKIE_OPTIONS = {
     httpOnly: true,                                        // No accesible desde JS
     secure: isProduction,                                  // Solo HTTPS en prod
     sameSite: isProduction ? 'none' : 'lax',               // 'none' para cross-domain en prod, 'lax' en dev
     ...(isProduction && { partitioned: true }),            // Requerido si sameSite='none' y secure=true
     path: '/',                                             // Disponible en toda la app
-    maxAge: 30 * 24 * 60 * 60 * 1000,                      // 30 días en ms
+    maxAge: REFRESH_DAYS * 24 * 60 * 60 * 1000,           // configurable (default: 7 días)
 };
 
 const register = async (req, res, next) => {
@@ -65,8 +66,11 @@ const refreshToken = async (req, res, next) => {
         // ✅ Llamar al servicio para generar nuevo access token
         const result = await authService.refreshAccessToken(refreshTokenFromCookie);
 
-        // ✅ Setear NUEVA cookie con nuevo refresh token (rotation) usando opciones unificadas
-        res.cookie('refreshToken', result.refreshToken, COOKIE_OPTIONS);
+        // ✅ Si rotáramos el refresh token, lo actualizaríamos aquí, 
+        // pero ahora mantenemos el mismo por 30 días para evitar desconexiones.
+        if (result.refreshToken) {
+            res.cookie('refreshToken', result.refreshToken, COOKIE_OPTIONS);
+        }
 
         // ✅ Devolver nuevo access token
         return res.status(200).json({
