@@ -1,8 +1,0 @@
-.env
-documents
-.gitattributes
-backend/todo_el_codigo.txt
-backend/prisma/seed.js
-backend/prisma/init-admin.js
-backend/prisma/reset-admin-password.js
-backend/test-tokens.js

@@ -50,6 +50,11 @@ const BUDGET_CATEGORIES = {
 const STATUS = { PENDING: 'Pendiente', PAID: 'Pagado' };
 
 async function main() {
+    if (process.env.NODE_ENV === 'production') {
+        console.log('🌱 Saltando seed en producción para proteger los datos.');
+        return;
+    }
+
     console.log('🌱 Limpiando base de datos...');
     // Borrar en orden inverso de dependencias
     await prisma.passwordResetToken.deleteMany();

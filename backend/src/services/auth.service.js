@@ -154,8 +154,9 @@ const login = async ({ username, password }) => {
             role: user.role,
             mustChangePassword: user.must_change_password,
         },
-        accessToken,      // ✅ Bearer token (corto)
-        expiresIn: 900,   // 15 minutos en segundos
+        accessToken,
+        refreshToken,
+        expiresIn: 900,
     };
 };
 
@@ -214,18 +215,12 @@ const refreshAccessToken = async (refreshTokenStr) => {
     // ✅ Generar nuevo access token
     const newAccessToken = generateAccessToken(user.id, payload);
 
-    // ✅ Generar nuevo refresh token también (rotation)
-    const newRefreshToken = generateRefreshToken(user.id);
-    const newRefreshTokenHash = hashRefreshToken(newRefreshToken);
-
-    await prisma.user.update({
-        where: { id: user.id },
-        data: { refresh_token_hash: newRefreshTokenHash }
-    });
+    // NOTA: Desactivamos la rotación constante del refresh token para evitar problemas de 
+    // concurrencia (múltiples pestañas o peticiones simultáneas) que causan el error "Revocado".
+    // El refresh token seguirá siendo válido hasta que expire (30 días) o el usuario haga logout.
 
     return {
         accessToken: newAccessToken,
-        refreshToken: newRefreshToken,  // ✅ Rotar el refresh token
         expiresIn: 900,
     };
 };
@@ -236,9 +231,9 @@ const refreshAccessToken = async (refreshTokenStr) => {
 const logout = async (userId) => {
     await prisma.user.update({
         where: { id: userId },
-        data: { refresh_token_hash: null }  // ✅ Invalida el token
+        data: { refresh_token_hash: null }
     }).catch(() => {
-        // Usuario no existe, ignorar
+        
     });
 };
 

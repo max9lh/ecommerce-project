@@ -23,8 +23,9 @@ const envSchema = z.object({
     BCRYPT_ROUNDS: z.coerce.number().min(10).max(14).default(12),
 
     // ---- CORS ----
+    // Acepta múltiples URLs separadas por comas (ej: "http://localhost:5173,https://miapp.com")
+    // No hace validación de URL para permitir flexibilidad
     CORS_ORIGIN: z.string()
-        .url('CORS_ORIGIN debe ser una URL válida')
         .default('http://localhost:5173'),
 
     // ---- LOGGING ----
