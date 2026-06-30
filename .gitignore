@@ -26,6 +26,7 @@ DOSSIER_ENTREGA_CLIENTE.md
 backend/test-tokens.js
 backend/prisma/reset-admin-password.js
 backend/prisma/init-admin.js
+backend/prisma/seed.js
 *.db
 *.db-journal
 *.sqlite
